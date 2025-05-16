@@ -1,7 +1,7 @@
 #pragma once
 #include "Entity/IEntity.hpp"
 #include "UUID.hpp"
-
+#include <filesystem>
 namespace MEngine
 {
 template <typename TEntity>
@@ -16,5 +16,7 @@ class IManager
     virtual std::vector<std::shared_ptr<TEntity>> GetAll() = 0;
     virtual void Update(const UUID &id, const TEntity &entity) = 0;
     virtual void Delete(const UUID &id) = 0;
+    virtual UUID Load(const std::filesystem::path &path) = 0;
+    virtual void Save(const std::filesystem::path &path, const TEntity &entity) = 0;
 };
 } // namespace MEngine

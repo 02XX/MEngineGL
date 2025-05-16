@@ -16,6 +16,11 @@ class Manager : public IManager<TEntity>
     virtual ~Manager() = default;
 
     // CRUD
+    virtual std::shared_ptr<TEntity> Create() = 0;
+    virtual void Update(const UUID &id, const TEntity &entity) override = 0;
+    virtual UUID Load(const std::filesystem::path &path) override = 0;
+    virtual void Save(const std::filesystem::path &path, const TEntity &entity) override = 0;
+
     virtual std::shared_ptr<TEntity> GetById(const UUID &id) override
     {
         auto it = mEntities.find(id);

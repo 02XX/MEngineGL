@@ -9,4 +9,4 @@ target_include_directories(Core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 target_link_libraries(Core PRIVATE glad::glad)
 target_link_libraries(Core PRIVATE glm::glm)
-target_link_libraries(Core PRIVATE Common)
+target_link_libraries(Core PUBLIC Common)

@@ -6,10 +6,13 @@
 
 namespace MEngine
 {
-class ShaderManager final : Manager<Shader>
+class ShaderManager final : public Manager<Shader>
 {
+  public:
     std::shared_ptr<Shader> Create() override;
     void Update(const UUID &id, const Shader &entity) override;
-    GLuint LoadShader(const std::filesystem::path &shaderPath);
+    GLuint LoadShader(GLuint shaderID, const std::filesystem::path &shaderPath);
+    UUID Load(const std::filesystem::path &path) override;
+    void Save(const std::filesystem::path &path, const Shader &entity) override;
 };
 } // namespace MEngine

@@ -4,9 +4,13 @@ find_package(glm CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(magic_enum CONFIG REQUIRED)
+find_package(fmt CONFIG REQUIRED)
+
 add_library(Common ${RESOURCE})
+
 target_include_directories(Common PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(Common PRIVATE glm::glm-header-only)
 target_link_libraries(Common PRIVATE spdlog::spdlog)
 target_link_libraries(Common PRIVATE nlohmann_json::nlohmann_json)
 target_link_libraries(Common PRIVATE magic_enum::magic_enum)
+target_link_libraries(Common PRIVATE fmt::fmt-header-only)

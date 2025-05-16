@@ -3,9 +3,11 @@
         "fmt",
         "glad",
         "glm",
+        "gtest",
+        "magic-enum",
         "nlohmann-json",
         "spdlog",
-        "magic-enum"
+        "glfw3"
     ],
     "overrides": [
         {
@@ -18,11 +20,11 @@
         },
         {
             "name": "fmt",
-            "version": "11.0.2#1"
+            "version": "9.1.0"
         },
         {
             "name": "spdlog",
-            "version": "1.15.1"
+            "version": "1.14.1"
         },
         {
             "name": "nlohmann-json",
@@ -31,6 +33,14 @@
         {
             "name": "magic-enum",
             "version": "0.9.7#1"
+        },
+        {
+            "name": "gtest",
+            "version": "1.16.0"
+        },
+        {
+            "name": "glfw3",
+            "version": "3.4#1"
         }
     ]
 }

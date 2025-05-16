@@ -14,9 +14,11 @@ Configure::Configure()
     {
         mJson = Json::parse(file);
         std::cout << "Configuration file loaded successfully." << std::endl;
+        file.close();
     }
     catch (const Json::exception &e)
     {
+        file.close();
         throw std::runtime_error("JSON parsing failed: " + std::string(e.what()));
     }
 }

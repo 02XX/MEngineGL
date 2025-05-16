@@ -1,8 +1,8 @@
 #pragma once
-#include <fmt/format.h>
 #include <magic_enum/magic_enum.hpp>
 #include <nlohmann/json.hpp>
 #include <source_location>
+#include <spdlog/spdlog.h>
 #include <string>
 
 namespace MEngine
@@ -61,30 +61,4 @@ class ILogger
   private:
     virtual void Log(LogLevel level, const std::source_location &loc, const std::string &message) = 0;
 };
-
-class LoggerConfigure
-{
-  public:
-    std::string LogFilePath = "logs/log.txt";
-    LogLevel LogLevel = LogLevel::Trace;
-};
 } // namespace MEngine
-
-namespace nlohmann
-{
-template <> struct adl_serializer<MEngine::LoggerConfigure>
-{
-    static void to_json(json &j, const MEngine::LoggerConfigure &m)
-    {
-        j = {
-            {"Logger", {{"LogFilePath", m.LogFilePath}, {"LogLevel", std::string(magic_enum::enum_name(m.LogLevel))}}}};
-    }
-    static void from_json(const json &j, MEngine::LoggerConfigure &m)
-    {
-        const auto &logger = j.at("Logger");
-        m.LogFilePath = logger.at("LogFilePath").get<std::string>();
-        auto level = logger.at("LogLevel").get<std::string>();
-        m.LogLevel = magic_enum::enum_cast<MEngine::LogLevel>(level).value_or(MEngine::LogLevel::Info);
-    }
-};
-} // namespace nlohmann

@@ -9,6 +9,7 @@ namespace MEngine
 class Shader : public IShader, public Entity
 {
     friend class ShaderManager;
+    friend struct nlohmann::adl_serializer<Shader>;
 
   private:
     std::filesystem::path mVertexShaderPath = std::filesystem::path();
@@ -26,7 +27,8 @@ class Shader : public IShader, public Entity
     GLuint mComputeShaderID = 0;
 
   public:
-    Shader() = default;
+    Shader();
+    ~Shader();
 
     inline const GLuint &GetVertexShader() const override
     {
@@ -53,29 +55,39 @@ class Shader : public IShader, public Entity
         return mComputeShaderID;
     }
 
-    inline void SetVertexShader(const std::filesystem::path &vertexShaderPath) override
-    {
-        mVertexShaderPath = vertexShaderPath;
-    }
-    inline void SetFragmentShader(const std::filesystem::path &fragmentShaderPath) override
-    {
-        mFragmentShaderPath = fragmentShaderPath;
-    }
-    inline void SetGeometryShader(const std::filesystem::path &geometryShaderPath) override
-    {
-        mGeometryShaderPath = geometryShaderPath;
-    }
-    inline void SetTessControlShader(const std::filesystem::path &tessControlShaderPath) override
-    {
-        mTessControlShaderPath = tessControlShaderPath;
-    }
-    inline void SetTessEvalShader(const std::filesystem::path &tessEvalShaderPath) override
-    {
-        mTessEvalShaderPath = tessEvalShaderPath;
-    }
-    inline void SetComputeShader(const std::filesystem::path &computeShaderPath) override
-    {
-        mComputeShaderPath = computeShaderPath;
-    }
+    void SetVertexShader(const std::filesystem::path &vertexShaderPath) override;
+    void SetFragmentShader(const std::filesystem::path &fragmentShaderPath) override;
+    void SetGeometryShader(const std::filesystem::path &geometryShaderPath) override;
+    void SetTessControlShader(const std::filesystem::path &tessControlShaderPath) override;
+    void SetTessEvalShader(const std::filesystem::path &tessEvalShaderPath) override;
+    void SetComputeShader(const std::filesystem::path &computeShaderPath) override;
+    GLuint LoadShader(GLuint shaderID, const std::filesystem::path &shaderPath);
 };
 } // namespace MEngine
+
+namespace nlohmann
+{
+template <> struct adl_serializer<MEngine::Shader>
+{
+    static void to_json(json &j, const MEngine::Shader &shader)
+    {
+        j = static_cast<MEngine::Entity>(shader);
+        j["vertexShaderPath"] = shader.mVertexShaderPath.string();
+        j["fragmentShaderPath"] = shader.mFragmentShaderPath.string();
+        j["geometryShaderPath"] = shader.mGeometryShaderPath.string();
+        j["tessControlShaderPath"] = shader.mTessControlShaderPath.string();
+        j["tessEvalShaderPath"] = shader.mTessEvalShaderPath.string();
+        j["computeShaderPath"] = shader.mComputeShaderPath.string();
+    }
+    static void from_json(const json &j, MEngine::Shader &shader)
+    {
+        static_cast<MEngine::Entity>(shader) = j;
+        shader.SetVertexShader(j.at("vertexShaderPath").get<std::string>());
+        shader.SetFragmentShader(j.at("fragmentShaderPath").get<std::string>());
+        shader.SetGeometryShader(j.at("geometryShaderPath").get<std::string>());
+        shader.SetTessControlShader(j.at("tessControlShaderPath").get<std::string>());
+        shader.SetTessEvalShader(j.at("tessEvalShaderPath").get<std::string>());
+        shader.SetComputeShader(j.at("computeShaderPath").get<std::string>());
+    }
+};
+} // namespace nlohmann

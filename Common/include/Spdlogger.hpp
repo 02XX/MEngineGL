@@ -18,7 +18,7 @@ class Spdlogger final : public ILogger
     std::shared_ptr<IConfigure> mConfigure = nullptr;
 
   private:
-    virtual void Log(LogLevel level, const std::source_location &loc, const std::string &message) override;
+    void Log(LogLevel level, const std::source_location &loc, const std::string &message) override;
     spdlog::sink_ptr mConsoleSink;
     spdlog::sink_ptr mFileSink;
     std::shared_ptr<spdlog::logger> mLogger;
