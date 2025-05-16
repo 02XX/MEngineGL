@@ -1,9 +1,11 @@
 #include "Entity/Shader.hpp"
+#include "Logger.hpp"
 
 namespace MEngine
 {
 Shader::Shader()
 {
+    mName = "Shader";
     mVertexShaderID = glCreateShader(GL_VERTEX_SHADER);
     mFragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
     mGeometryShaderID = glCreateShader(GL_GEOMETRY_SHADER);
@@ -17,24 +19,45 @@ Shader::~Shader()
 void Shader::SetVertexShader(const std::filesystem::path &vertexShaderPath)
 {
     mVertexShaderPath = vertexShaderPath;
-    mVertexShaderID = LoadShader(mVertexShaderID, mVertexShaderPath);
+    if (std::filesystem::exists(mVertexShaderPath))
+    {
+        mVertexShaderID = LoadShader(mVertexShaderID, mVertexShaderPath);
+    }
+    else
+    {
+        LogWarn("Vertex shader file does not exist, SKIPPED!!!");
+    }
 }
 void Shader::SetFragmentShader(const std::filesystem::path &fragmentShaderPath)
 {
     mFragmentShaderPath = fragmentShaderPath;
-    mFragmentShaderID = LoadShader(mFragmentShaderID, mFragmentShaderPath);
+    if (std::filesystem::exists(mFragmentShaderPath))
+    {
+        mFragmentShaderID = LoadShader(mFragmentShaderID, mFragmentShaderPath);
+    }
+    else
+    {
+        LogWarn("Fragment shader file does not exist, SKIPPED!!!");
+    }
 }
 void Shader::SetGeometryShader(const std::filesystem::path &geometryShaderPath)
 {
     mGeometryShaderPath = geometryShaderPath;
-    mGeometryShaderID = LoadShader(mGeometryShaderID, mGeometryShaderPath);
+    if (std::filesystem::exists(mGeometryShaderPath))
+    {
+        mGeometryShaderID = LoadShader(mGeometryShaderID, mGeometryShaderPath);
+    }
+    else
+    {
+        LogWarn("Geometry shader file does not exist, SKIPPED!!!");
+    }
 }
 
 GLuint Shader::LoadShader(GLuint shaderID, const std::filesystem::path &shaderPath)
 {
     if (!std::filesystem::exists(shaderPath))
     {
-        throw std::runtime_error("Shader file does not exist: " + shaderPath.string());
+        return 0;
     }
     std::ifstream file(shaderPath);
     if (!file.is_open())

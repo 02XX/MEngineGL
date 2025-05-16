@@ -1,14 +1,16 @@
 #pragma once
 #include "IEntity.hpp"
+#include "UUID.hpp"
 
 #include <memory>
 namespace MEngine
 {
 class Entity : virtual public IEntity
 {
-  private:
-    UUID mID = UUID();
+  protected:
+    UUID mID = UUIDGenerator()();
     std::filesystem::path mPath = std::filesystem::path();
+    std::string mName = "Unknown";
 
   public:
     Entity() = default;
@@ -21,6 +23,10 @@ class Entity : virtual public IEntity
     {
         return mPath;
     }
+    inline virtual const std::string &GetName() const override
+    {
+        return mName;
+    }
     inline virtual void SetID(const UUID &id) override
     {
         mID = id;
@@ -28,6 +34,10 @@ class Entity : virtual public IEntity
     inline virtual void SetPath(const std::filesystem::path &path) override
     {
         mPath = path;
+    }
+    inline virtual void SetName(const std::string &name) override
+    {
+        mName = name;
     }
 };
 } // namespace MEngine

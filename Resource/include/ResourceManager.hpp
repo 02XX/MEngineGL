@@ -19,7 +19,7 @@ namespace MEngine
 class ResourceManager
 {
   private:
-    std::filesystem::path mResourcePath;
+    std::filesystem::path mResourcePath = std::filesystem::current_path();
 
   private:
     std::unordered_map<UUID, std::shared_ptr<IEntity>> mEntities;
@@ -42,7 +42,7 @@ class ResourceManager
      * @brief 加载资源
      *
      */
-    void LoadAsset(const std::filesystem::path &path)
+    UUID LoadAsset(const std::filesystem::path &path)
     {
         if (!std::filesystem::exists(path))
         {
@@ -57,7 +57,7 @@ class ResourceManager
             if (typeIndex->second == typeid(Shader))
             {
                 entity = std::make_shared<Shader>();
-                Deserialize<Shader>(path, std::static_pointer_cast<Shader>(entity));
+                Deserialize<Shader>(path, std::dynamic_pointer_cast<Shader>(entity));
             }
             // else if (typeIndex->second == typeid(Texture))
             // {
@@ -65,7 +65,17 @@ class ResourceManager
             //     Deserialize<Texture>(path, std::static_pointer_cast<Texture>(entity));
             // }
         }
-        LogInfo("Loaded asset: {}", path.string());
+        if (entity)
+        {
+            mEntities[entity->GetID()] = entity;
+            LogInfo("Loaded asset: {}", path.string());
+            return entity->GetID();
+        }
+        else
+        {
+            LogError("Failed to load asset: {}", path.string());
+            return UUID();
+        }
     }
     /**
      * @brief 创建新的资源
@@ -79,7 +89,7 @@ class ResourceManager
     {
         using RepositoryType = typename RepositoryTraits<TEntity>::RepositoryType;
         static RepositoryType repository;
-        TEntity entity = repository.Create();
+        auto entity = repository.Create();
         mEntities[entity->GetID()] = entity;
         std::filesystem::path sourcePath = GenerateUniquePath<TEntity>(entity->GetName());
         entity->SetPath(sourcePath);
@@ -88,7 +98,7 @@ class ResourceManager
     }
     template <typename TEntity>
         requires std::derived_from<TEntity, IEntity>
-    UUID Serialize(std::filesystem::path path, std::shared_ptr<TEntity> target)
+    void Serialize(std::filesystem::path path, std::shared_ptr<TEntity> target)
     {
         std::ofstream file(path);
         if (!file.is_open())
@@ -117,12 +127,26 @@ class ResourceManager
      * @param id 资源的唯一标识
      * @return std::shared_ptr<TEntity> 资源实体
      */
+    template <typename TEntity>
+        requires std::derived_from<TEntity, IEntity>
     std::shared_ptr<IEntity> GetAsset(const UUID &id)
     {
         auto it = mEntities.find(id);
         if (it != mEntities.end())
         {
-            return std::static_pointer_cast<IEntity>(it->second);
+            auto entity = std::dynamic_pointer_cast<TEntity>(it->second);
+            if (entity)
+            {
+                return entity;
+            }
+            else
+            {
+                LogError("Failed to cast entity to the requested type.");
+            }
+        }
+        else
+        {
+            LogError("Entity with ID {} not found.", id.ToString());
         }
         return nullptr;
     }
@@ -169,11 +193,11 @@ class ResourceManager
     template <typename TEntity> std::filesystem::path GenerateUniquePath(const std::string &baseName)
     {
         std::string ext = GetExtension(typeid(TEntity));
-        std::filesystem::path path = mResourcePath / (baseName + ext);
+        std::filesystem::path path = mResourcePath / ("New " + baseName + ext);
         int i = 0;
         while (std::filesystem::exists(path))
         {
-            path = mResourcePath / (baseName + std::to_string(i) + ext);
+            path = mResourcePath / ("New " + baseName + std::to_string(i) + ext);
             i++;
         }
         return path;

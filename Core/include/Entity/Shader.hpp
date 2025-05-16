@@ -1,6 +1,7 @@
 #pragma once
 #include "Entity/Entity.hpp"
 #include "Entity/IShader.hpp"
+#include "Logger.hpp"
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -62,12 +63,14 @@ template <> struct adl_serializer<MEngine::Shader>
 {
     static void to_json(json &j, const MEngine::Shader &shader)
     {
+        j = static_cast<MEngine::Entity>(shader);
         j["vertexShaderPath"] = shader.GetVertexShaderPath().string();
         j["fragmentShaderPath"] = shader.GetFragmentShaderPath().string();
         j["geometryShaderPath"] = shader.GetGeometryShaderPath().string();
     }
     static void from_json(const json &j, MEngine::Shader &shader)
     {
+        static_cast<MEngine::Entity &>(shader) = j.get<MEngine::Entity>();
         shader.SetVertexShader(j.at("vertexShaderPath").get<std::string>());
         shader.SetFragmentShader(j.at("fragmentShaderPath").get<std::string>());
         shader.SetGeometryShader(j.at("geometryShaderPath").get<std::string>());

@@ -3,7 +3,7 @@ set_source_files_properties(${SOURCE_FILES} PROPERTIES CMAKE_CONFIGURE_DEPENDS O
 
 add_library(Resource ${RESOURCE})
 target_include_directories(Resource PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(Resource PRIVATE Core)
+target_link_libraries(Resource PUBLIC Core)
 
 #Shader
 add_custom_target(
