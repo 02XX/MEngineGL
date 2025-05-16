@@ -2,17 +2,9 @@
 
 namespace MEngine
 {
-void MaterialRepository::Update(std::shared_ptr<Material> entity)
+void PBRMaterialRepository::Update(std::shared_ptr<PBRMaterial> entity)
 {
-    switch (entity->GetMaterialType())
-    {
-    case MaterialType::PBR: {
-        auto pbrMaterial = std::dynamic_pointer_cast<PBRMaterial>(entity);
-        pbrMaterial->SetPBRProperties(pbrMaterial->GetPBRProperties());
-    }
-    break;
-    case MaterialType::Phong:
-        break;
-    }
+    auto pbrMaterial = std::dynamic_pointer_cast<PBRMaterial>(entity);
+    pbrMaterial->SetPBRProperties(pbrMaterial->GetPBRProperties());
 }
 } // namespace MEngine

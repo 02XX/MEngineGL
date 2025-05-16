@@ -43,7 +43,7 @@ class ResourceManagerTest : public ::testing::Test
     }
 };
 
-TEST_F(ResourceManagerTest, CreateAsset)
+TEST_F(ResourceManagerTest, CreateShaderAsset)
 {
     auto id = mResourceManager.CreateAsset<Shader>();
     auto shader = mResourceManager.GetAsset<Shader>(id);
@@ -52,7 +52,7 @@ TEST_F(ResourceManagerTest, CreateAsset)
     auto sourcePath = shader->GetPath();
     EXPECT_TRUE(std::filesystem::exists(sourcePath));
 }
-TEST_F(ResourceManagerTest, LoadAsset)
+TEST_F(ResourceManagerTest, LoadShaderAsset)
 {
     auto id = mResourceManager.CreateAsset<Shader>();
     auto shader = mResourceManager.GetAsset<Shader>(id);
@@ -65,4 +65,27 @@ TEST_F(ResourceManagerTest, LoadAsset)
     auto loadedShader = mResourceManager.GetAsset<Shader>(id);
     EXPECT_NE(loadedShader, nullptr);
     EXPECT_EQ(shader->GetID(), loadedShader->GetID());
+}
+TEST_F(ResourceManagerTest, CreatePBRMaterialAsset)
+{
+    auto id = mResourceManager.CreateAsset<PBRMaterial>();
+    auto material = mResourceManager.GetAsset<PBRMaterial>(id);
+    EXPECT_NE(id, UUID());
+    EXPECT_NE(material, nullptr);
+    auto sourcePath = material->GetPath();
+    EXPECT_TRUE(std::filesystem::exists(sourcePath));
+}
+TEST_F(ResourceManagerTest, LoadPBRMaterialAsset)
+{
+    auto id = mResourceManager.CreateAsset<PBRMaterial>();
+    auto material = mResourceManager.GetAsset<PBRMaterial>(id);
+    EXPECT_NE(id, UUID());
+    EXPECT_NE(material, nullptr);
+    auto sourcePath = material->GetPath();
+    EXPECT_TRUE(std::filesystem::exists(sourcePath));
+    id = mResourceManager.LoadAsset(sourcePath);
+    EXPECT_NE(id, UUID());
+    auto loadedMaterial = mResourceManager.GetAsset<PBRMaterial>(id);
+    EXPECT_NE(loadedMaterial, nullptr);
+    EXPECT_EQ(material->GetID(), loadedMaterial->GetID());
 }

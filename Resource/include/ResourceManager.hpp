@@ -7,8 +7,10 @@
 
 #include "Entity/Entity.hpp"
 #include "Entity/IEntity.hpp"
+#include "Entity/Material.hpp"
 #include "Entity/Shader.hpp"
 #include "Logger.hpp"
+#include "Repository/MaterialRepository.hpp"
 #include "Repository/Repository.hpp"
 #include "Repository/ShaderRepository.hpp"
 #include "UUID.hpp"
@@ -24,13 +26,13 @@ class ResourceManager
   private:
     std::unordered_map<UUID, std::shared_ptr<IEntity>> mEntities;
     const std::unordered_map<std::type_index, std::string> mTypeExtensions = {
-        {typeid(Shader), ".shader"},
+        {typeid(Shader), ".shader"}, {typeid(PBRMaterial), ".pbrmaterial"}
         // {typeid(Shader), ".shader"},     {typeid(Texture), ".texture"},     {typeid(Mesh), ".mesh"},
         // {typeid(Material), ".material"}, {typeid(Animation), ".animation"}, {typeid(Model), ".model"},
         // {typeid(Audio), ".audio"},       {typeid(Scene), ".scene"},
     };
     const std::unordered_map<std::string, std::type_index> mExtensionTypes = {
-        {".shader", typeid(Shader)},
+        {".shader", typeid(Shader)}, {".pbrmaterial", typeid(PBRMaterial)}
         // {".texture", typeid(Texture)},     {".mesh", typeid(Mesh)},
         // {".material", typeid(Material)},   {".animation", typeid(Animation)},
         // {".model", typeid(Model)},         {".audio", typeid(Audio)},
@@ -58,12 +60,16 @@ class ResourceManager
             {
                 entity = std::make_shared<Shader>();
                 Deserialize<Shader>(path, std::dynamic_pointer_cast<Shader>(entity));
+                static ShaderRepository repository;
+                repository.Update(std::dynamic_pointer_cast<Shader>(entity));
             }
-            // else if (typeIndex->second == typeid(Texture))
-            // {
-            //     entity = std::make_shared<Texture>();
-            //     Deserialize<Texture>(path, std::static_pointer_cast<Texture>(entity));
-            // }
+            else if (typeIndex->second == typeid(PBRMaterial))
+            {
+                entity = std::make_shared<PBRMaterial>();
+                Deserialize<PBRMaterial>(path, std::dynamic_pointer_cast<PBRMaterial>(entity));
+                static PBRMaterialRepository pbrRepository;
+                pbrRepository.Update(std::dynamic_pointer_cast<PBRMaterial>(entity));
+            }
         }
         if (entity)
         {
@@ -90,6 +96,7 @@ class ResourceManager
         using RepositoryType = typename RepositoryTraits<TEntity>::RepositoryType;
         static RepositoryType repository;
         auto entity = repository.Create();
+        repository.Update(entity);
         mEntities[entity->GetID()] = entity;
         std::filesystem::path sourcePath = GenerateUniquePath<TEntity>(entity->GetName());
         entity->SetPath(sourcePath);

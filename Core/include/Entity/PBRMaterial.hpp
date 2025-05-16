@@ -5,18 +5,19 @@
 #include "Math.hpp"
 namespace MEngine
 {
+struct PBRProperties
+{
+    float metallic = 0.0f;
+    float roughness = 0.5f;
+    glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);
+};
 class PBRMaterial final : public Material
 {
     friend class MaterialManager;
 
   private:
     // PBR properties
-    struct PBRProperties
-    {
-        float metallic = 0.0f;
-        float roughness = 0.5f;
-        glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);
-    } mPBRProperties;
+    PBRProperties mPBRProperties;
 
     // uniforms
     GLuint mUBO;
@@ -73,3 +74,42 @@ class PBRMaterial final : public Material
     }
 };
 } // namespace MEngine
+
+namespace nlohmann
+{
+template <> struct adl_serializer<MEngine::PBRProperties>
+{
+    static void to_json(json &j, const MEngine::PBRProperties &p)
+    {
+        j = json{{"metallic", p.metallic}, {"roughness", p.roughness}, {"color", {p.color.r, p.color.g, p.color.b}}};
+    }
+
+    static void from_json(const json &j, MEngine::PBRProperties &p)
+    {
+        j.at("metallic").get_to(p.metallic);
+        j.at("roughness").get_to(p.roughness);
+        auto color = j.at("color");
+        p.color = glm::vec3(color[0], color[1], color[2]);
+    }
+};
+
+template <> struct adl_serializer<MEngine::PBRMaterial>
+{
+    static void to_json(json &j, const MEngine::PBRMaterial &material)
+    {
+        j = static_cast<MEngine::Material>(material);
+        j["pbrProperties"] = material.GetPBRProperties();
+        j["albedoTexture"] = material.GetAlbedoTexture().ToString();
+        j["normalTexture"] = material.GetNormalTexture().ToString();
+        j["armTexture"] = material.GetARMTexture().ToString();
+    }
+    static void from_json(const json &j, MEngine::PBRMaterial &material)
+    {
+        static_cast<MEngine::Material &>(material) = j.get<MEngine::Material>();
+        material.SetPBRProperties(j.at("pbrProperties").get<MEngine::PBRProperties>());
+        material.SetAlbedoTexture(MEngine::UUID(j.at("albedoTexture").get<std::string>()));
+        material.SetNormalTexture(MEngine::UUID(j.at("normalTexture").get<std::string>()));
+        material.SetARMTexture(MEngine::UUID(j.at("armTexture").get<std::string>()));
+    }
+};
+} // namespace nlohmann

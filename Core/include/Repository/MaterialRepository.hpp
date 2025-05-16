@@ -4,14 +4,14 @@
 #include "Repository/Repository.hpp"
 namespace MEngine
 {
-class MaterialRepository final : public Repository<Material>
+class PBRMaterialRepository final : public Repository<PBRMaterial>
 {
   public:
-    MaterialRepository() = default;
-    void Update(std::shared_ptr<Material> entity) override;
+    PBRMaterialRepository() = default;
+    void Update(std::shared_ptr<PBRMaterial> entity) override;
 };
 template <> struct RepositoryTraits<PBRMaterial>
 {
-    using RepositoryType = MaterialRepository;
+    using RepositoryType = PBRMaterialRepository;
 };
 } // namespace MEngine
