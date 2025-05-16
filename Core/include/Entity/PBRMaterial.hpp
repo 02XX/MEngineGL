@@ -11,9 +11,12 @@ class PBRMaterial final : public Material
 
   private:
     // PBR properties
-    float mMetallic = 0.0f;
-    float mRoughness = 0.5f;
-    glm::vec3 mColor = glm::vec3(1.0f, 1.0f, 1.0f);
+    struct PBRProperties
+    {
+        float metallic = 0.0f;
+        float roughness = 0.5f;
+        glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);
+    } mPBRProperties;
 
     // uniforms
     GLuint mUBO;
@@ -24,36 +27,18 @@ class PBRMaterial final : public Material
     // shader
     UUID mShaderID = UUID();
 
+    // program
+    GLuint mProgramID = 0;
+
   public:
-    PBRMaterial() = default;
+    PBRMaterial();
+    ~PBRMaterial();
 
-    inline void SetMetallic(float metallic)
+    inline const PBRProperties &GetPBRProperties() const
     {
-        mMetallic = metallic;
+        return mPBRProperties;
     }
-    inline float GetMetallic() const
-    {
-        return mMetallic;
-    }
-
-    inline void SetRoughness(float roughness)
-    {
-        mRoughness = roughness;
-    }
-    inline float GetRoughness() const
-    {
-        return mRoughness;
-    }
-
-    inline void SetColor(const glm::vec3 &color)
-    {
-        mColor = color;
-    }
-    inline const glm::vec3 &GetColor() const
-    {
-        return mColor;
-    }
-
+    void SetPBRProperties(const PBRProperties &properties);
     inline void SetAlbedoTexture(const UUID &textureID)
     {
         mAlbedoTexture = textureID;
@@ -62,7 +47,6 @@ class PBRMaterial final : public Material
     {
         return mAlbedoTexture;
     }
-
     inline void SetNormalTexture(const UUID &textureID)
     {
         mNormalTexture = textureID;
@@ -71,7 +55,6 @@ class PBRMaterial final : public Material
     {
         return mNormalTexture;
     }
-
     inline void SetARMTexture(const UUID &textureID)
     {
         mARMTexture = textureID;

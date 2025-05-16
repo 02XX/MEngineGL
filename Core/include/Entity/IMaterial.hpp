@@ -1,6 +1,6 @@
 #pragma once
 #include "Entity/IEntity.hpp"
-
+#include <glad/glad.h>
 namespace MEngine
 {
 enum class MaterialType
@@ -14,6 +14,7 @@ class IMaterial : virtual public IEntity
     virtual ~IMaterial() = default;
     // getters
     virtual MaterialType GetMaterialType() const = 0;
+    virtual const UUID &GetShaderID() const = 0;
 
     // setters
     virtual void SetMaterialType(MaterialType type) = 0;
