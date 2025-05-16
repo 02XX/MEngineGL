@@ -8,7 +8,7 @@ namespace MEngine
 {
 class UUID final
 {
-    friend class std::hash<MEngine::UUID>;
+    friend struct std::hash<MEngine::UUID>;
     friend class UUIDGenerator;
 
   private:

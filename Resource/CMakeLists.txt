@@ -5,7 +5,6 @@ add_library(Resource ${RESOURCE})
 target_include_directories(Resource PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(Resource PRIVATE Core)
 
-
 #Shader
 add_custom_target(
     Shader

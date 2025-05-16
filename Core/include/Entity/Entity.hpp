@@ -1,36 +1,33 @@
 #pragma once
-#include "Entity/IEntity.hpp"
-#include <nlohmann/json.hpp>
+#include "IEntity.hpp"
+
+#include <memory>
 namespace MEngine
 {
 class Entity : virtual public IEntity
 {
-  protected:
+  private:
     UUID mID = UUID();
-    std::string mName = "";
+    std::filesystem::path mPath = std::filesystem::path();
 
   public:
     Entity() = default;
-    Entity(const UUID &id, const std::string &name) : mID(id), mName(name)
-    {
-    }
-    ~Entity() override = default;
-
-    inline const UUID &GetID() const override
+    virtual ~Entity() = default;
+    inline virtual const UUID &GetID() const override
     {
         return mID;
     }
-    inline const std::string &GetName() const override
+    inline virtual const std::filesystem::path &GetPath() const override
     {
-        return mName;
+        return mPath;
     }
-    inline void SetID(const UUID &id) override
+    inline virtual void SetID(const UUID &id) override
     {
-        this->mID = id;
+        mID = id;
     }
-    inline void SetName(const std::string &name) override
+    inline virtual void SetPath(const std::filesystem::path &path) override
     {
-        this->mName = name;
+        mPath = path;
     }
 };
 } // namespace MEngine
@@ -42,13 +39,13 @@ template <> struct adl_serializer<MEngine::Entity>
     static void to_json(json &j, const MEngine::Entity &entity)
     {
         j["id"] = entity.GetID().ToString();
-        j["name"] = entity.GetName();
+        j["path"] = entity.GetPath().string();
     }
 
     static void from_json(const json &j, MEngine::Entity &entity)
     {
         entity.SetID(MEngine::UUID(j.at("id").get<std::string>()));
-        entity.SetName(j.at("name").get<std::string>());
+        entity.SetPath(j.at("path").get<std::string>());
     }
 };
 } // namespace nlohmann

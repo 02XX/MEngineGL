@@ -1,0 +1,187 @@
+#pragma once
+
+#include <filesystem>
+#include <memory>
+#include <typeindex>
+#include <unordered_map>
+
+#include "Entity/Entity.hpp"
+#include "Entity/IEntity.hpp"
+#include "Entity/Shader.hpp"
+#include "Logger.hpp"
+#include "Repository/Repository.hpp"
+#include "Repository/ShaderRepository.hpp"
+#include "UUID.hpp"
+
+using json = nlohmann::json;
+namespace MEngine
+{
+class ResourceManager
+{
+  private:
+    std::filesystem::path mResourcePath;
+
+  private:
+    std::unordered_map<UUID, std::shared_ptr<IEntity>> mEntities;
+    const std::unordered_map<std::type_index, std::string> mTypeExtensions = {
+        {typeid(Shader), ".shader"},
+        // {typeid(Shader), ".shader"},     {typeid(Texture), ".texture"},     {typeid(Mesh), ".mesh"},
+        // {typeid(Material), ".material"}, {typeid(Animation), ".animation"}, {typeid(Model), ".model"},
+        // {typeid(Audio), ".audio"},       {typeid(Scene), ".scene"},
+    };
+    const std::unordered_map<std::string, std::type_index> mExtensionTypes = {
+        {".shader", typeid(Shader)},
+        // {".texture", typeid(Texture)},     {".mesh", typeid(Mesh)},
+        // {".material", typeid(Material)},   {".animation", typeid(Animation)},
+        // {".model", typeid(Model)},         {".audio", typeid(Audio)},
+        // {".scene", typeid(Scene)},
+    };
+
+  public:
+    /**
+     * @brief 加载资源
+     *
+     */
+    void LoadAsset(const std::filesystem::path &path)
+    {
+        if (!std::filesystem::exists(path))
+        {
+            throw std::runtime_error("File does not exist: " + path.string());
+        }
+        // 获取文件类型
+        std::string extension = path.extension().string();
+        auto typeIndex = mExtensionTypes.find(extension);
+        std::shared_ptr<IEntity> entity = nullptr;
+        if (typeIndex != mExtensionTypes.end())
+        {
+            if (typeIndex->second == typeid(Shader))
+            {
+                entity = std::make_shared<Shader>();
+                Deserialize<Shader>(path, std::static_pointer_cast<Shader>(entity));
+            }
+            // else if (typeIndex->second == typeid(Texture))
+            // {
+            //     entity = std::make_shared<Texture>();
+            //     Deserialize<Texture>(path, std::static_pointer_cast<Texture>(entity));
+            // }
+        }
+        LogInfo("Loaded asset: {}", path.string());
+    }
+    /**
+     * @brief 创建新的资源
+     * @tparam TEntity 实体类型，需继承自 IEntity
+     * @return UUID 资源的唯一标识
+     * @throws std::runtime_error 如果文件创建失败
+     */
+    template <typename TEntity>
+        requires std::derived_from<TEntity, IEntity>
+    UUID CreateAsset()
+    {
+        using RepositoryType = typename RepositoryTraits<TEntity>::RepositoryType;
+        static RepositoryType repository;
+        TEntity entity = repository.Create();
+        mEntities[entity->GetID()] = entity;
+        std::filesystem::path sourcePath = GenerateUniquePath<TEntity>(entity->GetName());
+        entity->SetPath(sourcePath);
+        Serialize(sourcePath, entity);
+        return entity->GetID();
+    }
+    template <typename TEntity>
+        requires std::derived_from<TEntity, IEntity>
+    UUID Serialize(std::filesystem::path path, std::shared_ptr<TEntity> target)
+    {
+        std::ofstream file(path);
+        if (!file.is_open())
+        {
+            throw std::runtime_error("Failed to create file: " + path.string());
+        }
+        json j;
+        j = *target;
+        file << j.dump(4);
+        file.close();
+    }
+    template <typename TEntity>
+        requires std::derived_from<TEntity, IEntity>
+    void Deserialize(std::filesystem::path path, std::shared_ptr<TEntity> target)
+    {
+        std::ifstream file(path);
+        if (!file.is_open())
+        {
+            throw std::runtime_error("Failed to open file: " + path.string());
+        }
+        json j = json::parse(file);
+        *target = j.get<TEntity>();
+    }
+    /**
+     * @brief 获取资源
+     * @param id 资源的唯一标识
+     * @return std::shared_ptr<TEntity> 资源实体
+     */
+    std::shared_ptr<IEntity> GetAsset(const UUID &id)
+    {
+        auto it = mEntities.find(id);
+        if (it != mEntities.end())
+        {
+            return std::static_pointer_cast<IEntity>(it->second);
+        }
+        return nullptr;
+    }
+    /**
+     * @brief 更新资源
+     * @tparam TEntity 实体类型，需继承自 IEntity
+     * @param id 资源的唯一标识
+     * @param entity 资源实体
+     */
+    template <typename TEntity>
+        requires std::derived_from<TEntity, IEntity>
+    void UpdateAsset(const UUID &id, std::shared_ptr<TEntity> entity)
+    {
+        using RepositoryType = typename RepositoryTraits<TEntity>::RepositoryType;
+        static RepositoryType repository;
+        auto it = mEntities.find(id);
+        if (it != mEntities.end())
+        {
+            // 更新entity
+            it->second = entity;
+            repository.Update(entity);
+            Serialize<TEntity>(entity.GetPath(), entity);
+        }
+    }
+    /**
+     * @brief 删除资源
+     * @param id 资源的唯一标识
+     */
+    void DeleteAsset(const UUID &id)
+    {
+        auto it = mEntities.find(id);
+        if (it != mEntities.end())
+        {
+            std::filesystem::remove(it->second->GetPath());
+            mEntities.erase(it);
+        }
+    }
+    /**
+     * @brief 生成唯一的文件路径
+     * @tparam TEntity 实体类型
+     * @param baseName 基础名称
+     * @return 唯一路径
+     */
+    template <typename TEntity> std::filesystem::path GenerateUniquePath(const std::string &baseName)
+    {
+        std::string ext = GetExtension(typeid(TEntity));
+        std::filesystem::path path = mResourcePath / (baseName + ext);
+        int i = 0;
+        while (std::filesystem::exists(path))
+        {
+            path = mResourcePath / (baseName + std::to_string(i) + ext);
+            i++;
+        }
+        return path;
+    }
+    std::string GetExtension(const std::type_index &type)
+    {
+        auto it = mTypeExtensions.find(type);
+        return it != mTypeExtensions.end() ? it->second : ".unknown";
+    }
+};
+} // namespace MEngine

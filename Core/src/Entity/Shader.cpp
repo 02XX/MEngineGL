@@ -2,23 +2,17 @@
 
 namespace MEngine
 {
-Shader::Shader() : Entity(UUIDGenerator()(), "Shader")
+Shader::Shader()
 {
     mVertexShaderID = glCreateShader(GL_VERTEX_SHADER);
     mFragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
     mGeometryShaderID = glCreateShader(GL_GEOMETRY_SHADER);
-    mTessControlShaderID = glCreateShader(GL_TESS_CONTROL_SHADER);
-    mTessEvalShaderID = glCreateShader(GL_TESS_EVALUATION_SHADER);
-    mComputeShaderID = glCreateShader(GL_COMPUTE_SHADER);
 }
 Shader::~Shader()
 {
     glDeleteShader(mVertexShaderID);
     glDeleteShader(mFragmentShaderID);
     glDeleteShader(mGeometryShaderID);
-    glDeleteShader(mTessControlShaderID);
-    glDeleteShader(mTessEvalShaderID);
-    glDeleteShader(mComputeShaderID);
 }
 void Shader::SetVertexShader(const std::filesystem::path &vertexShaderPath)
 {
@@ -35,21 +29,7 @@ void Shader::SetGeometryShader(const std::filesystem::path &geometryShaderPath)
     mGeometryShaderPath = geometryShaderPath;
     mGeometryShaderID = LoadShader(mGeometryShaderID, mGeometryShaderPath);
 }
-void Shader::SetTessControlShader(const std::filesystem::path &tessControlShaderPath)
-{
-    mTessControlShaderPath = tessControlShaderPath;
-    mTessControlShaderID = LoadShader(mTessControlShaderID, mTessControlShaderPath);
-}
-void Shader::SetTessEvalShader(const std::filesystem::path &tessEvalShaderPath)
-{
-    mTessEvalShaderPath = tessEvalShaderPath;
-    mTessEvalShaderID = LoadShader(mTessEvalShaderID, mTessEvalShaderPath);
-}
-void Shader::SetComputeShader(const std::filesystem::path &computeShaderPath)
-{
-    mComputeShaderPath = computeShaderPath;
-    mComputeShaderID = LoadShader(mComputeShaderID, mComputeShaderPath);
-}
+
 GLuint Shader::LoadShader(GLuint shaderID, const std::filesystem::path &shaderPath)
 {
     if (!std::filesystem::exists(shaderPath))
