@@ -14,6 +14,7 @@ struct PBRProperties
 class PBRMaterial final : public Material
 {
     friend class MaterialManager;
+    friend struct nlohmann::adl_serializer<MEngine::PBRMaterial>;
 
   private:
     // PBR properties
@@ -22,9 +23,9 @@ class PBRMaterial final : public Material
     // uniforms
     GLuint mUBO;
     // textures
-    UUID mAlbedoTexture = UUID();
-    UUID mNormalTexture = UUID();
-    UUID mARMTexture = UUID(); // Ambient, Roughness, Metallic
+    UUID mAlbedoTextureID = UUID();
+    UUID mNormalTextureID = UUID();
+    UUID mARMTextureID = UUID(); // Ambient, Roughness, Metallic
     // shader
     UUID mShaderID = UUID();
 
@@ -42,27 +43,27 @@ class PBRMaterial final : public Material
     void SetPBRProperties(const PBRProperties &properties);
     inline void SetAlbedoTexture(const UUID &textureID)
     {
-        mAlbedoTexture = textureID;
+        mAlbedoTextureID = textureID;
     }
     inline const UUID &GetAlbedoTexture() const
     {
-        return mAlbedoTexture;
+        return mAlbedoTextureID;
     }
     inline void SetNormalTexture(const UUID &textureID)
     {
-        mNormalTexture = textureID;
+        mNormalTextureID = textureID;
     }
     inline const UUID &GetNormalTexture() const
     {
-        return mNormalTexture;
+        return mNormalTextureID;
     }
     inline void SetARMTexture(const UUID &textureID)
     {
-        mARMTexture = textureID;
+        mARMTextureID = textureID;
     }
     inline const UUID &GetARMTexture() const
     {
-        return mARMTexture;
+        return mARMTextureID;
     }
     inline void SetShaderID(const UUID &shaderID)
     {
@@ -98,18 +99,18 @@ template <> struct adl_serializer<MEngine::PBRMaterial>
     static void to_json(json &j, const MEngine::PBRMaterial &material)
     {
         j = static_cast<MEngine::Material>(material);
-        j["pbrProperties"] = material.GetPBRProperties();
-        j["albedoTexture"] = material.GetAlbedoTexture().ToString();
-        j["normalTexture"] = material.GetNormalTexture().ToString();
-        j["armTexture"] = material.GetARMTexture().ToString();
+        j["pbrProperties"] = material.mPBRProperties;
+        j["albedoTexture"] = material.mAlbedoTextureID.ToString();
+        j["normalTexture"] = material.mNormalTextureID.ToString();
+        j["armTexture"] = material.mARMTextureID.ToString();
     }
     static void from_json(const json &j, MEngine::PBRMaterial &material)
     {
         static_cast<MEngine::Material &>(material) = j.get<MEngine::Material>();
-        material.SetPBRProperties(j.at("pbrProperties").get<MEngine::PBRProperties>());
-        material.SetAlbedoTexture(MEngine::UUID(j.at("albedoTexture").get<std::string>()));
-        material.SetNormalTexture(MEngine::UUID(j.at("normalTexture").get<std::string>()));
-        material.SetARMTexture(MEngine::UUID(j.at("armTexture").get<std::string>()));
+        material.mPBRProperties = j.at("pbrProperties").get<MEngine::PBRProperties>();
+        material.mAlbedoTextureID = MEngine::UUID(j.at("albedoTexture").get<std::string>());
+        material.mNormalTextureID = MEngine::UUID(j.at("normalTexture").get<std::string>());
+        material.mAlbedoTextureID = MEngine::UUID(j.at("armTexture").get<std::string>());
     }
 };
 } // namespace nlohmann

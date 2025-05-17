@@ -2,12 +2,13 @@
     "dependencies": [
         "fmt",
         "glad",
+        "glfw3",
         "glm",
         "gtest",
         "magic-enum",
         "nlohmann-json",
         "spdlog",
-        "glfw3"
+        "stb"
     ],
     "overrides": [
         {
@@ -41,6 +42,10 @@
         {
             "name": "glfw3",
             "version": "3.4#1"
+        },
+        {
+            "name": "stb",
+            "version": "2024-07-29#1"
         }
     ]
 }

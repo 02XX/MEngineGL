@@ -12,6 +12,7 @@ namespace MEngine
 class Shader final : public Entity, public IShader
 {
     friend class ShaderRepository;
+    friend struct nlohmann::adl_serializer<MEngine::Shader>;
 
   private:
     std::filesystem::path mVertexShaderPath = std::filesystem::path();

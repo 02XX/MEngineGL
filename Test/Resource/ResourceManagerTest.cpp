@@ -89,3 +89,26 @@ TEST_F(ResourceManagerTest, LoadPBRMaterialAsset)
     EXPECT_NE(loadedMaterial, nullptr);
     EXPECT_EQ(material->GetID(), loadedMaterial->GetID());
 }
+TEST_F(ResourceManagerTest, CreateTextureAsset)
+{
+    auto id = mResourceManager.CreateAsset<Texture2D>();
+    auto texture = mResourceManager.GetAsset<Texture2D>(id);
+    EXPECT_NE(id, UUID());
+    EXPECT_NE(texture, nullptr);
+    auto sourcePath = texture->GetPath();
+    EXPECT_TRUE(std::filesystem::exists(sourcePath));
+}
+TEST_F(ResourceManagerTest, LoadTextureAsset)
+{
+    auto id = mResourceManager.CreateAsset<Texture2D>();
+    auto texture = mResourceManager.GetAsset<Texture2D>(id);
+    EXPECT_NE(id, UUID());
+    EXPECT_NE(texture, nullptr);
+    auto sourcePath = texture->GetPath();
+    EXPECT_TRUE(std::filesystem::exists(sourcePath));
+    id = mResourceManager.LoadAsset(sourcePath);
+    EXPECT_NE(id, UUID());
+    auto loadedTexture = mResourceManager.GetAsset<Texture2D>(id);
+    EXPECT_NE(loadedTexture, nullptr);
+    EXPECT_EQ(texture->GetID(), loadedTexture->GetID());
+}

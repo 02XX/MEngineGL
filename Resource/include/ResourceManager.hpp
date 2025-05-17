@@ -9,10 +9,12 @@
 #include "Entity/IEntity.hpp"
 #include "Entity/Material.hpp"
 #include "Entity/Shader.hpp"
+#include "Entity/Texture2D.hpp"
 #include "Logger.hpp"
 #include "Repository/MaterialRepository.hpp"
 #include "Repository/Repository.hpp"
 #include "Repository/ShaderRepository.hpp"
+#include "Repository/TextureRepository.hpp"
 #include "UUID.hpp"
 
 using json = nlohmann::json;
@@ -26,13 +28,15 @@ class ResourceManager
   private:
     std::unordered_map<UUID, std::shared_ptr<IEntity>> mEntities;
     const std::unordered_map<std::type_index, std::string> mTypeExtensions = {
-        {typeid(Shader), ".shader"}, {typeid(PBRMaterial), ".pbrmaterial"}
-        // {typeid(Shader), ".shader"},     {typeid(Texture), ".texture"},     {typeid(Mesh), ".mesh"},
+        {typeid(Shader), ".shader"},
+        {typeid(PBRMaterial), ".pbrmaterial"},
+        {typeid(Texture2D), ".tex2d"},
+        {typeid(Texture2D), ".texture"},
         // {typeid(Material), ".material"}, {typeid(Animation), ".animation"}, {typeid(Model), ".model"},
         // {typeid(Audio), ".audio"},       {typeid(Scene), ".scene"},
     };
     const std::unordered_map<std::string, std::type_index> mExtensionTypes = {
-        {".shader", typeid(Shader)}, {".pbrmaterial", typeid(PBRMaterial)}
+        {".shader", typeid(Shader)}, {".pbrmaterial", typeid(PBRMaterial)}, {".tex2d", typeid(Texture2D)}
         // {".texture", typeid(Texture)},     {".mesh", typeid(Mesh)},
         // {".material", typeid(Material)},   {".animation", typeid(Animation)},
         // {".model", typeid(Model)},         {".audio", typeid(Audio)},
@@ -69,6 +73,13 @@ class ResourceManager
                 Deserialize<PBRMaterial>(path, std::dynamic_pointer_cast<PBRMaterial>(entity));
                 static PBRMaterialRepository pbrRepository;
                 pbrRepository.Update(std::dynamic_pointer_cast<PBRMaterial>(entity));
+            }
+            else if (typeIndex->second == typeid(Texture2D))
+            {
+                entity = std::make_shared<Texture2D>();
+                Deserialize<Texture2D>(path, std::dynamic_pointer_cast<Texture2D>(entity));
+                static Texture2DRepository textureRepository;
+                textureRepository.Update(std::dynamic_pointer_cast<Texture2D>(entity));
             }
         }
         if (entity)

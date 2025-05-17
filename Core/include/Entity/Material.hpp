@@ -10,6 +10,7 @@ namespace MEngine
 class Material : public IMaterial, public Entity
 {
     friend class MaterialManager;
+    friend struct nlohmann::adl_serializer<MEngine::Material>;
 
   protected:
     MaterialType mMaterialType = MaterialType::PBR;
@@ -45,7 +46,7 @@ template <> struct adl_serializer<MEngine::Material>
     static void to_json(json &j, const MEngine::Material &material)
     {
         j = static_cast<MEngine::Entity>(material);
-        j["materialType"] = magic_enum::enum_name(material.GetMaterialType());
+        j["materialType"] = magic_enum::enum_name(material.mMaterialType);
     }
     static void from_json(const json &j, MEngine::Material &material)
     {
@@ -54,7 +55,7 @@ template <> struct adl_serializer<MEngine::Material>
         auto enumType = magic_enum::enum_cast<MEngine::MaterialType>(materialType);
         if (enumType.has_value())
         {
-            material.SetMaterialType(enumType.value());
+            material.mMaterialType = enumType.value();
         }
         else
         {
