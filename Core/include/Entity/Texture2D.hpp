@@ -46,6 +46,22 @@ enum class TextureFormatType : GLenum
     DepthComponent = GL_DEPTH_COMPONENT,
     DepthStencil = GL_DEPTH_STENCIL
 };
+struct Importer
+{
+    GLsizei mipLevels = 1;
+    FilterType minFilter = FilterType::Linear;
+    FilterType magFilter = FilterType::Linear;
+    WrapModeType wrapS = WrapModeType::Repeat;
+    WrapModeType wrapT = WrapModeType::Repeat;
+    WrapModeType wrapR = WrapModeType::Repeat;
+    CompareModeType compareMode = CompareModeType::None;
+    CompareFuncType compareFunc = CompareFuncType::Lequal;
+    float lodMin = -1000.0f;
+    float lodMax = 1000.0f;
+    float lodBias = 0.0f;
+    float maxAnisotropy = 1.0f;
+    float borderColor[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+};
 class Texture2D final : public ITexture, public Entity
 {
     friend struct nlohmann::adl_serializer<MEngine::Texture2D>;
@@ -59,18 +75,8 @@ class Texture2D final : public ITexture, public Entity
     TextureFormatType mInternalFormat = TextureFormatType::RGBA;
 
     GLuint mSamplerID = 0;
-    FilterType mMinFilter = FilterType::Linear;
-    FilterType mMagFilter = FilterType::Linear;
-    WrapModeType mWrapS = WrapModeType::Repeat;
-    WrapModeType mWrapT = WrapModeType::Repeat;
-    WrapModeType mWrapR = WrapModeType::Repeat;
-    CompareModeType mCompareMode = CompareModeType::None;
-    CompareFuncType mCompareFunc = CompareFuncType::Lequal;
-    float mLodMin = -1000.0f;
-    float mLodMax = 1000.0f;
-    float mLodBias = 0.0f;
-    float mMaxAnisotropy = 1.0f;
-    float mBorderColor[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+
+    Importer mImporter;
     GLuint mTextureID = 0;
 
   public:
@@ -89,7 +95,24 @@ class Texture2D final : public ITexture, public Entity
     {
         return mHeight;
     }
-    void SetSampler();
+    inline void SetImporter(const Importer &importer)
+    {
+        mImporter.minFilter = importer.minFilter;
+        mImporter.magFilter = importer.magFilter;
+        mImporter.wrapS = importer.wrapS;
+        mImporter.wrapT = importer.wrapT;
+        mImporter.wrapR = importer.wrapR;
+        mImporter.compareMode = importer.compareMode;
+        mImporter.compareFunc = importer.compareFunc;
+        mImporter.lodMin = importer.lodMin;
+        mImporter.lodMax = importer.lodMax;
+        mImporter.lodBias = importer.lodBias;
+        mImporter.maxAnisotropy = importer.maxAnisotropy;
+        mImporter.borderColor[0] = importer.borderColor[0];
+        mImporter.borderColor[1] = importer.borderColor[1];
+        mImporter.borderColor[2] = importer.borderColor[2];
+        mImporter.borderColor[3] = importer.borderColor[3];
+    }
     inline bool IsAnisotropicFilteringSupported() const
     {
         if (!glGetString)
@@ -105,6 +128,11 @@ class Texture2D final : public ITexture, public Entity
     {
         return mSamplerID;
     }
+    inline const Importer &GetImporter() const
+    {
+        return mImporter;
+    }
+    void Update();
 };
 } // namespace MEngine
 namespace magic_enum
@@ -153,20 +181,20 @@ template <> struct adl_serializer<MEngine::Texture2D>
         j["image_path"] = texture.mImagePath;
         j["width"] = texture.mWidth;
         j["height"] = texture.mHeight;
-        j["importer"]["mip_levels"] = texture.mMipLevels;
-        j["importer"]["min_filter"] = magic_enum::enum_name(texture.mMinFilter);
-        j["importer"]["mag_filter"] = magic_enum::enum_name(texture.mMagFilter);
-        j["importer"]["wrap_s"] = magic_enum::enum_name(texture.mWrapS);
-        j["importer"]["wrap_t"] = magic_enum::enum_name(texture.mWrapT);
-        j["importer"]["wrap_r"] = magic_enum::enum_name(texture.mWrapR);
-        j["importer"]["compare_mode"] = magic_enum::enum_name(texture.mCompareMode);
-        j["importer"]["compare_func"] = magic_enum::enum_name(texture.mCompareFunc);
-        j["importer"]["lod_min"] = texture.mLodMin;
-        j["importer"]["lod_max"] = texture.mLodMax;
-        j["importer"]["lod_bias"] = texture.mLodBias;
-        j["importer"]["max_anisotropy"] = texture.mMaxAnisotropy;
-        j["importer"]["border_color"] = {texture.mBorderColor[0], texture.mBorderColor[1], texture.mBorderColor[2],
-                                         texture.mBorderColor[3]};
+        j["importer"]["mip_levels"] = texture.mImporter.mipLevels;
+        j["importer"]["min_filter"] = magic_enum::enum_name(texture.mImporter.minFilter);
+        j["importer"]["mag_filter"] = magic_enum::enum_name(texture.mImporter.magFilter);
+        j["importer"]["wrap_s"] = magic_enum::enum_name(texture.mImporter.wrapS);
+        j["importer"]["wrap_t"] = magic_enum::enum_name(texture.mImporter.wrapT);
+        j["importer"]["wrap_r"] = magic_enum::enum_name(texture.mImporter.wrapR);
+        j["importer"]["compare_mode"] = magic_enum::enum_name(texture.mImporter.compareMode);
+        j["importer"]["compare_func"] = magic_enum::enum_name(texture.mImporter.compareFunc);
+        j["importer"]["lod_min"] = texture.mImporter.lodMin;
+        j["importer"]["lod_max"] = texture.mImporter.lodMax;
+        j["importer"]["lod_bias"] = texture.mImporter.lodBias;
+        j["importer"]["max_anisotropy"] = texture.mImporter.maxAnisotropy;
+        j["importer"]["border_color"] = {texture.mImporter.borderColor[0], texture.mImporter.borderColor[1],
+                                         texture.mImporter.borderColor[2], texture.mImporter.borderColor[3]};
     }
     static void from_json(const json &j, MEngine::Texture2D &texture)
     {
@@ -174,37 +202,39 @@ template <> struct adl_serializer<MEngine::Texture2D>
         texture.mImagePath = j.at("image_path").get<std::string>();
         texture.mWidth = j.at("width").get<uint32_t>();
         texture.mHeight = j.at("height").get<uint32_t>();
-        texture.mMipLevels = j.at("importer").at("mip_levels").get<GLsizei>();
+        texture.mImporter.mipLevels = j.at("importer").at("mip_levels").get<GLsizei>();
         std::string minFilter = j.at("importer").at("min_filter").get<std::string>();
         auto enumMinFilter = magic_enum::enum_cast<MEngine::FilterType>(minFilter);
-        texture.mMinFilter = enumMinFilter.has_value() ? enumMinFilter.value() : MEngine::FilterType::Linear;
+        texture.mImporter.minFilter = enumMinFilter.has_value() ? enumMinFilter.value() : MEngine::FilterType::Linear;
         std::string magFilter = j.at("importer").at("mag_filter").get<std::string>();
         auto enumMagFilter = magic_enum::enum_cast<MEngine::FilterType>(magFilter);
-        texture.mMagFilter = enumMagFilter.has_value() ? enumMagFilter.value() : MEngine::FilterType::Linear;
+        texture.mImporter.magFilter = enumMagFilter.has_value() ? enumMagFilter.value() : MEngine::FilterType::Linear;
         std::string wrapS = j.at("importer").at("wrap_s").get<std::string>();
         auto enumWrapS = magic_enum::enum_cast<MEngine::WrapModeType>(wrapS);
-        texture.mWrapS = enumWrapS.has_value() ? enumWrapS.value() : MEngine::WrapModeType::Repeat;
+        texture.mImporter.wrapS = enumWrapS.has_value() ? enumWrapS.value() : MEngine::WrapModeType::Repeat;
         std::string wrapT = j.at("importer").at("wrap_t").get<std::string>();
         auto enumWrapT = magic_enum::enum_cast<MEngine::WrapModeType>(wrapT);
-        texture.mWrapT = enumWrapT.has_value() ? enumWrapT.value() : MEngine::WrapModeType::Repeat;
+        texture.mImporter.wrapT = enumWrapT.has_value() ? enumWrapT.value() : MEngine::WrapModeType::Repeat;
         std::string wrapR = j.at("importer").at("wrap_r").get<std::string>();
         auto enumWrapR = magic_enum::enum_cast<MEngine::WrapModeType>(wrapR);
-        texture.mWrapR = enumWrapR.has_value() ? enumWrapR.value() : MEngine::WrapModeType::Repeat;
+        texture.mImporter.wrapR = enumWrapR.has_value() ? enumWrapR.value() : MEngine::WrapModeType::Repeat;
         std::string compareMode = j.at("importer").at("compare_mode").get<std::string>();
         auto enumCompareMode = magic_enum::enum_cast<MEngine::CompareModeType>(compareMode);
-        texture.mCompareMode = enumCompareMode.has_value() ? enumCompareMode.value() : MEngine::CompareModeType::None;
+        texture.mImporter.compareMode =
+            enumCompareMode.has_value() ? enumCompareMode.value() : MEngine::CompareModeType::None;
         std::string compareFunc = j.at("importer").at("compare_func").get<std::string>();
         auto enumCompareFunc = magic_enum::enum_cast<MEngine::CompareFuncType>(compareFunc);
-        texture.mCompareFunc = enumCompareFunc.has_value() ? enumCompareFunc.value() : MEngine::CompareFuncType::Lequal;
-        texture.mLodMin = j.at("importer").at("lod_min").get<float>();
-        texture.mLodMax = j.at("importer").at("lod_max").get<float>();
-        texture.mLodBias = j.at("importer").at("lod_bias").get<float>();
-        texture.mMaxAnisotropy = j.at("importer").at("max_anisotropy").get<float>();
+        texture.mImporter.compareFunc =
+            enumCompareFunc.has_value() ? enumCompareFunc.value() : MEngine::CompareFuncType::Lequal;
+        texture.mImporter.lodMin = j.at("importer").at("lod_min").get<float>();
+        texture.mImporter.lodMax = j.at("importer").at("lod_max").get<float>();
+        texture.mImporter.lodBias = j.at("importer").at("lod_bias").get<float>();
+        texture.mImporter.maxAnisotropy = j.at("importer").at("max_anisotropy").get<float>();
         auto borderColor = j.at("importer").at("border_color").get<std::vector<float>>();
-        texture.mBorderColor[0] = borderColor[0];
-        texture.mBorderColor[1] = borderColor[1];
-        texture.mBorderColor[2] = borderColor[2];
-        texture.mBorderColor[3] = borderColor[3];
+        texture.mImporter.borderColor[0] = borderColor[0];
+        texture.mImporter.borderColor[1] = borderColor[1];
+        texture.mImporter.borderColor[2] = borderColor[2];
+        texture.mImporter.borderColor[3] = borderColor[3];
     }
 };
 } // namespace nlohmann

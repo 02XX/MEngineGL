@@ -73,6 +73,7 @@ class PBRMaterial final : public Material
     {
         return mShaderID;
     }
+    void Update();
 };
 } // namespace MEngine
 

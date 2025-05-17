@@ -18,7 +18,15 @@ Mesh::~Mesh()
 void Mesh::SetVertexBuffer(const std::vector<Vertex> &vertices)
 {
     mVertices = vertices;
-    glNamedBufferStorage(mVBO, static_cast<GLsizeiptr>(vertices.size() * sizeof(Vertex)), vertices.data(), 0);
+}
+void Mesh::SetIndexBuffer(const std::vector<uint32_t> &indices)
+{
+    mIndices = indices;
+    mIndexCount = static_cast<uint32_t>(indices.size());
+};
+void Mesh::Update()
+{
+    glNamedBufferStorage(mVBO, static_cast<GLsizeiptr>(mVertices.size() * sizeof(Vertex)), mVertices.data(), 0);
     glVertexArrayVertexBuffer(mVAO, 0, mVBO, 0, sizeof(Vertex));
 
     glEnableVertexArrayAttrib(mVAO, 0);
@@ -32,13 +40,8 @@ void Mesh::SetVertexBuffer(const std::vector<Vertex> &vertices)
     glEnableVertexArrayAttrib(mVAO, 2);
     glVertexArrayAttribFormat(mVAO, 2, 2, GL_FLOAT, GL_FALSE, offsetof(Vertex, texCoords));
     glVertexArrayAttribBinding(mVAO, 2, 0);
-}
-void Mesh::SetIndexBuffer(const std::vector<uint32_t> &indices)
-{
-    mIndices = indices;
-    mIndexCount = static_cast<uint32_t>(indices.size());
 
-    glNamedBufferStorage(mEBO, static_cast<GLsizeiptr>(indices.size() * sizeof(uint32_t)), indices.data(), 0);
+    glNamedBufferStorage(mEBO, static_cast<GLsizeiptr>(mIndices.size() * sizeof(uint32_t)), mIndices.data(), 0);
     glVertexArrayElementBuffer(mVAO, mEBO);
-};
+}
 } // namespace MEngine

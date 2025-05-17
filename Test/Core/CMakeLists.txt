@@ -1,5 +1,10 @@
 find_package(GTest CONFIG REQUIRED)
-
+find_package(glfw3 CONFIG REQUIRED)
+find_package(glad CONFIG REQUIRED)
 add_executable(UUIDTest UUIDTest.cpp)
 add_test(NAME UUIDTest COMMAND UUIDTest)
 target_link_libraries(UUIDTest PUBLIC Core GTest::gtest GTest::gtest_main)
+
+add_executable(Texture2DTest Texture2DTest.cpp)
+add_test(NAME Texture2DTest COMMAND Texture2DTest)
+target_link_libraries(Texture2DTest PUBLIC Core GTest::gtest GTest::gtest_main glfw glad::glad)

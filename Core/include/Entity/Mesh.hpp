@@ -38,5 +38,6 @@ class Mesh final : public IMesh, public Entity
     {
         return mIndexCount;
     }
+    void Update();
 };
 } // namespace MEngine

@@ -1,4 +1,5 @@
 #pragma once
+#include "Component/AssestComponent.hpp"
 #include "IConfigure.hpp"
 #include "Logger.hpp"
 #include "ResourceManager.hpp"
@@ -6,6 +7,7 @@
 #include "System/TransformSystem.hpp"
 #include <GLFW/glfw3.h>
 #include <cstdint>
+#include <entt/entity/fwd.hpp>
 #include <entt/entt.hpp>
 #include <filesystem>
 #include <imgui.h>
@@ -15,6 +17,7 @@
 #include <imgui_internal.h>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace MEngine
@@ -34,7 +37,9 @@ class Editor
 {
   private:
     std::shared_ptr<entt::registry> mRegistry;
+    std::shared_ptr<entt::registry> mAssetRegistry;
     std::vector<std::shared_ptr<ISystem>> mSystems;
+    std::shared_ptr<ResourceManager> mResourceManager;
 
   private:
     GLFWwindow *mWindow;
@@ -50,11 +55,18 @@ class Editor
     bool mIsMaximized = false;
     bool mIsFullscreen = false;
     std::filesystem::path mDefaultFontPath = std::filesystem::current_path() / "Assets/Fonts/NotoSans-Medium.ttf";
+    std::filesystem::path mUIResourcesPath = std::filesystem::current_path() / "Assets" / "UI";
+    std::filesystem::path mAssetsPath = std::filesystem::current_path() / "Project";
 
   private:
     // UI
     ImGuiID mDockSpaceID;
     ImFont *mDefaultFont = nullptr;
+    entt::entity mSelectedEntity = entt::null;
+    entt::entity mHoveredEntity = entt::null;
+    std::filesystem::path mCurrentPath = mAssetsPath;
+    uint32_t mAssetIconSize = 32;
+    std::unordered_map<AssetType, ImTextureID> mAssetIcons;
 
   public:
     Editor();
@@ -73,6 +85,9 @@ class Editor
     void RenderHierarchyPanel();
     void RenderInspectorPanel();
     void RenderAssetPanel();
+    void LoadUIResources();
+    void LoadAssets(const std::filesystem::path &path);
+    void IconButtonWithLabel(const char *label, ImTextureID icon, const ImVec2 &size);
 };
 } // namespace MEngine
 

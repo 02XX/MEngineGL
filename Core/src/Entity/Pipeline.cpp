@@ -61,7 +61,7 @@ GLuint Pipeline::LoadShader(GLuint shaderID, const std::filesystem::path &shader
     }
     return shaderID;
 }
-void Pipeline::Build()
+void Pipeline::Update()
 {
     if (std::filesystem::exists(mVertexShaderPath))
     {

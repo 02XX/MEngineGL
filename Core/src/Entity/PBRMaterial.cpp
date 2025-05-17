@@ -17,6 +17,9 @@ PBRMaterial::~PBRMaterial()
 void PBRMaterial::SetPBRProperties(const PBRProperties &properties)
 {
     mPBRProperties = properties;
+}
+void PBRMaterial::Update()
+{
     glNamedBufferSubData(mUBO, 0, sizeof(PBRProperties), &mPBRProperties);
 }
 } // namespace MEngine

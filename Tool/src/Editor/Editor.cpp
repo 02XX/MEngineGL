@@ -1,9 +1,12 @@
 #include "Editor/Editor.hpp"
+#include "Component/AssestComponent.hpp"
 #include "Entity/IMaterial.hpp"
+#include "Entity/Texture2D.hpp"
 #include "IConfigure.hpp"
 #include "Logger.hpp"
 #include <GLFW/glfw3.h>
 #include <boost/di.hpp>
+#include <cstddef>
 #include <filesystem>
 #include <imgui.h>
 #include <imgui_freetype.h>
@@ -101,6 +104,8 @@ void GLAPIENTRY DebugCallback(GLenum source, GLenum type, GLuint id, GLenum seve
 Editor::Editor()
 {
     mRegistry = std::make_shared<entt::registry>();
+    mAssetRegistry = std::make_shared<entt::registry>();
+    mResourceManager = injector.create<std::shared_ptr<ResourceManager>>();
     LogInfo("Editor initialized");
 }
 Editor::~Editor()
@@ -113,6 +118,8 @@ void Editor::Init()
     InitOpenGL();
     InitSystems();
     InitImGui();
+    LoadUIResources();
+    LoadAssets(mCurrentPath);
     mIsRunning = true;
 }
 void Editor::InitWindow()
@@ -296,7 +303,128 @@ void Editor::RenderInspectorPanel()
 void Editor::RenderAssetPanel()
 {
     ImGui::Begin("Assets", nullptr, ImGuiWindowFlags_None);
-    ImGui::Text("Assets");
+
+    if (ImGui::Button("<-"))
+    {
+        if (mCurrentPath != mAssetsPath)
+        {
+            mCurrentPath = mCurrentPath.parent_path();
+        }
+    }
+    ImGui::SameLine();
+    ImGui::Text("%s", mCurrentPath.string().c_str());
+    ImGui::Separator();
+    auto view = mAssetRegistry->view<AssetsComponent>();
+    for (auto entity : view)
+    {
+        auto &assetComponent = view.get<AssetsComponent>(entity);
+        if (assetComponent.path.parent_path() == mCurrentPath)
+        {
+            if (assetComponent.type == AssetType::Folder)
+            {
+                IconButtonWithLabel(assetComponent.name.c_str(), mAssetIcons[assetComponent.type],
+                                    ImVec2(mAssetIconSize, mAssetIconSize));
+            }
+            else
+            {
+                IconButtonWithLabel(assetComponent.name.c_str(), 0, ImVec2(mAssetIconSize, mAssetIconSize));
+            }
+        }
+    }
     ImGui::End();
+}
+void Editor::LoadUIResources()
+{
+    if (std::filesystem::exists(mUIResourcesPath / "folder.tex2d"))
+    {
+        std::filesystem::remove(mUIResourcesPath / "folder.tex2d");
+    }
+    if (std::filesystem::exists(mUIResourcesPath / "file.tex2d"))
+    {
+        std::filesystem::remove(mUIResourcesPath / "file.tex2d");
+    }
+    auto foldID = mResourceManager->CreateAsset<Texture2D>(mUIResourcesPath, "folder");
+    auto foldTexture = mResourceManager->GetAsset<Texture2D>(foldID);
+    foldTexture->SetImagePath(mUIResourcesPath / "folder.png");
+    mResourceManager->UpdateAsset(foldID, foldTexture);
+    LogTrace("Create folder texture: {}", foldTexture->GetPath().string());
+
+    auto fileID = mResourceManager->CreateAsset<Texture2D>(mUIResourcesPath, "file");
+    auto fileTexture = mResourceManager->GetAsset<Texture2D>(fileID);
+    fileTexture->SetImagePath(mUIResourcesPath / "file.png");
+    mResourceManager->UpdateAsset(fileID, fileTexture);
+    LogTrace("Create file texture: {}", fileTexture->GetPath().string());
+
+    mAssetIcons[AssetType::Folder] = mResourceManager->GetAsset<Texture2D>(foldID)->GetTextureID();
+    mAssetIcons[AssetType::File] = mResourceManager->GetAsset<Texture2D>(fileID)->GetTextureID();
+    // mAssetIcons[AssetType::Shader] = mResourceManager->GetAsset<Texture2D>(shaderID)->GetTextureID();
+    // mAssetIcons[AssetType::PBRMaterial] = mResourceManager->GetAsset<Texture2D>(materialID)->GetTextureID();
+    // mAssetIcons[AssetType::Texture2D] = mResourceManager->GetAsset<Texture2D>(textureID)->GetTextureID();
+    // mAssetIcons[AssetType::Audio] = mResourceManager->GetAsset<Texture2D>(audioID)->GetTextureID();
+    // mAssetIcons[AssetType::Model] = mResourceManager->GetAsset<Texture2D>(modelID)->GetTextureID();
+}
+void Editor::LoadAssets(const std::filesystem::path &path)
+{
+    if (!std::filesystem::exists(path))
+    {
+        throw std::runtime_error("Project path does not exist: " + path.string());
+    }
+    for (auto &entry : std::filesystem::directory_iterator(path))
+    {
+        auto entity = mAssetRegistry->create();
+        auto &assetComponent = mAssetRegistry->emplace<AssetsComponent>(entity);
+        assetComponent.path = entry.path();
+        assetComponent.name = entry.path().filename().string();
+        if (entry.is_directory())
+        {
+            assetComponent.type = AssetType::Folder;
+            LogTrace("Load folder: {}", assetComponent.path.string());
+            LoadAssets(entry.path());
+        }
+        else if (entry.is_regular_file())
+        {
+            auto extension = entry.path().extension().string();
+            auto type = mResourceManager->GetTypeIndex(extension);
+            mResourceManager->LoadAsset(entry.path());
+            if (type == typeid(Pipeline))
+            {
+                assetComponent.type = AssetType::Shader;
+            }
+            else if (type == typeid(PBRMaterial))
+            {
+                assetComponent.type = AssetType::PBRMaterial;
+            }
+            else if (type == typeid(Texture2D))
+            {
+                assetComponent.type = AssetType::Texture2D;
+            }
+            else
+            {
+                assetComponent.type = AssetType::File;
+            }
+        }
+    }
+}
+void Editor::IconButtonWithLabel(const char *label, ImTextureID icon, const ImVec2 &size)
+{
+    ImGui::PushID(label);
+
+    const float textWidth = ImGui::CalcTextSize(label).x;
+    const float totalWidth = ImMax(size.x, textWidth);
+    const ImVec2 pos = ImGui::GetCursorScreenPos();
+
+    ImGui::Image(icon, size);
+
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(pos.x + (totalWidth - textWidth) * 0.5f);
+    ImGui::Text("%s", label);
+
+    ImGui::SetCursorScreenPos(pos);
+    if (ImGui::InvisibleButton("##invisible", ImVec2(totalWidth, size.y + ImGui::GetTextLineHeight())))
+    {
+        ImGui::Text("Clicked: %s", label);
+    }
+
+    ImGui::PopID();
 }
 } // namespace MEngine

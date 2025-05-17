@@ -61,7 +61,7 @@ class Pipeline final : public Entity, public IPipeline
     void SetFragmentShader(const std::filesystem::path &fragmentShaderPath) override;
     void SetGeometryShader(const std::filesystem::path &geometryShaderPath) override;
     GLuint LoadShader(GLuint shaderID, const std::filesystem::path &shaderPath);
-    void Build();
+    void Update();
 };
 } // namespace MEngine
 

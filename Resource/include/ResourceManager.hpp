@@ -17,15 +17,11 @@
 #include "Repository/TextureRepository.hpp"
 #include "UUID.hpp"
 
-
 using json = nlohmann::json;
 namespace MEngine
 {
 class ResourceManager
 {
-  private:
-    std::filesystem::path mResourcePath = std::filesystem::current_path();
-
   private:
     std::unordered_map<UUID, std::shared_ptr<IEntity>> mEntities;
     const std::unordered_map<std::type_index, std::string> mTypeExtensions = {
@@ -91,7 +87,7 @@ class ResourceManager
         }
         else
         {
-            LogError("Failed to load asset: {}", path.string());
+            LogError("{} is not a valid asset.", path.string());
             return UUID();
         }
     }
@@ -103,14 +99,19 @@ class ResourceManager
      */
     template <typename TEntity>
         requires std::derived_from<TEntity, IEntity>
-    UUID CreateAsset()
+    UUID CreateAsset(const std::filesystem::path &path, std::string name = "New Asset")
     {
+        if (!std::filesystem::exists(path))
+        {
+            LogError("Project path does not exist: {}", path.string());
+            throw std::runtime_error("path does not exist: " + path.string());
+        }
         using RepositoryType = typename RepositoryTraits<TEntity>::RepositoryType;
         static RepositoryType repository;
         auto entity = repository.Create();
         repository.Update(entity);
         mEntities[entity->GetID()] = entity;
-        std::filesystem::path sourcePath = GenerateUniquePath<TEntity>(entity->GetName());
+        std::filesystem::path sourcePath = GenerateUniquePath<TEntity>(path, name);
         entity->SetPath(sourcePath);
         Serialize(sourcePath, entity);
         return entity->GetID();
@@ -133,6 +134,10 @@ class ResourceManager
         requires std::derived_from<TEntity, IEntity>
     void Deserialize(std::filesystem::path path, std::shared_ptr<TEntity> target)
     {
+        if (!std::filesystem::exists(path))
+        {
+            throw std::runtime_error("path does not exist: " + path.string());
+        }
         std::ifstream file(path);
         if (!file.is_open())
         {
@@ -187,7 +192,7 @@ class ResourceManager
             // 更新entity
             it->second = entity;
             repository.Update(entity);
-            Serialize<TEntity>(entity.GetPath(), entity);
+            Serialize<TEntity>(entity->GetPath(), entity);
         }
     }
     /**
@@ -209,22 +214,32 @@ class ResourceManager
      * @param baseName 基础名称
      * @return 唯一路径
      */
-    template <typename TEntity> std::filesystem::path GenerateUniquePath(const std::string &baseName)
+    template <typename TEntity>
+    std::filesystem::path GenerateUniquePath(const std::filesystem::path &path, const std::string &baseName)
     {
         std::string ext = GetExtension(typeid(TEntity));
-        std::filesystem::path path = mResourcePath / ("New " + baseName + ext);
+        std::filesystem::path sourcePath = path / (baseName + ext);
         int i = 0;
-        while (std::filesystem::exists(path))
+        while (std::filesystem::exists(sourcePath))
         {
-            path = mResourcePath / ("New " + baseName + std::to_string(i) + ext);
+            sourcePath = path / (baseName + std::to_string(i) + ext);
             i++;
         }
-        return path;
+        return sourcePath;
     }
     std::string GetExtension(const std::type_index &type)
     {
         auto it = mTypeExtensions.find(type);
         return it != mTypeExtensions.end() ? it->second : ".unknown";
+    }
+    std::type_index GetTypeIndex(const std::string &extension)
+    {
+        auto it = mExtensionTypes.find(extension);
+        if (it != mExtensionTypes.end())
+        {
+            return it->second;
+        }
+        return std::type_index(typeid(void));
     }
 };
 } // namespace MEngine
