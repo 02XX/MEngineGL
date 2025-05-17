@@ -8,7 +8,8 @@
         "magic-enum",
         "nlohmann-json",
         "spdlog",
-        "stb"
+        "stb",
+        "entt"
     ],
     "overrides": [
         {
@@ -46,6 +47,10 @@
         {
             "name": "stb",
             "version": "2024-07-29#1"
+        },
+        {
+            "name": "entt",
+            "version": "3.14.0"
         }
     ]
 }
