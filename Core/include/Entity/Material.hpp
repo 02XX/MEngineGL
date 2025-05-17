@@ -47,6 +47,7 @@ template <> struct adl_serializer<MEngine::Material>
     {
         j = static_cast<MEngine::Entity>(material);
         j["materialType"] = magic_enum::enum_name(material.mMaterialType);
+        j["pipelineID"] = material.mPipelineID.ToString();
     }
     static void from_json(const json &j, MEngine::Material &material)
     {
@@ -61,6 +62,7 @@ template <> struct adl_serializer<MEngine::Material>
         {
             throw std::runtime_error("Invalid material type: " + materialType);
         }
+        material.mPipelineID = MEngine::UUID(j.at("pipelineID").get<std::string>());
     }
 };
 

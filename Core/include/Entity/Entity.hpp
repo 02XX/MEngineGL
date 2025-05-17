@@ -50,12 +50,14 @@ template <> struct adl_serializer<MEngine::Entity>
     {
         j["id"] = entity.GetID().ToString();
         j["path"] = entity.GetPath().string();
+        j["name"] = entity.GetName();
     }
 
     static void from_json(const json &j, MEngine::Entity &entity)
     {
         entity.SetID(MEngine::UUID(j.at("id").get<std::string>()));
         entity.SetPath(j.at("path").get<std::string>());
+        entity.SetName(j.at("name").get<std::string>());
     }
 };
 } // namespace nlohmann

@@ -51,11 +51,6 @@ class UUID final
     // Convert to string in format "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
     std::string ToString() const
     {
-        if (IsEmpty())
-        {
-            return "";
-        }
-
         std::ostringstream oss;
         oss << std::hex << std::setfill('0');
 
