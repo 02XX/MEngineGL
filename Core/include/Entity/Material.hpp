@@ -1,7 +1,7 @@
 #pragma once
 #include "Entity/Entity.hpp"
 #include "Entity/IMaterial.hpp"
-#include "Entity/IShader.hpp"
+#include "Entity/IPipeline.hpp"
 #include "Material.hpp"
 #include "Math.hpp"
 #include <magic_enum/magic_enum.hpp>
@@ -14,8 +14,8 @@ class Material : public IMaterial, public Entity
 
   protected:
     MaterialType mMaterialType = MaterialType::PBR;
-    // shader
-    UUID mShaderID = UUID();
+
+    UUID mPipelineID = UUID();
 
   public:
     Material();
@@ -25,9 +25,9 @@ class Material : public IMaterial, public Entity
     {
         return MaterialType::PBR;
     }
-    inline const UUID &GetShaderID() const override
+    inline const UUID &GetPipelineID() const override
     {
-        return mShaderID;
+        return mPipelineID;
     }
 
     // setters

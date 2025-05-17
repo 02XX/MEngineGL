@@ -1,5 +1,5 @@
 #pragma once
-#include "Entity/IShader.hpp"
+#include "Entity/IPipeline.hpp"
 #include "Entity/Material.hpp"
 #include "Material.hpp"
 #include "Math.hpp"

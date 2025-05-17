@@ -1,9 +1,12 @@
 #pragma once
+#include "Component/MaterialComponent.hpp"
+#include "Component/MeshComponent.hpp"
 #include "Component/TransformComponent.hpp"
 #include "Math.hpp"
 #include "System/System.hpp"
 #include <entt/entt.hpp>
 #include <memory>
+
 
 namespace MEngine
 {
@@ -11,7 +14,7 @@ class TransformSystem final : public System
 {
   private:
   public:
-    TransformSystem(const std::shared_ptr<entt::registry> &registry) : System(registry)
+    TransformSystem(std::shared_ptr<entt::registry> registry) : System(registry)
     {
     }
     void Init() override;

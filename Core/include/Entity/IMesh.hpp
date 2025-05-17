@@ -2,6 +2,7 @@
 #include "Entity/IEntity.hpp"
 #include "Entity/IMaterial.hpp"
 #include "Math.hpp"
+#include <cstdint>
 #include <vector>
 
 namespace MEngine
@@ -20,6 +21,7 @@ class IMesh : virtual public IEntity
     virtual void SetIndexBuffer(const std::vector<uint32_t> &indices) = 0;
     virtual const std::vector<Vertex> &GetVertices() const = 0;
     virtual const std::vector<uint32_t> &GetIndices() const = 0;
+    virtual uint32_t GetIndexCount() const = 0;
     virtual GLuint GetVAO() const = 0;
 };
 

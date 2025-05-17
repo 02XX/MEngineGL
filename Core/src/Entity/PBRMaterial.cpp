@@ -1,5 +1,5 @@
 #include "Entity/PBRMaterial.hpp"
-#include "Entity/IShader.hpp"
+#include "Entity/IPipeline.hpp"
 
 namespace MEngine
 {

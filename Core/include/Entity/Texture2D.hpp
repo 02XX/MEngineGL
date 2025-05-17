@@ -97,6 +97,14 @@ class Texture2D final : public ITexture, public Entity
         const char *extensions = (const char *)glGetString(GL_EXTENSIONS);
         return extensions && strstr(extensions, "GL_EXT_texture_filter_anisotropic");
     }
+    inline GLuint GetTextureID() const override
+    {
+        return mTextureID;
+    }
+    inline GLuint GetSamplerID() const override
+    {
+        return mSamplerID;
+    }
 };
 } // namespace MEngine
 namespace magic_enum

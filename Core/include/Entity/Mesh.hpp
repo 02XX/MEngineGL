@@ -34,5 +34,9 @@ class Mesh final : public IMesh, public Entity
     {
         return mVAO;
     }
+    inline uint32_t GetIndexCount() const override
+    {
+        return mIndexCount;
+    }
 };
 } // namespace MEngine

@@ -1,59 +1,36 @@
-#include "Entity/Shader.hpp"
+#include "Entity/Pipeline.hpp"
 #include "Logger.hpp"
 
 namespace MEngine
 {
-Shader::Shader()
+Pipeline::Pipeline()
 {
     mName = "Shader";
     mVertexShaderID = glCreateShader(GL_VERTEX_SHADER);
     mFragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
     mGeometryShaderID = glCreateShader(GL_GEOMETRY_SHADER);
+    mProgramID = glCreateProgram();
 }
-Shader::~Shader()
+Pipeline::~Pipeline()
 {
     glDeleteShader(mVertexShaderID);
     glDeleteShader(mFragmentShaderID);
     glDeleteShader(mGeometryShaderID);
 }
-void Shader::SetVertexShader(const std::filesystem::path &vertexShaderPath)
+void Pipeline::SetVertexShader(const std::filesystem::path &vertexShaderPath)
 {
     mVertexShaderPath = vertexShaderPath;
-    if (std::filesystem::exists(mVertexShaderPath))
-    {
-        mVertexShaderID = LoadShader(mVertexShaderID, mVertexShaderPath);
-    }
-    else
-    {
-        LogWarn("Vertex shader file does not exist, SKIPPED!!!");
-    }
 }
-void Shader::SetFragmentShader(const std::filesystem::path &fragmentShaderPath)
+void Pipeline::SetFragmentShader(const std::filesystem::path &fragmentShaderPath)
 {
     mFragmentShaderPath = fragmentShaderPath;
-    if (std::filesystem::exists(mFragmentShaderPath))
-    {
-        mFragmentShaderID = LoadShader(mFragmentShaderID, mFragmentShaderPath);
-    }
-    else
-    {
-        LogWarn("Fragment shader file does not exist, SKIPPED!!!");
-    }
 }
-void Shader::SetGeometryShader(const std::filesystem::path &geometryShaderPath)
+void Pipeline::SetGeometryShader(const std::filesystem::path &geometryShaderPath)
 {
     mGeometryShaderPath = geometryShaderPath;
-    if (std::filesystem::exists(mGeometryShaderPath))
-    {
-        mGeometryShaderID = LoadShader(mGeometryShaderID, mGeometryShaderPath);
-    }
-    else
-    {
-        LogWarn("Geometry shader file does not exist, SKIPPED!!!");
-    }
 }
 
-GLuint Shader::LoadShader(GLuint shaderID, const std::filesystem::path &shaderPath)
+GLuint Pipeline::LoadShader(GLuint shaderID, const std::filesystem::path &shaderPath)
 {
     if (!std::filesystem::exists(shaderPath))
     {
@@ -83,5 +60,36 @@ GLuint Shader::LoadShader(GLuint shaderID, const std::filesystem::path &shaderPa
         throw std::runtime_error("Failed to compile vertex shader: " + std::string(infoLog.data()));
     }
     return shaderID;
+}
+void Pipeline::Build()
+{
+    if (std::filesystem::exists(mVertexShaderPath))
+    {
+        mVertexShaderID = LoadShader(mVertexShaderID, mVertexShaderPath);
+        glAttachShader(mProgramID, mVertexShaderID);
+    }
+    else
+    {
+        LogWarn("Vertex shader file does not exist, SKIPPED!!!");
+    }
+    if (std::filesystem::exists(mFragmentShaderPath))
+    {
+        mFragmentShaderID = LoadShader(mFragmentShaderID, mFragmentShaderPath);
+        glAttachShader(mProgramID, mFragmentShaderID);
+    }
+    else
+    {
+        LogWarn("Fragment shader file does not exist, SKIPPED!!!");
+    }
+    if (std::filesystem::exists(mGeometryShaderPath))
+    {
+        mGeometryShaderID = LoadShader(mGeometryShaderID, mGeometryShaderPath);
+        glAttachShader(mProgramID, mGeometryShaderID);
+    }
+    else
+    {
+        LogWarn("Geometry shader file does not exist, SKIPPED!!!");
+    }
+    glLinkProgram(mProgramID);
 }
 } // namespace MEngine

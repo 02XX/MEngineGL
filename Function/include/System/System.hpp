@@ -9,7 +9,7 @@ class System : public ISystem
     std::shared_ptr<entt::registry> mRegistry;
 
   public:
-    System(const std::shared_ptr<entt::registry> &registry) : mRegistry(registry)
+    System(std::shared_ptr<entt::registry> registry) : mRegistry(registry)
     {
     }
     virtual ~System() = default;

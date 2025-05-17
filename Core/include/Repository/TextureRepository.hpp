@@ -1,5 +1,4 @@
 #pragma once
-#include "Entity/Shader.hpp"
 #include "Entity/Texture2D.hpp"
 #include "Repository/Repository.hpp"
 namespace MEngine

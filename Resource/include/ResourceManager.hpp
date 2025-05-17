@@ -8,14 +8,15 @@
 #include "Entity/Entity.hpp"
 #include "Entity/IEntity.hpp"
 #include "Entity/Material.hpp"
-#include "Entity/Shader.hpp"
+#include "Entity/Pipeline.hpp"
 #include "Entity/Texture2D.hpp"
 #include "Logger.hpp"
 #include "Repository/MaterialRepository.hpp"
+#include "Repository/PipelineRepository.hpp"
 #include "Repository/Repository.hpp"
-#include "Repository/ShaderRepository.hpp"
 #include "Repository/TextureRepository.hpp"
 #include "UUID.hpp"
+
 
 using json = nlohmann::json;
 namespace MEngine
@@ -28,7 +29,7 @@ class ResourceManager
   private:
     std::unordered_map<UUID, std::shared_ptr<IEntity>> mEntities;
     const std::unordered_map<std::type_index, std::string> mTypeExtensions = {
-        {typeid(Shader), ".shader"},
+        {typeid(Pipeline), ".shader"},
         {typeid(PBRMaterial), ".pbrmaterial"},
         {typeid(Texture2D), ".tex2d"},
         {typeid(Texture2D), ".texture"},
@@ -36,7 +37,7 @@ class ResourceManager
         // {typeid(Audio), ".audio"},       {typeid(Scene), ".scene"},
     };
     const std::unordered_map<std::string, std::type_index> mExtensionTypes = {
-        {".shader", typeid(Shader)}, {".pbrmaterial", typeid(PBRMaterial)}, {".tex2d", typeid(Texture2D)}
+        {".shader", typeid(Pipeline)}, {".pbrmaterial", typeid(PBRMaterial)}, {".tex2d", typeid(Texture2D)}
         // {".texture", typeid(Texture)},     {".mesh", typeid(Mesh)},
         // {".material", typeid(Material)},   {".animation", typeid(Animation)},
         // {".model", typeid(Model)},         {".audio", typeid(Audio)},
@@ -60,12 +61,12 @@ class ResourceManager
         std::shared_ptr<IEntity> entity = nullptr;
         if (typeIndex != mExtensionTypes.end())
         {
-            if (typeIndex->second == typeid(Shader))
+            if (typeIndex->second == typeid(Pipeline))
             {
-                entity = std::make_shared<Shader>();
-                Deserialize<Shader>(path, std::dynamic_pointer_cast<Shader>(entity));
-                static ShaderRepository repository;
-                repository.Update(std::dynamic_pointer_cast<Shader>(entity));
+                entity = std::make_shared<Pipeline>();
+                Deserialize<Pipeline>(path, std::dynamic_pointer_cast<Pipeline>(entity));
+                static PipelineRepository repository;
+                repository.Update(std::dynamic_pointer_cast<Pipeline>(entity));
             }
             else if (typeIndex->second == typeid(PBRMaterial))
             {
@@ -147,7 +148,7 @@ class ResourceManager
      */
     template <typename TEntity>
         requires std::derived_from<TEntity, IEntity>
-    std::shared_ptr<IEntity> GetAsset(const UUID &id)
+    std::shared_ptr<TEntity> GetAsset(const UUID &id)
     {
         auto it = mEntities.find(id);
         if (it != mEntities.end())

@@ -241,16 +241,6 @@ void Editor::Shutdown()
 void Editor::EditorUI()
 {
     ImGuiViewport *viewport = ImGui::GetMainViewport();
-    // ImGui::SetNextWindowViewport(viewport->ID);
-
-    // ImGuiWindowFlags flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
-    //                          ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-    //                          ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus |
-    //                          ImGuiWindowFlags_NoBackground;
-
-    // ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-    // ImGui::Begin("MainDockspace", nullptr, flags);
-    // ImGui::PopStyleVar();
 
     mDockSpaceID = ImGui::DockSpaceOverViewport();
 
@@ -282,16 +272,6 @@ void Editor::EditorUI()
         ImGui::DockBuilderDockWindow("Toolbar", dockTopCenterID);     // 顶部
         ImGui::DockBuilderFinish(mDockSpaceID);
     }
-
-    // if (ImGui::BeginMenuBar())
-    // {
-    //     if (ImGui::BeginMenu("File"))
-    //     {
-    //         ImGui::MenuItem("Save Layout");
-    //         ImGui::EndMenu();
-    //     }
-    //     ImGui::EndMenuBar();
-    // }
     RenderViewportPanel();
     RenderHierarchyPanel();
     RenderInspectorPanel();

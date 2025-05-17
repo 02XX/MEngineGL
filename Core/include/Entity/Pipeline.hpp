@@ -1,6 +1,6 @@
 #pragma once
 #include "Entity/Entity.hpp"
-#include "Entity/IShader.hpp"
+#include "Entity/IPipeline.hpp"
 #include "Logger.hpp"
 #include <filesystem>
 #include <fstream>
@@ -9,10 +9,10 @@
 
 namespace MEngine
 {
-class Shader final : public Entity, public IShader
+class Pipeline final : public Entity, public IPipeline
 {
     friend class ShaderRepository;
-    friend struct nlohmann::adl_serializer<MEngine::Shader>;
+    friend struct nlohmann::adl_serializer<MEngine::Pipeline>;
 
   private:
     std::filesystem::path mVertexShaderPath = std::filesystem::path();
@@ -23,9 +23,11 @@ class Shader final : public Entity, public IShader
     GLuint mFragmentShaderID = 0;
     GLuint mGeometryShaderID = 0;
 
+    GLuint mProgramID = 0;
+
   public:
-    Shader();
-    ~Shader();
+    Pipeline();
+    ~Pipeline();
 
     inline const GLuint &GetVertexShader() const override
     {
@@ -51,25 +53,30 @@ class Shader final : public Entity, public IShader
     {
         return mGeometryShaderPath;
     }
+    inline const GLuint &GetProgramID() const override
+    {
+        return mProgramID;
+    }
     void SetVertexShader(const std::filesystem::path &vertexShaderPath) override;
     void SetFragmentShader(const std::filesystem::path &fragmentShaderPath) override;
     void SetGeometryShader(const std::filesystem::path &geometryShaderPath) override;
     GLuint LoadShader(GLuint shaderID, const std::filesystem::path &shaderPath);
+    void Build();
 };
 } // namespace MEngine
 
 namespace nlohmann
 {
-template <> struct adl_serializer<MEngine::Shader>
+template <> struct adl_serializer<MEngine::Pipeline>
 {
-    static void to_json(json &j, const MEngine::Shader &shader)
+    static void to_json(json &j, const MEngine::Pipeline &shader)
     {
         j = static_cast<MEngine::Entity>(shader);
         j["vertexShaderPath"] = shader.GetVertexShaderPath().string();
         j["fragmentShaderPath"] = shader.GetFragmentShaderPath().string();
         j["geometryShaderPath"] = shader.GetGeometryShaderPath().string();
     }
-    static void from_json(const json &j, MEngine::Shader &shader)
+    static void from_json(const json &j, MEngine::Pipeline &shader)
     {
         static_cast<MEngine::Entity &>(shader) = j.get<MEngine::Entity>();
         shader.SetVertexShader(j.at("vertexShaderPath").get<std::string>());

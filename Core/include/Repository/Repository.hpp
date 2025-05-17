@@ -1,5 +1,4 @@
 #pragma once
-#include "Entity/Shader.hpp"
 #include "Repository/IRepository.hpp"
 
 namespace MEngine
