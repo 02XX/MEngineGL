@@ -315,22 +315,67 @@ void Editor::RenderAssetPanel()
     ImGui::Text("%s", mCurrentPath.string().c_str());
     ImGui::Separator();
     auto view = mAssetRegistry->view<AssetsComponent>();
+    int columns = std::max(1, static_cast<int>(ImGui::GetContentRegionAvail().x / (mAssetIconSize + 10)));
+    ImGui::Columns(columns, "AssetColumns", false); // false = 不显示边框
     for (auto entity : view)
     {
         auto &assetComponent = view.get<AssetsComponent>(entity);
         if (assetComponent.path.parent_path() == mCurrentPath)
         {
-            if (assetComponent.type == AssetType::Folder)
+            ImGui::PushID(entt::to_integral(entity));
+            ImTextureID textureID = 0;
+            if (mAssetIcons.find(assetComponent.type) != mAssetIcons.end())
             {
-                IconButtonWithLabel(assetComponent.name.c_str(), mAssetIcons[assetComponent.type],
-                                    ImVec2(mAssetIconSize, mAssetIconSize));
+                textureID = mAssetIcons[assetComponent.type];
             }
-            else
+            if (ImGui::Selectable("##btn", mSelectedEntity == entity,
+                                  ImGuiSelectableFlags_AllowItemOverlap | ImGuiSelectableFlags_AllowDoubleClick,
+                                  ImVec2(mAssetIconSize + 10, mAssetIconSize + 20)))
             {
-                IconButtonWithLabel(assetComponent.name.c_str(), 0, ImVec2(mAssetIconSize, mAssetIconSize));
+                mSelectedEntity = entity;
+                if (ImGui::IsMouseDoubleClicked(0))
+                {
+                    if (assetComponent.type == AssetType::Folder)
+                    {
+                        mCurrentPath = assetComponent.path;
+                    }
+                }
             }
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup))
+            {
+                mHoveredEntity = entity;
+                if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+                    mSelectedEntity = entity;
+                if (ImGui::IsMouseDragging(0))
+                {
+                    if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
+                    {
+                        // 设置拖拽数据
+                        ImGui::SetDragDropPayload("ASSET_ITEM", &entity, sizeof(entity));
+                        // 显示拖拽预览（图标）
+                        ImGui::Image(textureID, ImVec2(0, 1), ImVec2(1, 0));
+                        // 可选：添加文字说明
+                        ImGui::Text("拖动 %s", assetComponent.name.c_str());
+                        ImGui::EndDragDropSource();
+                    }
+                }
+            }
+            ImVec2 ContainerMinPos = ImGui::GetItemRectMin();
+            ImVec2 ContainerMaxPos = ImGui::GetItemRectMax();
+            ImVec2 ContainerSize = ImGui::GetItemRectSize();
+            ImVec2 iconPos = ImVec2(ContainerMinPos.x, ContainerMinPos.y);
+            ImGui::SetCursorScreenPos(iconPos);
+            ImGui::Image(textureID, ImVec2(mAssetIconSize, mAssetIconSize), ImVec2(0, 1), ImVec2(1, 0));
+            // 绘制文本
+            ImVec2 textPos =
+                ImVec2(ContainerMinPos.x + (ContainerSize.x - mAssetIconSize) / 2, ContainerMinPos.y + mAssetIconSize);
+            ImGui::SetCursorScreenPos(textPos);
+            ImGui::Text("%s", assetComponent.name.c_str());
+            ImGui::PopID();
+            ImGui::NextColumn(); // 移动到下一列
         }
     }
+    ImGui::Columns(1); // 恢复单列模式
     ImGui::End();
 }
 void Editor::LoadUIResources()
@@ -362,6 +407,7 @@ void Editor::LoadUIResources()
     // mAssetIcons[AssetType::Texture2D] = mResourceManager->GetAsset<Texture2D>(textureID)->GetTextureID();
     // mAssetIcons[AssetType::Audio] = mResourceManager->GetAsset<Texture2D>(audioID)->GetTextureID();
     // mAssetIcons[AssetType::Model] = mResourceManager->GetAsset<Texture2D>(modelID)->GetTextureID();
+    LogInfo("Loaded UI resources");
 }
 void Editor::LoadAssets(const std::filesystem::path &path)
 {
@@ -404,27 +450,5 @@ void Editor::LoadAssets(const std::filesystem::path &path)
             }
         }
     }
-}
-void Editor::IconButtonWithLabel(const char *label, ImTextureID icon, const ImVec2 &size)
-{
-    ImGui::PushID(label);
-
-    const float textWidth = ImGui::CalcTextSize(label).x;
-    const float totalWidth = ImMax(size.x, textWidth);
-    const ImVec2 pos = ImGui::GetCursorScreenPos();
-
-    ImGui::Image(icon, size);
-
-    ImGui::SameLine();
-    ImGui::SetCursorPosX(pos.x + (totalWidth - textWidth) * 0.5f);
-    ImGui::Text("%s", label);
-
-    ImGui::SetCursorScreenPos(pos);
-    if (ImGui::InvisibleButton("##invisible", ImVec2(totalWidth, size.y + ImGui::GetTextLineHeight())))
-    {
-        ImGui::Text("Clicked: %s", label);
-    }
-
-    ImGui::PopID();
 }
 } // namespace MEngine

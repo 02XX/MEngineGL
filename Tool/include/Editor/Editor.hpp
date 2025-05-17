@@ -31,7 +31,7 @@ struct WindowConfig
     bool resizable = true;
     bool vsync = true;
     std::string fontPath = "Assets/Fonts/NotoSans-Medium.ttf";
-    float fontSize = 16;
+    float fontSize = 16.0f;
 };
 class Editor
 {
@@ -65,7 +65,7 @@ class Editor
     entt::entity mSelectedEntity = entt::null;
     entt::entity mHoveredEntity = entt::null;
     std::filesystem::path mCurrentPath = mAssetsPath;
-    uint32_t mAssetIconSize = 32;
+    uint32_t mAssetIconSize = 64;
     std::unordered_map<AssetType, ImTextureID> mAssetIcons;
 
   public:
@@ -87,7 +87,6 @@ class Editor
     void RenderAssetPanel();
     void LoadUIResources();
     void LoadAssets(const std::filesystem::path &path);
-    void IconButtonWithLabel(const char *label, ImTextureID icon, const ImVec2 &size);
 };
 } // namespace MEngine
 

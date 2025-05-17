@@ -54,9 +54,10 @@ class ResourceManager
         // 获取文件类型
         std::string extension = path.extension().string();
         auto typeIndex = mExtensionTypes.find(extension);
-        std::shared_ptr<IEntity> entity = nullptr;
+
         if (typeIndex != mExtensionTypes.end())
         {
+            std::shared_ptr<IEntity> entity = nullptr;
             if (typeIndex->second == typeid(Pipeline))
             {
                 entity = std::make_shared<Pipeline>();
@@ -78,16 +79,21 @@ class ResourceManager
                 static Texture2DRepository textureRepository;
                 textureRepository.Update(std::dynamic_pointer_cast<Texture2D>(entity));
             }
-        }
-        if (entity)
-        {
-            mEntities[entity->GetID()] = entity;
-            LogInfo("Loaded asset: {}", path.string());
-            return entity->GetID();
+            if (entity)
+            {
+                mEntities[entity->GetID()] = entity;
+                LogInfo("Loaded asset: {}", path.string());
+                return entity->GetID();
+            }
+            else
+            {
+                LogWarn("Not implement file type {}", mTypeExtensions.at(typeIndex->second));
+                return UUID();
+            }
         }
         else
         {
-            LogError("{} is not a valid asset.", path.string());
+            LogTrace("Unsupported file type: {}", extension);
             return UUID();
         }
     }
@@ -109,7 +115,6 @@ class ResourceManager
         using RepositoryType = typename RepositoryTraits<TEntity>::RepositoryType;
         static RepositoryType repository;
         auto entity = repository.Create();
-        repository.Update(entity);
         mEntities[entity->GetID()] = entity;
         std::filesystem::path sourcePath = GenerateUniquePath<TEntity>(path, name);
         entity->SetPath(sourcePath);

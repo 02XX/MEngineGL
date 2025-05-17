@@ -42,7 +42,8 @@ enum class CompareFuncType : GLenum
 enum class TextureFormatType : GLenum
 {
     RGB = GL_RGB,
-    RGBA = GL_RGBA,
+    RGBA8 = GL_RGBA8,
+    RGBA16 = GL_RGBA16,
     DepthComponent = GL_DEPTH_COMPONENT,
     DepthStencil = GL_DEPTH_STENCIL
 };
@@ -72,7 +73,7 @@ class Texture2D final : public ITexture, public Entity
     uint32_t mHeight = 0;
     uint32_t mChannels = 0;
     GLsizei mMipLevels = 1;
-    TextureFormatType mInternalFormat = TextureFormatType::RGBA;
+    TextureFormatType mInternalFormat = TextureFormatType::RGBA8;
 
     GLuint mSamplerID = 0;
 
@@ -115,10 +116,24 @@ class Texture2D final : public ITexture, public Entity
     }
     inline bool IsAnisotropicFilteringSupported() const
     {
-        if (!glGetString)
+        if (!glGetStringi || !glGetIntegerv)
+        {
             return false;
-        const char *extensions = (const char *)glGetString(GL_EXTENSIONS);
-        return extensions && strstr(extensions, "GL_EXT_texture_filter_anisotropic");
+        }
+        GLint numExtensions = 0;
+        glGetIntegerv(GL_NUM_EXTENSIONS, &numExtensions);
+
+        for (GLint i = 0; i < numExtensions; ++i)
+        {
+            const char *extension = reinterpret_cast<const char *>(glGetStringi(GL_EXTENSIONS, i));
+            if (extension && strcmp(extension, "GL_ARB_texture_filter_anisotropic") == 0)
+            {
+                return true;
+            }
+        }
+        GLfloat maxAniso = 0.0f;
+        glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &maxAniso);
+        return maxAniso > 1.0f;
     }
     inline GLuint GetTextureID() const override
     {

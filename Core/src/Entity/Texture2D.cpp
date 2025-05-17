@@ -28,6 +28,7 @@ void Texture2D::Update()
         {
             mMipLevels =
                 std::min(1 + static_cast<GLsizei>(std::floor(std::log2(std::max(mWidth, mHeight)))), mMipLevels);
+            auto a = GL_RGBA;
             glTextureStorage2D(mTextureID, mMipLevels, (GLenum)mInternalFormat, mWidth, mHeight);
             glTextureSubImage2D(mTextureID, 0, 0, 0, mWidth, mHeight, GL_RGBA, GL_UNSIGNED_BYTE, data);
             if (mMipLevels > 1)
@@ -39,6 +40,11 @@ void Texture2D::Update()
         {
             LogError("Failed to load texture: {}", mImagePath.string());
         }
+    }
+    else // TODO: 默认纹理
+    {
+        LogError("Texture file does not exist: {}, 记得后续重构添加默认纹理", mImagePath.string());
+        return;
     }
     glCreateSamplers(1, &mSamplerID);
     // 设置缩小过滤器（包含mipmap）
