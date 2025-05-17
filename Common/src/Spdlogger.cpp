@@ -28,8 +28,9 @@ Spdlogger::Spdlogger()
         // 读取配置
         mConfigure = std::make_shared<Configure>();
         auto json = mConfigure->GetJson();
-        auto logFilePath = json["Logger"]["LogFilePath"].get<std::string>();
-        auto logLevel = magic_enum::enum_cast<LogLevel>(json["Logger"]["LogLevel"].get<std::string>()).value();
+        auto loggerConfig = json.get<LoggerConfig>();
+        auto logFilePath = loggerConfig.logFilePath;
+        auto logLevel = magic_enum::enum_cast<LogLevel>(loggerConfig.logLevel).value();
         std::cout << "Logger Level: " << magic_enum::enum_name(logLevel) << std::endl;
         std::cout << "Logger File Path: " << logFilePath << std::endl;
 
@@ -39,7 +40,7 @@ Spdlogger::Spdlogger()
         SetLevel(logLevel);
         auto formatter = std::make_unique<spdlog::pattern_formatter>();
         formatter->add_flag<UppercaseLevelFormatter>('U');
-        formatter->set_pattern("%^[%Y-%m-%d %H:%M:%S.%e] [%20s:%-4#] %U: %v%$");
+        formatter->set_pattern(loggerConfig.logFormat);
         mLogger->set_formatter(std::move(formatter));
     }
     catch (const spdlog::spdlog_ex &e)

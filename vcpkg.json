@@ -1,15 +1,17 @@
 {
     "dependencies": [
+        "entt",
         "fmt",
         "glad",
         "glfw3",
         "glm",
         "gtest",
+        "hello-imgui",
         "magic-enum",
         "nlohmann-json",
         "spdlog",
         "stb",
-        "entt"
+        "bext-di"
     ],
     "overrides": [
         {
@@ -51,6 +53,14 @@
         {
             "name": "entt",
             "version": "3.14.0"
+        },
+        {
+            "name": "hello-imgui",
+            "version": "1.6.0"
+        },
+        {
+            "name": "bext-di",
+            "version": "1.3.2"
         }
     ]
 }

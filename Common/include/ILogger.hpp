@@ -7,6 +7,7 @@
 
 namespace MEngine
 {
+
 enum class LogLevel
 {
     Trace,

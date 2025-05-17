@@ -6,6 +6,7 @@
 
 namespace MEngine
 {
+
 class Logger final
 {
   private:
@@ -33,3 +34,4 @@ class Logger final
 #define LogFatal(fmt, ...)                                                                                             \
     MEngine::Logger::GetInstance().GetLogger()->Fatal(std::source_location::current(), fmt, ##__VA_ARGS__)
 } // namespace MEngine
+

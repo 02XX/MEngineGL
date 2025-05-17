@@ -4,7 +4,7 @@ namespace MEngine
 {
 Configure::Configure()
 {
-    std::cout << "Loading configuration file: " << mPath.string() << std::endl;
+    std::cout << "Configuration file path: " << mPath.string() << std::endl;
     std::ifstream file(mPath);
     if (!file.is_open())
     {

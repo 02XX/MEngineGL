@@ -12,6 +12,12 @@
 
 namespace MEngine
 {
+struct LoggerConfig
+{
+    std::string logFilePath = "logs/app.log";
+    std::string logLevel = "Trace";
+    std::string logFormat = "%^[%Y-%m-%d %H:%M:%S.%e] [%20s:%-4#] %U: %v%$";
+};
 class Spdlogger final : public ILogger
 {
   private:
@@ -28,3 +34,23 @@ class Spdlogger final : public ILogger
     void SetLevel(LogLevel level) override;
 };
 } // namespace MEngine
+
+namespace nlohmann
+{
+template <> struct adl_serializer<MEngine::LoggerConfig>
+{
+
+    static void to_json(json &j, const MEngine::LoggerConfig &config)
+    {
+        j["Logger"]["LogFilePath"] = config.logFilePath;
+        j["Logger"]["LogLevel"] = config.logLevel;
+        j["Logger"]["LogFormat"] = config.logFormat;
+    }
+    static void from_json(const json &j, MEngine::LoggerConfig &config)
+    {
+        config.logFilePath = j.at("Logger").at("LogFilePath").get<std::string>();
+        config.logLevel = j.at("Logger").at("LogLevel").get<std::string>();
+        config.logFormat = j.at("Logger").at("LogFormat").get<std::string>();
+    }
+};
+} // namespace nlohmann
