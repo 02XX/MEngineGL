@@ -1,5 +1,5 @@
 #include "ResourceManager.hpp"
-#include "Entity/Shader.hpp"
+#include "Entity/Pipeline.hpp"
 #include <GLFW/glfw3.h>
 #include <filesystem>
 #include <glad/glad.h>
@@ -45,8 +45,8 @@ class ResourceManagerTest : public ::testing::Test
 
 TEST_F(ResourceManagerTest, CreateShaderAsset)
 {
-    auto id = mResourceManager.CreateAsset<Shader>();
-    auto shader = mResourceManager.GetAsset<Shader>(id);
+    auto id = mResourceManager.CreateAsset<Pipeline>();
+    auto shader = mResourceManager.GetAsset<Pipeline>(id);
     EXPECT_NE(id, UUID());
     EXPECT_NE(shader, nullptr);
     auto sourcePath = shader->GetPath();
@@ -54,15 +54,15 @@ TEST_F(ResourceManagerTest, CreateShaderAsset)
 }
 TEST_F(ResourceManagerTest, LoadShaderAsset)
 {
-    auto id = mResourceManager.CreateAsset<Shader>();
-    auto shader = mResourceManager.GetAsset<Shader>(id);
+    auto id = mResourceManager.CreateAsset<Pipeline>();
+    auto shader = mResourceManager.GetAsset<Pipeline>(id);
     EXPECT_NE(id, UUID());
     EXPECT_NE(shader, nullptr);
     auto sourcePath = shader->GetPath();
     EXPECT_TRUE(std::filesystem::exists(sourcePath));
     id = mResourceManager.LoadAsset(sourcePath);
     EXPECT_NE(id, UUID());
-    auto loadedShader = mResourceManager.GetAsset<Shader>(id);
+    auto loadedShader = mResourceManager.GetAsset<Pipeline>(id);
     EXPECT_NE(loadedShader, nullptr);
     EXPECT_EQ(shader->GetID(), loadedShader->GetID());
 }
