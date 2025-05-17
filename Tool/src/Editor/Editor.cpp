@@ -1,8 +1,12 @@
 #include "Editor/Editor.hpp"
+#include "Entity/IMaterial.hpp"
 #include "IConfigure.hpp"
 #include "Logger.hpp"
 #include <GLFW/glfw3.h>
 #include <boost/di.hpp>
+#include <filesystem>
+#include <imgui.h>
+#include <imgui_freetype.h>
 #include <memory>
 namespace MEngine
 {
@@ -108,6 +112,8 @@ void Editor::Init()
     InitWindow();
     InitOpenGL();
     InitSystems();
+    InitImGui();
+    mIsRunning = true;
 }
 void Editor::InitWindow()
 {
@@ -132,6 +138,7 @@ void Editor::InitWindow()
         mWindow = glfwCreateWindow(mWindowConfig.width, mWindowConfig.height, mWindowConfig.title.c_str(),
                                    glfwGetPrimaryMonitor(), nullptr);
         glfwWindowHint(GLFW_DECORATED, mWindowConfig.fullscreen ? GLFW_FALSE : GLFW_TRUE);
+        mIsFullscreen = true;
     }
     else
     {
@@ -172,6 +179,21 @@ void Editor::InitOpenGL()
     LogInfo("Vendor: {}", reinterpret_cast<const char *>(glGetString(GL_VENDOR)));
     LogInfo("Renderer: {}", reinterpret_cast<const char *>(glGetString(GL_RENDERER)));
 }
+void Editor::InitImGui()
+{
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    mImGuiIO = &ImGui::GetIO();
+    mImGuiIO->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_DockingEnable;
+    ImGui_ImplGlfw_InitForOpenGL(mWindow, true);
+    ImGui_ImplOpenGL3_Init("#version 460");
+
+    std::filesystem::path fontPath = std::filesystem::current_path() / mWindowConfig.fontPath;
+    mImGuiIO->Fonts->FontBuilderIO = ImGuiFreeType::GetBuilderForFreeType();
+    mDefaultFont = mImGuiIO->Fonts->AddFontFromFileTTF(fontPath.string().c_str(), 24.0f, nullptr,
+                                                       mImGuiIO->Fonts->GetGlyphRangesChineseSimplifiedCommon());
+    mImGuiIO->FontDefault = mDefaultFont;
+}
 void Editor::InitSystems()
 {
     mSystems.push_back(std::make_shared<TransformSystem>(mRegistry));
@@ -183,17 +205,27 @@ void Editor::InitSystems()
 }
 void Editor::Update(float deltaTime)
 {
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     while (!glfwWindowShouldClose(mWindow))
     {
         glfwPollEvents();
         if (mIsRunning)
         {
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
+            EditorUI();
+
+            // Render
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
             for (auto &system : mSystems)
             {
                 system->Update(deltaTime);
             }
+            ImGui::Render();
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+            glfwSwapBuffers(mWindow);
         }
-        glfwSwapBuffers(mWindow);
     }
 }
 void Editor::Shutdown()
@@ -202,6 +234,89 @@ void Editor::Shutdown()
     {
         system->Shutdown();
     }
+    mIsRunning = false;
 }
 
+//=======================Editor UI=========================
+void Editor::EditorUI()
+{
+    ImGuiViewport *viewport = ImGui::GetMainViewport();
+    // ImGui::SetNextWindowViewport(viewport->ID);
+
+    // ImGuiWindowFlags flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
+    //                          ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+    //                          ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus |
+    //                          ImGuiWindowFlags_NoBackground;
+
+    // ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    // ImGui::Begin("MainDockspace", nullptr, flags);
+    // ImGui::PopStyleVar();
+
+    mDockSpaceID = ImGui::DockSpaceOverViewport();
+
+    // 3. 首次运行时初始化布局
+    static bool first_run = true;
+    if (first_run)
+    {
+        first_run = false;
+        ImGui::DockBuilderRemoveNode(mDockSpaceID);
+        ImGui::DockBuilderAddNode(mDockSpaceID, ImGuiDockNodeFlags_DockSpace);
+        ImGui::DockBuilderSetNodeSize(mDockSpaceID, viewport->WorkSize);
+        // 1. 主区域拆分为底部（30%）和顶部（70%）
+        ImGuiID dockBottomID, dockTopID;
+        ImGui::DockBuilderSplitNode(mDockSpaceID, ImGuiDir_Down, 0.3, &dockBottomID, &dockTopID);
+        // 2. 顶部区域拆分为左（30%）和剩余部分（70%）
+        ImGuiID dockLeftID, remainingTop;
+        ImGui::DockBuilderSplitNode(dockTopID, ImGuiDir_Left, 0.3, &dockLeftID, &remainingTop);
+        // 3. 剩余部分（70%）拆分为中（60%）和右（40%）
+        ImGuiID dockCenterID, dockRightID;
+        ImGui::DockBuilderSplitNode(remainingTop, ImGuiDir_Right, 0.4, &dockRightID, &dockCenterID);
+        // 4. 中部拆分上(20%)和下(80%)
+        ImGuiID dockTopCenterID, dockBottomCenterID;
+        ImGui::DockBuilderSplitNode(dockCenterID, ImGuiDir_Up, 0.15, &dockTopCenterID, &dockBottomCenterID);
+        // 绑定窗口
+        ImGui::DockBuilderDockWindow("Viewport", dockBottomCenterID); // 中间
+        ImGui::DockBuilderDockWindow("Hierarchy", dockLeftID);        // 左侧
+        ImGui::DockBuilderDockWindow("Inspector", dockRightID);       // 右侧
+        ImGui::DockBuilderDockWindow("Assets", dockBottomID);         // 底部
+        ImGui::DockBuilderDockWindow("Toolbar", dockTopCenterID);     // 顶部
+        ImGui::DockBuilderFinish(mDockSpaceID);
+    }
+
+    // if (ImGui::BeginMenuBar())
+    // {
+    //     if (ImGui::BeginMenu("File"))
+    //     {
+    //         ImGui::MenuItem("Save Layout");
+    //         ImGui::EndMenu();
+    //     }
+    //     ImGui::EndMenuBar();
+    // }
+    RenderViewportPanel();
+    RenderHierarchyPanel();
+    RenderInspectorPanel();
+    RenderAssetPanel();
+}
+void Editor::RenderViewportPanel()
+{
+    ImGui::Begin("Viewport");
+    ImGui::Text("Viewport");
+    ImGui::End();
+}
+void Editor::RenderHierarchyPanel()
+{
+    ImGui::Begin("Hierarchy", nullptr, ImGuiWindowFlags_None);
+    ImGui::End();
+}
+void Editor::RenderInspectorPanel()
+{
+    ImGui::Begin("Inspector", nullptr, ImGuiWindowFlags_None);
+    ImGui::End();
+}
+void Editor::RenderAssetPanel()
+{
+    ImGui::Begin("Assets", nullptr, ImGuiWindowFlags_None);
+    ImGui::Text("Assets");
+    ImGui::End();
+}
 } // namespace MEngine

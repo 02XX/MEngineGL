@@ -5,16 +5,16 @@ add_library(Resource ${RESOURCE})
 target_include_directories(Resource PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(Resource PUBLIC Core)
 
-#Shader
+#Assets
 add_custom_target(
-    Shader
+    Assets
     ALL
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/bin/Shader
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/Shader ${CMAKE_BINARY_DIR}/bin/Shader
-    COMMENT "Copying shader files from source_folder to destination_folder..."
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/bin/Assets
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/Assets ${CMAKE_BINARY_DIR}/bin/Assets
+    COMMENT "Copying assets files from source_folder to destination_folder..."
     VERBATIM
 )
-add_dependencies(Resource Shader)
+add_dependencies(Resource Assets)
 
 #appsetting.json
 add_custom_target(
@@ -25,3 +25,4 @@ add_custom_target(
     VERBATIM
 )
 add_dependencies(Resource AppSetting)
+
