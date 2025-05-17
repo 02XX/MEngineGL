@@ -64,6 +64,7 @@ class Editor
     ImFont *mDefaultFont = nullptr;
     entt::entity mSelectedEntity = entt::null;
     entt::entity mHoveredEntity = entt::null;
+    std::shared_ptr<entt::registry> mCurrentRegistry;
     std::filesystem::path mCurrentPath = mAssetsPath;
     uint32_t mAssetIconSize = 64;
     std::unordered_map<AssetType, ImTextureID> mAssetIcons;
@@ -87,6 +88,7 @@ class Editor
     void RenderAssetPanel();
     void LoadUIResources();
     void LoadAssets(const std::filesystem::path &path);
+    void AssetComponentUI();
 };
 } // namespace MEngine
 

@@ -298,12 +298,39 @@ void Editor::RenderHierarchyPanel()
 void Editor::RenderInspectorPanel()
 {
     ImGui::Begin("Inspector", nullptr, ImGuiWindowFlags_None);
+    if (mSelectedEntity != entt::null)
+    {
+        auto entityLabel = std::format("Entity {}", static_cast<uint32_t>(mSelectedEntity));
+        ImGui::Text("%s", entityLabel.c_str());
+        if (mAssetRegistry->any_of<AssetsComponent>(mSelectedEntity))
+        {
+            AssetComponentUI();
+        }
+    }
     ImGui::End();
+}
+void Editor::AssetComponentUI()
+{
+    // AssetsComponent
+    auto &assetComponent = mCurrentRegistry->get<AssetsComponent>(mSelectedEntity);
+    if (ImGui::CollapsingHeader("Assets Component", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        ImGui::Text("Name: %s", assetComponent.name.c_str());
+        ImGui::Text("Path: %s", assetComponent.path.string().c_str());
+        ImGui::Text("Type: %s", magic_enum::enum_name(assetComponent.type).data());
+    }
 }
 void Editor::RenderAssetPanel()
 {
     ImGui::Begin("Assets", nullptr, ImGuiWindowFlags_None);
 
+    if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootWindow) && ImGui::IsMouseClicked(0))
+    {
+        if (ImGui::IsAnyItemHovered())
+        {
+            mCurrentRegistry = mAssetRegistry;
+        }
+    }
     if (ImGui::Button("<-"))
     {
         if (mCurrentPath != mAssetsPath)
