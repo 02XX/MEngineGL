@@ -61,3 +61,4 @@ template <> struct adl_serializer<MEngine::Entity>
     }
 };
 } // namespace nlohmann
+REFL_AUTO(type(MEngine::Entity, bases<MEngine::IEntity>))

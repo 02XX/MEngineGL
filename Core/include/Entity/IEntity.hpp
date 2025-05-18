@@ -5,6 +5,8 @@
 #include <filesystem>
 #include <glad/glad.h>
 #include <nlohmann/json.hpp>
+#include <refl.hpp>
+#include <typeindex>
 
 namespace MEngine
 {
@@ -52,4 +54,9 @@ class IEntity
     virtual void SetPath(const std::filesystem::path &path) = 0;
     virtual void SetName(const std::string &name) = 0;
 };
+
 } // namespace MEngine
+REFL_AUTO(type(MEngine::IEntity))
+struct Editable : refl::attr::usage::field
+{
+};

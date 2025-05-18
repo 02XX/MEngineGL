@@ -10,16 +10,17 @@
         {
             "name": "imgui",
             "features": [
-                "glfw-binding",
-                "opengl3-binding",
+                "docking-experimental",
                 "freetype",
-                "docking-experimental"
+                "glfw-binding",
+                "opengl3-binding"
             ]
         },
         "magic-enum",
         "nlohmann-json",
         "spdlog",
-        "stb"
+        "stb",
+        "refl-cpp"
     ],
     "overrides": [
         {
@@ -69,6 +70,10 @@
         {
             "name": "imgui",
             "version": "1.91.8#4"
+        },
+        {
+            "name": "refl-cpp",
+            "version": "0.12.4"
         }
     ]
 }

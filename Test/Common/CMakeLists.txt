@@ -9,4 +9,8 @@ add_test(NAME ConfigureTest COMMAND ConfigureTest)
 target_link_libraries(ConfigureTest PUBLIC Common GTest::gtest GTest::gtest_main)
 
 
+add_executable(TypeTest TypeTest.cpp)
+add_test(NAME TypeTest COMMAND TypeTest)
+target_link_libraries(TypeTest PUBLIC Common GTest::gtest GTest::gtest_main)
+
 

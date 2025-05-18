@@ -5,6 +5,8 @@ find_package(spdlog CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(magic_enum CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
+ find_path(REFL_CPP_INCLUDE_DIRS "refl.hpp")
+
 
 add_library(Common ${RESOURCE})
 
@@ -14,3 +16,4 @@ target_link_libraries(Common PUBLIC spdlog::spdlog)
 target_link_libraries(Common PUBLIC nlohmann_json::nlohmann_json)
 target_link_libraries(Common PUBLIC magic_enum::magic_enum)
 target_link_libraries(Common PUBLIC fmt::fmt-header-only)
+ target_include_directories(Common PUBLIC ${REFL_CPP_INCLUDE_DIRS})

@@ -15,7 +15,6 @@ struct CameraComponent : public Component
     float aspectRatio;
 
     bool isMainCamera = false;
-    bool dirty = false;
     glm::mat4 viewMatrix;
     glm::mat4 projectionMatrix;
 };

@@ -1,5 +1,6 @@
 #include "Editor/Editor.hpp"
 #include "Component/AssestComponent.hpp"
+#include "Component/TextureComponent.hpp"
 #include "Entity/IMaterial.hpp"
 #include "Entity/PBRMaterial.hpp"
 #include "Entity/Pipeline.hpp"
@@ -305,24 +306,20 @@ void Editor::RenderInspectorPanel()
     {
         auto entityLabel = std::format("Entity {}", static_cast<uint32_t>(mSelectedEntity));
         ImGui::Text("%s", entityLabel.c_str());
-        if (mAssetRegistry->any_of<AssetsComponent>(mSelectedEntity))
+        if (mCurrentRegistry->any_of<AssetsComponent>(mSelectedEntity))
         {
-            AssetComponentUI();
+            auto &assetComponent = mCurrentRegistry->get<AssetsComponent>(mSelectedEntity);
+            ComponentUI(assetComponent);
+        }
+        if (mCurrentRegistry->any_of<TextureComponent>(mSelectedEntity))
+        {
+            auto &textureComponent = mCurrentRegistry->get<TextureComponent>(mSelectedEntity);
+            ComponentUI(textureComponent);
         }
     }
     ImGui::End();
 }
-void Editor::AssetComponentUI()
-{
-    // AssetsComponent
-    auto &assetComponent = mCurrentRegistry->get<AssetsComponent>(mSelectedEntity);
-    if (ImGui::CollapsingHeader("Assets Component", ImGuiTreeNodeFlags_DefaultOpen))
-    {
-        ImGui::Text("Name: %s", assetComponent.name.c_str());
-        ImGui::Text("Path: %s", assetComponent.path.string().c_str());
-        ImGui::Text("Type: %s", magic_enum::enum_name(assetComponent.type).data());
-    }
-}
+
 void Editor::RenderAssetPanel()
 {
     ImGui::Begin("Assets", nullptr, ImGuiWindowFlags_None);
@@ -431,13 +428,15 @@ void Editor::LoadAssets(const std::filesystem::path &path)
     auto directory = std::filesystem::directory_iterator(path);
     for (auto &entry : directory)
     {
-        auto entity = mAssetRegistry->create();
-        auto &assetComponent = mAssetRegistry->emplace<AssetsComponent>(entity);
+        AssetsComponent assetComponent;
         assetComponent.path = entry.path();
         assetComponent.name = entry.path().filename().string();
+        assetComponent.type = AssetType::File;
         if (entry.is_directory())
         {
             assetComponent.type = AssetType::Folder;
+            auto entity = mAssetRegistry->create();
+            mAssetRegistry->emplace<AssetsComponent>(entity, assetComponent);
             LoadAssets(entry.path());
         }
         else if (entry.is_regular_file())
@@ -447,7 +446,19 @@ void Editor::LoadAssets(const std::filesystem::path &path)
             if (mResourceManager->IsAsset(entry.path()))
             {
                 type = mResourceManager->GetAssetTypeFromExtension(extension);
-                mResourceManager->LoadAsset(entry.path());
+                auto asset = mResourceManager->LoadAsset(entry.path());
+                auto it = typeToAssetType.find(type);
+                if (it != typeToAssetType.end())
+                {
+                    assetComponent.type = it->second;
+                }
+                auto entity = mAssetRegistry->create();
+                mAssetRegistry->emplace<AssetsComponent>(entity, assetComponent);
+                if (type == typeid(Texture2D))
+                {
+                    auto &textureComponent = mAssetRegistry->emplace<TextureComponent>(entity);
+                    textureComponent.texture = std::dynamic_pointer_cast<Texture2D>(asset);
+                }
             }
             else
             {
@@ -459,16 +470,14 @@ void Editor::LoadAssets(const std::filesystem::path &path)
                     mResourceManager->CreateAsset(entry.path());
                     assetComponent.path = assetPath;
                     assetComponent.name = assetPath.filename().string();
+                    auto it = typeToAssetType.find(type);
+                    if (it != typeToAssetType.end())
+                    {
+                        assetComponent.type = it->second;
+                    }
+                    auto entity = mAssetRegistry->create();
+                    mAssetRegistry->emplace<AssetsComponent>(entity, assetComponent);
                 }
-            }
-            auto it = typeToAssetType.find(type);
-            if (it != typeToAssetType.end())
-            {
-                assetComponent.type = it->second;
-            }
-            else
-            {
-                assetComponent.type = AssetType::None;
             }
         }
     }

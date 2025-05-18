@@ -5,76 +5,22 @@
 #include "Logger.hpp"
 #include <glad/glad.h>
 #include <magic_enum/magic_enum.hpp>
+#include <refl.hpp>
 namespace MEngine
 {
-enum class FilterType : GLenum
-{
-    Nearest = GL_NEAREST,
-    Linear = GL_LINEAR,
-    NearestMipmapNearest = GL_NEAREST_MIPMAP_NEAREST,
-    LinearMipmapNearest = GL_LINEAR_MIPMAP_NEAREST,
-    NearestMipmapLinear = GL_NEAREST_MIPMAP_LINEAR,
-    LinearMipmapLinear = GL_LINEAR_MIPMAP_LINEAR
-};
-enum class WrapModeType : GLenum
-{
-    Repeat = GL_REPEAT,
-    MirroredRepeat = GL_MIRRORED_REPEAT,
-    ClampToEdge = GL_CLAMP_TO_EDGE,
-    ClampToBorder = GL_CLAMP_TO_BORDER
-};
-enum class CompareModeType : GLenum
-{
-    None = GL_NONE,
-    CompareRefToTexture = GL_COMPARE_REF_TO_TEXTURE
-};
-enum class CompareFuncType : GLenum
-{
-    Never = GL_NEVER,
-    Less = GL_LESS,
-    Equal = GL_EQUAL,
-    Lequal = GL_LEQUAL,
-    Greater = GL_GREATER,
-    Notequal = GL_NOTEQUAL,
-    Gequal = GL_GEQUAL,
-    Always = GL_ALWAYS
-};
-enum class TextureFormatType : GLenum
-{
-    RGB = GL_RGB,
-    RGBA8 = GL_RGBA8,
-    RGBA16 = GL_RGBA16,
-    DepthComponent = GL_DEPTH_COMPONENT,
-    DepthStencil = GL_DEPTH_STENCIL
-};
-struct Importer
-{
-    GLsizei mipLevels = 1;
-    FilterType minFilter = FilterType::Linear;
-    FilterType magFilter = FilterType::Linear;
-    WrapModeType wrapS = WrapModeType::Repeat;
-    WrapModeType wrapT = WrapModeType::Repeat;
-    WrapModeType wrapR = WrapModeType::Repeat;
-    CompareModeType compareMode = CompareModeType::None;
-    CompareFuncType compareFunc = CompareFuncType::Lequal;
-    float lodMin = -1000.0f;
-    float lodMax = 1000.0f;
-    float lodBias = 0.0f;
-    float maxAnisotropy = 1.0f;
-    float borderColor[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-};
+
 class Texture2D final : public ITexture, public Entity
 {
     friend struct nlohmann::adl_serializer<MEngine::Texture2D>;
 
-  private:
+  public:
     std::filesystem::path mImagePath;
     uint32_t mWidth = 0;
     uint32_t mHeight = 0;
     uint32_t mChannels = 0;
     GLsizei mMipLevels = 1;
     TextureFormatType mInternalFormat = TextureFormatType::RGBA8;
-
+    int test = 0;
     GLuint mSamplerID = 0;
 
     Importer mImporter;
@@ -96,7 +42,7 @@ class Texture2D final : public ITexture, public Entity
     {
         return mHeight;
     }
-    inline void SetImporter(const Importer &importer)
+    inline void SetImporter(const Importer &importer) override
     {
         mImporter.minFilter = importer.minFilter;
         mImporter.magFilter = importer.magFilter;
@@ -143,12 +89,17 @@ class Texture2D final : public ITexture, public Entity
     {
         return mSamplerID;
     }
-    inline const Importer &GetImporter() const
+    inline const Importer &GetImporter() const override
     {
         return mImporter;
     }
+    inline const uint32_t &GetChannels() const override
+    {
+        return mChannels;
+    }
     void Update();
 };
+
 } // namespace MEngine
 namespace magic_enum
 {
@@ -196,6 +147,7 @@ template <> struct adl_serializer<MEngine::Texture2D>
         j["image_path"] = texture.mImagePath;
         j["width"] = texture.mWidth;
         j["height"] = texture.mHeight;
+        j["test"] = texture.test;
         j["importer"]["mip_levels"] = texture.mImporter.mipLevels;
         j["importer"]["min_filter"] = magic_enum::enum_name(texture.mImporter.minFilter);
         j["importer"]["mag_filter"] = magic_enum::enum_name(texture.mImporter.magFilter);
@@ -250,6 +202,11 @@ template <> struct adl_serializer<MEngine::Texture2D>
         texture.mImporter.borderColor[1] = borderColor[1];
         texture.mImporter.borderColor[2] = borderColor[2];
         texture.mImporter.borderColor[3] = borderColor[3];
+        texture.test = j.at("test").get<int>();
     }
 };
 } // namespace nlohmann
+
+REFL_AUTO(type(MEngine::Texture2D, bases<MEngine::ITexture>), field(mImagePath), field(mWidth), field(mHeight),
+          field(mChannels), field(mMipLevels), field(mInternalFormat), field(mSamplerID), field(mImporter),
+          field(mTextureID), field(test, Editable()))

@@ -1,22 +1,31 @@
 #pragma once
 #include "Component/AssestComponent.hpp"
+#include "Component/TextureComponent.hpp"
+#include "Entity/IEntity.hpp"
+#include "Entity/Texture2D.hpp"
 #include "IConfigure.hpp"
 #include "Logger.hpp"
+#include "Repository/Repository.hpp"
 #include "ResourceManager.hpp"
 #include "SceneManager.hpp"
 #include "System/TransformSystem.hpp"
 #include <GLFW/glfw3.h>
+#include <concepts>
 #include <cstdint>
 #include <entt/entity/fwd.hpp>
 #include <entt/entt.hpp>
 #include <filesystem>
+#include <format>
 #include <imgui.h>
 #include <imgui_freetype.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui_internal.h>
+#include <magic_enum/magic_enum.hpp>
 #include <memory>
+#include <refl.hpp>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <vector>
 
@@ -89,7 +98,138 @@ class Editor
     void LoadUIResources();
     void CreateAssetsForRaw(const std::filesystem::path &path);
     void LoadAssets(const std::filesystem::path &path);
-    void AssetComponentUI();
+    template <typename TComponent>
+        requires std::derived_from<TComponent, Component>
+    void ComponentUI(TComponent &component)
+    {
+        InspectorUI(component, component.dirty);
+    }
+    template <typename T> void InspectorUI(T &object, bool &dirty)
+    {
+        const refl::const_string componentName = refl::reflect<T>().name;
+        if (ImGui::CollapsingHeader(componentName.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            refl::util::for_each(refl::reflect<T>().members, [&](auto member, std::size_t index) {
+                const char *fieldName = member.name.c_str();
+                std::string label = std::format("##{}_{}", componentName.c_str(), fieldName);
+                auto &value = member(object);
+                bool isEditable = refl::descriptor::has_attribute<Editable>(member);
+                ImGui::Columns(2, "##fields", false);
+                ImGui::SetColumnWidth(0, 80);
+                ImGui::Text("%s: ", fieldName);
+                ImGui::NextColumn();
+                using ValueType = std::remove_reference_t<decltype(value)>;
+
+                if constexpr (std::is_same_v<ValueType, std::string>)
+                {
+                    if (!isEditable)
+                        ImGui::BeginDisabled();
+                    if (ImGui::InputText(label.c_str(), value.data(), value.capacity() + 1))
+                    {
+                        value = std::string(value);
+                        dirty = true;
+                    }
+                    if (!isEditable)
+                        ImGui::EndDisabled();
+                }
+                else if constexpr (std::is_same_v<ValueType, std::filesystem::path>)
+                {
+                    if (!isEditable)
+                        ImGui::BeginDisabled();
+                    auto pathStr = value.string();
+                    if (ImGui::InputText(label.c_str(), pathStr.data(), pathStr.capacity() + 1))
+                    {
+                        value = std::filesystem::path(value);
+                        dirty = true;
+                    }
+                    if (!isEditable)
+                        ImGui::EndDisabled();
+                }
+                else if constexpr (std::is_same_v<ValueType, bool>)
+                {
+                    if (!isEditable)
+                        ImGui::BeginDisabled();
+                    if (ImGui::Checkbox(label.c_str(), &value))
+                    {
+                        dirty = true;
+                    }
+                    if (!isEditable)
+                        ImGui::EndDisabled();
+                }
+                else if constexpr (std::is_same_v<ValueType, int>)
+                {
+                    if (!isEditable)
+                        ImGui::BeginDisabled();
+                    if (ImGui::InputInt(label.c_str(), &value))
+                    {
+                        value = std::clamp(value, 0, 100);
+                        dirty = true;
+                        if constexpr (std::is_base_of_v<IEntity, T>)
+                        {
+                            auto entity = mResourceManager->GetAsset<T>(object.GetID());
+                            mResourceManager->UpdateAsset(object.GetID(), entity);
+                        }
+                    }
+                    if (!isEditable)
+                        ImGui::EndDisabled();
+                }
+                else if constexpr (std::is_same_v<ValueType, float>)
+                {
+                    if (!isEditable)
+                        ImGui::BeginDisabled();
+                    if (ImGui::InputFloat(label.c_str(), &value))
+                    {
+                        value = std::clamp(value, 0.0f, 1.0f);
+                        dirty = true;
+                    }
+                    if (!isEditable)
+                        ImGui::EndDisabled();
+                }
+                else if constexpr (std::is_enum_v<ValueType>)
+                {
+                    if (!isEditable)
+                        ImGui::BeginDisabled();
+                    auto current = magic_enum::enum_name(value);
+                    if (ImGui::BeginCombo(label.c_str(), current.data()))
+                    {
+                        for (auto [enumValue, enumName] : magic_enum::enum_entries<ValueType>())
+                        {
+                            bool is_selected = (enumValue == value);
+                            if (ImGui::Selectable(enumName.data(), is_selected))
+                            {
+                                value = enumValue;
+                                dirty = true;
+                            }
+                            if (is_selected)
+                            {
+                                ImGui::SetItemDefaultFocus();
+                            }
+                        }
+                        ImGui::EndCombo();
+                    }
+                    if (!isEditable)
+                        ImGui::EndDisabled();
+                }
+                else if constexpr (requires { typename ValueType::element_type; })
+                {
+                    using RawType = typename ValueType::element_type;
+                    if constexpr (std::is_base_of_v<IEntity, RawType>)
+                    {
+                        if (typeid(*value) == typeid(Texture2D))
+                        {
+                            auto texture2D = std::dynamic_pointer_cast<Texture2D>(value);
+                            InspectorUI<Texture2D>(*texture2D, dirty);
+                        }
+                    }
+                }
+                else
+                {
+                    // LogDebug("{}: {}, editable: {}", fieldName, typeid(ValueType).name(), isEditable);
+                }
+                ImGui::Columns(1);
+            });
+        }
+    }
 };
 } // namespace MEngine
 

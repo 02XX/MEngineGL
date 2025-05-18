@@ -11,3 +11,4 @@ struct MaterialComponent : public Component
     std::shared_ptr<IMaterial> material;
 };
 } // namespace MEngine
+REFL_AUTO(type(MEngine::MaterialComponent, bases<MEngine::Component>), field(material))
