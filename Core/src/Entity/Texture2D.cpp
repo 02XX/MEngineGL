@@ -8,10 +8,14 @@ Texture2D::Texture2D()
 {
     mName = "Texture2D";
     glCreateTextures(GL_TEXTURE_2D, 1, &mTextureID);
+    GL_CHECK();
+    glCreateSamplers(1, &mSamplerID);
+    GL_CHECK();
 }
 Texture2D::~Texture2D()
 {
     glDeleteTextures(1, &mTextureID);
+    glDeleteSamplers(1, &mSamplerID);
 }
 void Texture2D::SetImagePath(const std::filesystem::path &path)
 {
@@ -28,13 +32,16 @@ void Texture2D::Update()
         {
             mMipLevels =
                 std::min(1 + static_cast<GLsizei>(std::floor(std::log2(std::max(mWidth, mHeight)))), mMipLevels);
-            auto a = GL_RGBA;
             glTextureStorage2D(mTextureID, mMipLevels, (GLenum)mInternalFormat, mWidth, mHeight);
+            GL_CHECK();
             glTextureSubImage2D(mTextureID, 0, 0, 0, mWidth, mHeight, GL_RGBA, GL_UNSIGNED_BYTE, data);
+            GL_CHECK();
             if (mMipLevels > 1)
             {
                 glGenerateTextureMipmap(mTextureID);
+                GL_CHECK();
             }
+            stbi_image_free(data);
         }
         else
         {
@@ -46,7 +53,7 @@ void Texture2D::Update()
         LogError("Texture file does not exist: {}, 记得后续重构添加默认纹理", mImagePath.string());
         return;
     }
-    glCreateSamplers(1, &mSamplerID);
+    GL_CHECK();
     // 设置缩小过滤器（包含mipmap）
     glSamplerParameteri(mSamplerID, GL_TEXTURE_MIN_FILTER, (GLint)mImporter.minFilter);
 
@@ -78,5 +85,6 @@ void Texture2D::Update()
 
     // 边框颜色（当wrap模式为GL_CLAMP_TO_BORDER时）
     glSamplerParameterfv(mSamplerID, GL_TEXTURE_BORDER_COLOR, mImporter.borderColor);
+    GL_CHECK();
 }
 } // namespace MEngine

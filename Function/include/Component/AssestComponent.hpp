@@ -8,6 +8,7 @@ namespace MEngine
 {
 enum class AssetType
 {
+    None,
     Folder,
     File,
     PBRMaterial,
@@ -21,9 +22,9 @@ enum class AssetType
 };
 struct AssetsComponent : public Component
 {
-    std::filesystem::path path;
-    std::string name;
-    AssetType type;
+    std::filesystem::path path{};
+    std::string name{};
+    AssetType type = AssetType::None;
     // std::vector<entt::entity> children;
     // entt::entity parent;
 };

@@ -87,6 +87,7 @@ class Editor
     void RenderInspectorPanel();
     void RenderAssetPanel();
     void LoadUIResources();
+    void CreateAssetsForRaw(const std::filesystem::path &path);
     void LoadAssets(const std::filesystem::path &path);
     void AssetComponentUI();
 };

@@ -119,7 +119,8 @@ void Editor::Init()
     InitSystems();
     InitImGui();
     LoadUIResources();
-    LoadAssets(mCurrentPath);
+    CreateAssetsForRaw(mAssetsPath);
+    LoadAssets(mAssetsPath);
     mIsRunning = true;
 }
 void Editor::InitWindow()
@@ -225,10 +226,10 @@ void Editor::Update(float deltaTime)
 
             // Render
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-            for (auto &system : mSystems)
-            {
-                system->Update(deltaTime);
-            }
+            // for (auto &system : mSystems)
+            // {
+            //     system->Update(deltaTime);
+            // }
             ImGui::Render();
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
             glfwSwapBuffers(mWindow);
@@ -436,6 +437,24 @@ void Editor::LoadUIResources()
     // mAssetIcons[AssetType::Model] = mResourceManager->GetAsset<Texture2D>(modelID)->GetTextureID();
     LogInfo("Loaded UI resources");
 }
+void Editor::CreateAssetsForRaw(const std::filesystem::path &path)
+{
+    if (!std::filesystem::exists(path))
+    {
+        throw std::runtime_error("Project path does not exist: " + path.string());
+    }
+    for (auto &entry : std::filesystem::directory_iterator(path))
+    {
+        if (entry.is_directory())
+        {
+            CreateAssetsForRaw(entry.path());
+        }
+        else if (entry.is_regular_file() && mResourceManager->IsRawAsset(entry.path()))
+        {
+            mResourceManager->CreateAssetForRaw(entry.path());
+        }
+    }
+}
 void Editor::LoadAssets(const std::filesystem::path &path)
 {
     if (!std::filesystem::exists(path))
@@ -444,6 +463,8 @@ void Editor::LoadAssets(const std::filesystem::path &path)
     }
     for (auto &entry : std::filesystem::directory_iterator(path))
     {
+        if (mResourceManager->IsRawAsset(entry.path()))
+            continue;
         auto entity = mAssetRegistry->create();
         auto &assetComponent = mAssetRegistry->emplace<AssetsComponent>(entity);
         assetComponent.path = entry.path();
@@ -451,7 +472,6 @@ void Editor::LoadAssets(const std::filesystem::path &path)
         if (entry.is_directory())
         {
             assetComponent.type = AssetType::Folder;
-            LogTrace("Load folder: {}", assetComponent.path.string());
             LoadAssets(entry.path());
         }
         else if (entry.is_regular_file())

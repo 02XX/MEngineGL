@@ -1,16 +1,20 @@
 #pragma once
 
+#include <concepts>
 #include <filesystem>
 #include <memory>
+#include <string>
 #include <typeindex>
 #include <unordered_map>
 
 #include "Entity/Entity.hpp"
 #include "Entity/IEntity.hpp"
 #include "Entity/Material.hpp"
+#include "Entity/PBRMaterial.hpp"
 #include "Entity/Pipeline.hpp"
 #include "Entity/Texture2D.hpp"
 #include "Logger.hpp"
+#include "Repository/IRepository.hpp"
 #include "Repository/MaterialRepository.hpp"
 #include "Repository/PipelineRepository.hpp"
 #include "Repository/Repository.hpp"
@@ -39,51 +43,121 @@ class ResourceManager
         // {".model", typeid(Model)},         {".audio", typeid(Audio)},
         // {".scene", typeid(Scene)},
     };
+    const std::unordered_map<std::string, std::type_index> mRawAssets = {
+        {".png", typeid(Texture2D)}, {".jpg", typeid(Texture2D)}, {".jpeg", typeid(Texture2D)},
+        {".bmp", typeid(Texture2D)}, {".tga", typeid(Texture2D)}, {".hdr", typeid(Texture2D)},
+        {".exr", typeid(Texture2D)},
+    };
 
   public:
+    bool IsRawAsset(const std::filesystem::path &path)
+    {
+        if (!std::filesystem::exists(path))
+        {
+            throw std::runtime_error("File does not exist: " + path.string());
+        }
+        std::string extension = path.extension().string();
+        auto it = mRawAssets.find(extension);
+        return it != mRawAssets.end();
+    }
+    void CreateAssetForRaw(const std::filesystem::path &path)
+    {
+        if (!std::filesystem::exists(path))
+        {
+            throw std::runtime_error("File does not exist: " + path.string());
+        }
+        std::string extension = path.extension().string();
+        auto typeIndex = mRawAssets.find(extension);
+        if (typeIndex != mRawAssets.end())
+        {
+            auto assetPath = path;
+            assetPath.replace_extension(mTypeExtensions.at(typeIndex->second));
+            if (std::filesystem::exists(assetPath))
+            {
+                LogTrace("Asset already exists: {}", assetPath.string());
+                return;
+            }
+            else
+            {
+                std::shared_ptr<IEntity> entity = nullptr;
+                if (typeIndex->second == typeid(Texture2D))
+                {
+                    entity = std::make_shared<Texture2D>();
+                    auto texture = std::dynamic_pointer_cast<Texture2D>(entity);
+                    texture->SetImagePath(path);
+                    Serialize<Texture2D>(assetPath, texture);
+                    LogTrace("Create texture2D asset: {}", assetPath.string());
+                }
+                else
+                {
+                    LogWarn("Not implement file type {}", mTypeExtensions.at(typeIndex->second));
+                }
+                if (entity)
+                {
+                    entity->SetPath(assetPath);
+                }
+            }
+        }
+        else
+        {
+            LogWarn("No Raw to Asset mappiping, {}", extension);
+            return;
+        }
+    }
     /**
      * @brief 加载资源
      *
      */
     UUID LoadAsset(const std::filesystem::path &path)
     {
+        // 检查文件是否存在
         if (!std::filesystem::exists(path))
         {
             throw std::runtime_error("File does not exist: " + path.string());
         }
-        // 获取文件类型
         std::string extension = path.extension().string();
+        // 检查扩展名是否支持
         auto typeIndex = mExtensionTypes.find(extension);
+        if (typeIndex == mExtensionTypes.end())
+        {
+            LogTrace("Unsupported file type: {}", extension);
+            return UUID();
+        }
 
+        auto loadEntity = [&]<typename TEntity>(const std::type_index &typeIdx) -> UUID
+            requires std::derived_from<TEntity, IEntity>
+        {
+            auto entity = std::make_shared<TEntity>();
+            Deserialize<TEntity>(path, entity);
+            // 检查 ID 是否已存在
+            if (mEntities.contains(entity->GetID()))
+            {
+                LogWarn("Entity with ID {} already exists.", entity->GetID().ToString());
+            }
+            // 更新相应的存储库
+            using repoType = typename RepositoryTraits<TEntity>::RepositoryType;
+            static repoType repository;
+            repository.Update(entity);
+            // 存储实体并返回 ID
+            mEntities[entity->GetID()] = entity;
+            LogInfo("Loaded asset: {}", path.string());
+            return entity->GetID();
+        };
+        // 根据类型索引分发加载逻辑
+        const auto &typeIdx = typeIndex->second;
         if (typeIndex != mExtensionTypes.end())
         {
-            std::shared_ptr<IEntity> entity = nullptr;
-            if (typeIndex->second == typeid(Pipeline))
+            if (typeIdx == typeid(Pipeline))
             {
-                entity = std::make_shared<Pipeline>();
-                Deserialize<Pipeline>(path, std::dynamic_pointer_cast<Pipeline>(entity));
-                static PipelineRepository repository;
-                repository.Update(std::dynamic_pointer_cast<Pipeline>(entity));
+                return loadEntity.template operator()<Pipeline>(typeIdx);
             }
-            else if (typeIndex->second == typeid(PBRMaterial))
+            else if (typeIdx == typeid(PBRMaterial))
             {
-                entity = std::make_shared<PBRMaterial>();
-                Deserialize<PBRMaterial>(path, std::dynamic_pointer_cast<PBRMaterial>(entity));
-                static PBRMaterialRepository pbrRepository;
-                pbrRepository.Update(std::dynamic_pointer_cast<PBRMaterial>(entity));
+                return loadEntity.template operator()<PBRMaterial>(typeIdx);
             }
-            else if (typeIndex->second == typeid(Texture2D))
+            else if (typeIdx == typeid(Texture2D))
             {
-                entity = std::make_shared<Texture2D>();
-                Deserialize<Texture2D>(path, std::dynamic_pointer_cast<Texture2D>(entity));
-                static Texture2DRepository textureRepository;
-                textureRepository.Update(std::dynamic_pointer_cast<Texture2D>(entity));
-            }
-            if (entity)
-            {
-                mEntities[entity->GetID()] = entity;
-                LogInfo("Loaded asset: {}", path.string());
-                return entity->GetID();
+                return loadEntity.template operator()<Texture2D>(typeIdx);
             }
             else
             {
@@ -97,6 +171,7 @@ class ResourceManager
             return UUID();
         }
     }
+
     /**
      * @brief 创建新的资源
      * @tparam TEntity 实体类型，需继承自 IEntity
