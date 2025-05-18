@@ -1,5 +1,7 @@
 #include "ResourceManager.hpp"
+#include "Entity/PBRMaterial.hpp"
 #include "Entity/Pipeline.hpp"
+#include "Entity/Texture2D.hpp"
 #include "gtest/gtest.h"
 #include <GLFW/glfw3.h>
 #include <filesystem>
@@ -140,73 +142,59 @@ class ResourceManagerTest : public ::testing::Test
 
 TEST_F(ResourceManagerTest, CreateShaderAsset)
 {
-    auto id = mResourceManager.CreateAsset<Pipeline>(mTestPath);
-    auto shader = mResourceManager.GetAsset<Pipeline>(id);
-    EXPECT_NE(id, UUID());
+    auto shader = mResourceManager.CreateAsset<Pipeline>(mTestPath);
+    EXPECT_NE(shader->GetID(), UUID());
     EXPECT_NE(shader, nullptr);
     auto sourcePath = shader->GetPath();
     EXPECT_TRUE(std::filesystem::exists(sourcePath));
 }
 TEST_F(ResourceManagerTest, LoadShaderAsset)
 {
-    auto id = mResourceManager.CreateAsset<Pipeline>(mTestPath);
-    auto shader = mResourceManager.GetAsset<Pipeline>(id);
-    EXPECT_NE(id, UUID());
+    auto shader = mResourceManager.CreateAsset<Pipeline>(mTestPath);
+    EXPECT_NE(shader->GetID(), UUID());
     EXPECT_NE(shader, nullptr);
     auto sourcePath = shader->GetPath();
     EXPECT_TRUE(std::filesystem::exists(sourcePath));
-    id = mResourceManager.LoadAsset(sourcePath);
-    EXPECT_NE(id, UUID());
-    auto loadedShader = mResourceManager.GetAsset<Pipeline>(id);
+    auto loadedShader = mResourceManager.LoadAsset<Pipeline>(sourcePath);
+    EXPECT_NE(loadedShader->GetID(), UUID());
     EXPECT_NE(loadedShader, nullptr);
     EXPECT_EQ(shader->GetID(), loadedShader->GetID());
 }
 TEST_F(ResourceManagerTest, CreatePBRMaterialAsset)
 {
-    auto id = mResourceManager.CreateAsset<PBRMaterial>(mTestPath);
-    auto material = mResourceManager.GetAsset<PBRMaterial>(id);
-    EXPECT_NE(id, UUID());
+    auto material = mResourceManager.CreateAsset<PBRMaterial>(mTestPath);
+    EXPECT_NE(material->GetID(), UUID());
     EXPECT_NE(material, nullptr);
     auto sourcePath = material->GetPath();
     EXPECT_TRUE(std::filesystem::exists(sourcePath));
 }
 TEST_F(ResourceManagerTest, LoadPBRMaterialAsset)
 {
-    auto id = mResourceManager.CreateAsset<PBRMaterial>(mTestPath);
-    auto material = mResourceManager.GetAsset<PBRMaterial>(id);
-    EXPECT_NE(id, UUID());
+    auto material = mResourceManager.CreateAsset<PBRMaterial>(mTestPath);
+    EXPECT_NE(material->GetID(), UUID());
     EXPECT_NE(material, nullptr);
     auto sourcePath = material->GetPath();
     EXPECT_TRUE(std::filesystem::exists(sourcePath));
-    id = mResourceManager.LoadAsset(sourcePath);
-    EXPECT_NE(id, UUID());
-    auto loadedMaterial = mResourceManager.GetAsset<PBRMaterial>(id);
+    auto loadedMaterial = mResourceManager.LoadAsset<PBRMaterial>(sourcePath);
+    EXPECT_NE(material->GetID(), UUID());
     EXPECT_NE(loadedMaterial, nullptr);
     EXPECT_EQ(material->GetID(), loadedMaterial->GetID());
 }
 TEST_F(ResourceManagerTest, CreateTextureAsset)
 {
-    GTEST_LOG_(INFO) << "0\n";
-    auto id = mResourceManager.CreateAsset<Texture2D>(mTestPath);
-    GTEST_LOG_(INFO) << "1\n";
-    auto texture = mResourceManager.GetAsset<Texture2D>(id);
-    GTEST_LOG_(INFO) << "2\n";
-    EXPECT_NE(id, UUID());
+    auto texture = mResourceManager.CreateAsset<Texture2D>(mTestPath);
+    EXPECT_NE(texture->GetID(), UUID());
     EXPECT_NE(texture, nullptr);
-    GTEST_LOG_(INFO) << "3\n";
     auto sourcePath = texture->GetPath();
-    GTEST_LOG_(INFO) << "4\n";
     EXPECT_TRUE(std::filesystem::exists(sourcePath));
-    GTEST_LOG_(INFO) << "5\n";
 }
 TEST_F(ResourceManagerTest, UpdateTextureAsset)
 {
-    auto id = mResourceManager.CreateAsset<Texture2D>(mTestPath);
-    auto texture = mResourceManager.GetAsset<Texture2D>(id);
-    EXPECT_NE(id, UUID());
+    auto texture = mResourceManager.CreateAsset<Texture2D>(mTestPath);
+    EXPECT_NE(texture->GetID(), UUID());
     EXPECT_NE(texture, nullptr);
     texture->SetImagePath(mTestPath / "file.png");
-    mResourceManager.UpdateAsset(id, texture);
+    mResourceManager.UpdateAsset(texture->GetID(), texture);
     EXPECT_NE(texture->GetTextureID(), 0);
 }
 TEST_F(ResourceManagerTest, LoadTextureAsset)
@@ -218,9 +206,8 @@ TEST_F(ResourceManagerTest, LoadTextureAsset)
                             << ", skip ResourceManagerTest.LoadTextureAsset" << "\n";
         return;
     }
-    auto id = mResourceManager.LoadAsset(imagePath);
-    auto texture = mResourceManager.GetAsset<Texture2D>(id);
-    EXPECT_NE(id, UUID());
+    auto texture = mResourceManager.LoadAsset<Texture2D>(imagePath);
+    EXPECT_NE(texture->GetID(), UUID());
     EXPECT_NE(texture, nullptr);
     EXPECT_NE(texture->GetTextureID(), 0);
     EXPECT_TRUE(std::filesystem::exists(texture->GetPath()));

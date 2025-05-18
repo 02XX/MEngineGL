@@ -1,6 +1,8 @@
 #include "Editor/Editor.hpp"
 #include "Component/AssestComponent.hpp"
 #include "Entity/IMaterial.hpp"
+#include "Entity/PBRMaterial.hpp"
+#include "Entity/Pipeline.hpp"
 #include "Entity/Texture2D.hpp"
 #include "IConfigure.hpp"
 #include "Logger.hpp"
@@ -11,6 +13,7 @@
 #include <imgui.h>
 #include <imgui_freetype.h>
 #include <memory>
+#include <typeindex>
 namespace MEngine
 {
 auto injector = boost::di::make_injector(boost::di::bind<IConfigure>().to<Configure>().in(boost::di::unique));
@@ -119,7 +122,6 @@ void Editor::Init()
     InitSystems();
     InitImGui();
     LoadUIResources();
-    CreateAssetsForRaw(mAssetsPath);
     LoadAssets(mAssetsPath);
     mIsRunning = true;
 }
@@ -226,10 +228,10 @@ void Editor::Update(float deltaTime)
 
             // Render
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-            // for (auto &system : mSystems)
-            // {
-            //     system->Update(deltaTime);
-            // }
+            for (auto &system : mSystems)
+            {
+                system->Update(deltaTime);
+            }
             ImGui::Render();
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
             glfwSwapBuffers(mWindow);
@@ -408,52 +410,13 @@ void Editor::RenderAssetPanel()
 }
 void Editor::LoadUIResources()
 {
-    if (std::filesystem::exists(mUIResourcesPath / "folder.tex2d"))
-    {
-        std::filesystem::remove(mUIResourcesPath / "folder.tex2d");
-    }
-    if (std::filesystem::exists(mUIResourcesPath / "file.tex2d"))
-    {
-        std::filesystem::remove(mUIResourcesPath / "file.tex2d");
-    }
-    auto foldID = mResourceManager->CreateAsset<Texture2D>(mUIResourcesPath, "folder");
-    auto foldTexture = mResourceManager->GetAsset<Texture2D>(foldID);
-    foldTexture->SetImagePath(mUIResourcesPath / "folder.png");
-    mResourceManager->UpdateAsset(foldID, foldTexture);
-    LogTrace("Create folder texture: {}", foldTexture->GetPath().string());
-
-    auto fileID = mResourceManager->CreateAsset<Texture2D>(mUIResourcesPath, "file");
-    auto fileTexture = mResourceManager->GetAsset<Texture2D>(fileID);
-    fileTexture->SetImagePath(mUIResourcesPath / "file.png");
-    mResourceManager->UpdateAsset(fileID, fileTexture);
-    LogTrace("Create file texture: {}", fileTexture->GetPath().string());
-
-    mAssetIcons[AssetType::Folder] = mResourceManager->GetAsset<Texture2D>(foldID)->GetTextureID();
-    mAssetIcons[AssetType::File] = mResourceManager->GetAsset<Texture2D>(fileID)->GetTextureID();
-    // mAssetIcons[AssetType::Shader] = mResourceManager->GetAsset<Texture2D>(shaderID)->GetTextureID();
-    // mAssetIcons[AssetType::PBRMaterial] = mResourceManager->GetAsset<Texture2D>(materialID)->GetTextureID();
-    // mAssetIcons[AssetType::Texture2D] = mResourceManager->GetAsset<Texture2D>(textureID)->GetTextureID();
-    // mAssetIcons[AssetType::Audio] = mResourceManager->GetAsset<Texture2D>(audioID)->GetTextureID();
-    // mAssetIcons[AssetType::Model] = mResourceManager->GetAsset<Texture2D>(modelID)->GetTextureID();
+    auto foldTexture =
+        std::dynamic_pointer_cast<Texture2D>(mResourceManager->CreateAsset(mUIResourcesPath / "folder.png"));
+    auto fileTexture =
+        std::dynamic_pointer_cast<Texture2D>(mResourceManager->CreateAsset(mUIResourcesPath / "file.png"));
+    mAssetIcons[AssetType::Folder] = foldTexture->GetTextureID();
+    mAssetIcons[AssetType::File] = fileTexture->GetTextureID();
     LogInfo("Loaded UI resources");
-}
-void Editor::CreateAssetsForRaw(const std::filesystem::path &path)
-{
-    if (!std::filesystem::exists(path))
-    {
-        throw std::runtime_error("Project path does not exist: " + path.string());
-    }
-    for (auto &entry : std::filesystem::directory_iterator(path))
-    {
-        if (entry.is_directory())
-        {
-            CreateAssetsForRaw(entry.path());
-        }
-        else if (entry.is_regular_file() && mResourceManager->IsRawAsset(entry.path()))
-        {
-            mResourceManager->CreateAssetForRaw(entry.path());
-        }
-    }
 }
 void Editor::LoadAssets(const std::filesystem::path &path)
 {
@@ -461,10 +424,13 @@ void Editor::LoadAssets(const std::filesystem::path &path)
     {
         throw std::runtime_error("Project path does not exist: " + path.string());
     }
-    for (auto &entry : std::filesystem::directory_iterator(path))
+    static const std::unordered_map<std::type_index, AssetType> typeToAssetType = {
+        {typeid(Pipeline), AssetType::Shader},
+        {typeid(PBRMaterial), AssetType::PBRMaterial},
+        {typeid(Texture2D), AssetType::Texture2D}};
+    auto directory = std::filesystem::directory_iterator(path);
+    for (auto &entry : directory)
     {
-        if (mResourceManager->IsRawAsset(entry.path()))
-            continue;
         auto entity = mAssetRegistry->create();
         auto &assetComponent = mAssetRegistry->emplace<AssetsComponent>(entity);
         assetComponent.path = entry.path();
@@ -477,23 +443,32 @@ void Editor::LoadAssets(const std::filesystem::path &path)
         else if (entry.is_regular_file())
         {
             auto extension = entry.path().extension().string();
-            auto type = mResourceManager->GetTypeIndex(extension);
-            mResourceManager->LoadAsset(entry.path());
-            if (type == typeid(Pipeline))
+            std::type_index type = typeid(void);
+            if (mResourceManager->IsAsset(entry.path()))
             {
-                assetComponent.type = AssetType::Shader;
-            }
-            else if (type == typeid(PBRMaterial))
-            {
-                assetComponent.type = AssetType::PBRMaterial;
-            }
-            else if (type == typeid(Texture2D))
-            {
-                assetComponent.type = AssetType::Texture2D;
+                type = mResourceManager->GetAssetTypeFromExtension(extension);
+                mResourceManager->LoadAsset(entry.path());
             }
             else
             {
-                assetComponent.type = AssetType::File;
+                auto assetPath = entry.path();
+                type = mResourceManager->GetRawTypeFromExtension(extension);
+                assetPath.replace_extension(mResourceManager->GetAssetExtensionFromType(type));
+                if (!std::filesystem::exists(assetPath))
+                {
+                    mResourceManager->CreateAsset(entry.path());
+                    assetComponent.path = assetPath;
+                    assetComponent.name = assetPath.filename().string();
+                }
+            }
+            auto it = typeToAssetType.find(type);
+            if (it != typeToAssetType.end())
+            {
+                assetComponent.type = it->second;
+            }
+            else
+            {
+                assetComponent.type = AssetType::None;
             }
         }
     }

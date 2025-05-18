@@ -50,7 +50,7 @@ void Texture2D::Update()
     }
     else // TODO: 默认纹理
     {
-        LogError("Texture file does not exist: {}, 记得后续重构添加默认纹理", mImagePath.string());
+        LogWarn("Texture file does not exist: {}, 记得后续重构添加默认纹理", mImagePath.string());
         return;
     }
     GL_CHECK();

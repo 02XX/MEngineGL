@@ -28,87 +28,66 @@ class ResourceManager
 {
   private:
     std::unordered_map<UUID, std::shared_ptr<IEntity>> mEntities;
-    const std::unordered_map<std::type_index, std::string> mTypeExtensions = {
-        {typeid(Pipeline), ".shader"},
-        {typeid(PBRMaterial), ".pbrmaterial"},
-        {typeid(Texture2D), ".tex2d"},
-        {typeid(Texture2D), ".texture"},
+    const std::unordered_map<std::type_index, std::string> mTypeToAssetExtensions = {
+        {typeid(Pipeline), ".shader"}, {typeid(PBRMaterial), ".pbrmaterial"}, {typeid(Texture2D), ".tex2d"}
         // {typeid(Material), ".material"}, {typeid(Animation), ".animation"}, {typeid(Model), ".model"},
         // {typeid(Audio), ".audio"},       {typeid(Scene), ".scene"},
     };
-    const std::unordered_map<std::string, std::type_index> mExtensionTypes = {
+    const std::unordered_map<std::string, std::type_index> mAssetExtensionToTypes = {
         {".shader", typeid(Pipeline)}, {".pbrmaterial", typeid(PBRMaterial)}, {".tex2d", typeid(Texture2D)}
         // {".texture", typeid(Texture)},     {".mesh", typeid(Mesh)},
         // {".material", typeid(Material)},   {".animation", typeid(Animation)},
         // {".model", typeid(Model)},         {".audio", typeid(Audio)},
         // {".scene", typeid(Scene)},
     };
-    const std::unordered_map<std::string, std::type_index> mRawAssets = {
+    const std::unordered_map<std::string, std::type_index> mRawExtensionToTypes = {
         {".png", typeid(Texture2D)}, {".jpg", typeid(Texture2D)}, {".jpeg", typeid(Texture2D)},
         {".bmp", typeid(Texture2D)}, {".tga", typeid(Texture2D)}, {".hdr", typeid(Texture2D)},
         {".exr", typeid(Texture2D)},
     };
 
   public:
-    bool IsRawAsset(const std::filesystem::path &path)
+    bool IsSupportRaw(const std::filesystem::path &path)
     {
         if (!std::filesystem::exists(path))
         {
             throw std::runtime_error("File does not exist: " + path.string());
         }
         std::string extension = path.extension().string();
-        auto it = mRawAssets.find(extension);
-        return it != mRawAssets.end();
+        auto it = mRawExtensionToTypes.find(extension);
+        return it != mRawExtensionToTypes.end();
     }
-    void CreateAssetForRaw(const std::filesystem::path &path)
+    bool IsAsset(const std::filesystem::path &path)
     {
         if (!std::filesystem::exists(path))
         {
             throw std::runtime_error("File does not exist: " + path.string());
         }
         std::string extension = path.extension().string();
-        auto typeIndex = mRawAssets.find(extension);
-        if (typeIndex != mRawAssets.end())
-        {
-            auto assetPath = path;
-            assetPath.replace_extension(mTypeExtensions.at(typeIndex->second));
-            if (std::filesystem::exists(assetPath))
-            {
-                LogTrace("Asset already exists: {}", assetPath.string());
-                return;
-            }
-            else
-            {
-                std::shared_ptr<IEntity> entity = nullptr;
-                if (typeIndex->second == typeid(Texture2D))
-                {
-                    entity = std::make_shared<Texture2D>();
-                    auto texture = std::dynamic_pointer_cast<Texture2D>(entity);
-                    texture->SetImagePath(path);
-                    Serialize<Texture2D>(assetPath, texture);
-                    LogTrace("Create texture2D asset: {}", assetPath.string());
-                }
-                else
-                {
-                    LogWarn("Not implement file type {}", mTypeExtensions.at(typeIndex->second));
-                }
-                if (entity)
-                {
-                    entity->SetPath(assetPath);
-                }
-            }
-        }
-        else
-        {
-            LogWarn("No Raw to Asset mappiping, {}", extension);
-            return;
-        }
+        auto it = mAssetExtensionToTypes.find(extension);
+        return it != mAssetExtensionToTypes.end();
     }
-    /**
-     * @brief 加载资源
-     *
-     */
-    UUID LoadAsset(const std::filesystem::path &path)
+    template <typename TEntity>
+        requires std::derived_from<TEntity, IEntity>
+    std::shared_ptr<TEntity> LoadAsset(const std::filesystem::path &path)
+    {
+        auto entity = std::make_shared<TEntity>();
+        Deserialize<TEntity>(path, entity);
+        // 检查 ID 是否已存在
+        if (mEntities.contains(entity->GetID()))
+        {
+            LogWarn("Entity with ID {} already exists.", entity->GetID().ToString());
+        }
+        // 更新相应的存储库
+        using repoType = typename RepositoryTraits<TEntity>::RepositoryType;
+        static repoType repository;
+        repository.Update(entity);
+        // 存储实体并返回 ID
+        mEntities[entity->GetID()] = entity;
+        LogInfo("Loaded asset: {}", path.string());
+        return entity;
+    }
+    std::shared_ptr<IEntity> LoadAsset(const std::filesystem::path &path)
     {
         // 检查文件是否存在
         if (!std::filesystem::exists(path))
@@ -117,70 +96,43 @@ class ResourceManager
         }
         std::string extension = path.extension().string();
         // 检查扩展名是否支持
-        auto typeIndex = mExtensionTypes.find(extension);
-        if (typeIndex == mExtensionTypes.end())
+        auto typeIndex = mAssetExtensionToTypes.find(extension);
+        if (typeIndex == mAssetExtensionToTypes.end())
         {
             LogTrace("Unsupported file type: {}", extension);
-            return UUID();
+            return nullptr;
         }
-
-        auto loadEntity = [&]<typename TEntity>(const std::type_index &typeIdx) -> UUID
-            requires std::derived_from<TEntity, IEntity>
-        {
-            auto entity = std::make_shared<TEntity>();
-            Deserialize<TEntity>(path, entity);
-            // 检查 ID 是否已存在
-            if (mEntities.contains(entity->GetID()))
-            {
-                LogWarn("Entity with ID {} already exists.", entity->GetID().ToString());
-            }
-            // 更新相应的存储库
-            using repoType = typename RepositoryTraits<TEntity>::RepositoryType;
-            static repoType repository;
-            repository.Update(entity);
-            // 存储实体并返回 ID
-            mEntities[entity->GetID()] = entity;
-            LogInfo("Loaded asset: {}", path.string());
-            return entity->GetID();
-        };
         // 根据类型索引分发加载逻辑
         const auto &typeIdx = typeIndex->second;
-        if (typeIndex != mExtensionTypes.end())
+        if (typeIndex != mAssetExtensionToTypes.end())
         {
             if (typeIdx == typeid(Pipeline))
             {
-                return loadEntity.template operator()<Pipeline>(typeIdx);
+                return LoadAsset<Pipeline>(path);
             }
             else if (typeIdx == typeid(PBRMaterial))
             {
-                return loadEntity.template operator()<PBRMaterial>(typeIdx);
+                return LoadAsset<PBRMaterial>(path);
             }
             else if (typeIdx == typeid(Texture2D))
             {
-                return loadEntity.template operator()<Texture2D>(typeIdx);
+                return LoadAsset<Texture2D>(path);
             }
             else
             {
-                LogWarn("Not implement file type {}", mTypeExtensions.at(typeIndex->second));
-                return UUID();
+                LogWarn("Not implement file type {}", mTypeToAssetExtensions.at(typeIndex->second));
+                return nullptr;
             }
         }
         else
         {
             LogTrace("Unsupported file type: {}", extension);
-            return UUID();
+            return nullptr;
         }
     }
-
-    /**
-     * @brief 创建新的资源
-     * @tparam TEntity 实体类型，需继承自 IEntity
-     * @return UUID 资源的唯一标识
-     * @throws std::runtime_error 如果文件创建失败
-     */
     template <typename TEntity>
         requires std::derived_from<TEntity, IEntity>
-    UUID CreateAsset(const std::filesystem::path &path, std::string name = "New Asset")
+    std::shared_ptr<TEntity> CreateAsset(const std::filesystem::path &path, std::string name = "New Asset")
     {
         if (!std::filesystem::exists(path))
         {
@@ -190,12 +142,57 @@ class ResourceManager
         using RepositoryType = typename RepositoryTraits<TEntity>::RepositoryType;
         static RepositoryType repository;
         auto entity = repository.Create();
+        repository.Update(entity);
         mEntities[entity->GetID()] = entity;
-        std::filesystem::path sourcePath = GenerateUniquePath<TEntity>(path, name);
+        std::string ext = GetAssetExtensionFromType(typeid(TEntity));
+        std::filesystem::path sourcePath = path / (name + ext);
         entity->SetPath(sourcePath);
         Serialize(sourcePath, entity);
-        return entity->GetID();
+        return entity;
     }
+    std::shared_ptr<IEntity> CreateAsset(const std::filesystem::path &supportRawPath)
+    {
+        auto extension = supportRawPath.extension().string();
+        if (extension.empty())
+        {
+            LogError("{} is must a file.", supportRawPath.string());
+            return nullptr;
+        }
+        auto it = mRawExtensionToTypes.find(extension);
+        if (it != mRawExtensionToTypes.end())
+        {
+            auto type = it->second;
+            if (type == typeid(Pipeline))
+            {
+                auto pipeline = CreateAsset<Pipeline>(supportRawPath.parent_path(), supportRawPath.stem().string());
+                return pipeline;
+            }
+            else if (type == typeid(PBRMaterial))
+            {
+                auto pbrMaterial =
+                    CreateAsset<PBRMaterial>(supportRawPath.parent_path(), supportRawPath.stem().string());
+                return pbrMaterial;
+            }
+            else if (type == typeid(Texture2D))
+            {
+                auto texture2D = CreateAsset<Texture2D>(supportRawPath.parent_path(), supportRawPath.stem().string());
+                texture2D->SetImagePath(supportRawPath);
+                UpdateAsset(texture2D->GetID(), texture2D);
+                return texture2D;
+            }
+            else
+            {
+                LogWarn("Unimplemented raw type: {}", extension);
+                return nullptr;
+            }
+        }
+        else
+        {
+            LogWarn("Unsupported raw type: {}", extension);
+            return nullptr;
+        }
+    }
+
     template <typename TEntity>
         requires std::derived_from<TEntity, IEntity>
     void Serialize(std::filesystem::path path, std::shared_ptr<TEntity> target)
@@ -297,7 +294,7 @@ class ResourceManager
     template <typename TEntity>
     std::filesystem::path GenerateUniquePath(const std::filesystem::path &path, const std::string &baseName)
     {
-        std::string ext = GetExtension(typeid(TEntity));
+        std::string ext = GetAssetExtensionFromType(typeid(TEntity));
         std::filesystem::path sourcePath = path / (baseName + ext);
         int i = 0;
         while (std::filesystem::exists(sourcePath))
@@ -307,15 +304,24 @@ class ResourceManager
         }
         return sourcePath;
     }
-    std::string GetExtension(const std::type_index &type)
+    std::string GetAssetExtensionFromType(const std::type_index &type)
     {
-        auto it = mTypeExtensions.find(type);
-        return it != mTypeExtensions.end() ? it->second : ".unknown";
+        auto it = mTypeToAssetExtensions.find(type);
+        return it != mTypeToAssetExtensions.end() ? it->second : ".unknown";
     }
-    std::type_index GetTypeIndex(const std::string &extension)
+    std::type_index GetAssetTypeFromExtension(const std::string &extension)
     {
-        auto it = mExtensionTypes.find(extension);
-        if (it != mExtensionTypes.end())
+        auto it = mAssetExtensionToTypes.find(extension);
+        if (it != mAssetExtensionToTypes.end())
+        {
+            return it->second;
+        }
+        return std::type_index(typeid(void));
+    }
+    std::type_index GetRawTypeFromExtension(const std::string &extension)
+    {
+        auto it = mRawExtensionToTypes.find(extension);
+        if (it != mRawExtensionToTypes.end())
         {
             return it->second;
         }
