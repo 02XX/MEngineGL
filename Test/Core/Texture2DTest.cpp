@@ -143,7 +143,7 @@ TEST_F(Texture2DTest, CreateTexture2D)
 TEST_F(Texture2DTest, UpdateTexture2D)
 {
     auto texture = std::make_shared<Texture2D>();
-    texture->SetImagePath(std::filesystem::current_path() / "Test" / "file.png");
+    texture->SetImagePath(mTestPath / "file.png");
     texture->Update();
     EXPECT_NE(texture->GetTextureID(), 0);
     GTEST_LOG_(INFO) << "Texture2D ID: " << texture->GetTextureID();

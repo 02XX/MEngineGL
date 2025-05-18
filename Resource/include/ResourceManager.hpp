@@ -224,7 +224,7 @@ class ResourceManager
             throw std::runtime_error("Failed to open file: " + path.string());
         }
         json j = json::parse(file);
-        *target = j.get<TEntity>();
+        j.get_to<TEntity>(*target);
     }
     /**
      * @brief 获取资源
