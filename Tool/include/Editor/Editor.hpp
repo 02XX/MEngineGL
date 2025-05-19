@@ -1,5 +1,6 @@
 #pragma once
 #include "Component/AssestComponent.hpp"
+#include "Component/Reflection.hpp"
 #include "Component/TextureComponent.hpp"
 #include "Entity/IEntity.hpp"
 #include "Entity/Texture2D.hpp"
@@ -14,6 +15,7 @@
 #include <cstdint>
 #include <entt/entity/fwd.hpp>
 #include <entt/entt.hpp>
+#include <entt/meta/resolve.hpp>
 #include <filesystem>
 #include <format>
 #include <imgui.h>
@@ -104,18 +106,20 @@ class Editor
     {
         InspectorUI(component, component.dirty);
     }
-    template <typename T> void InspectorUI(T &object, bool &dirty)
+    template <typename T> void InspectorUIOld(T &object, bool &dirty)
     {
         const refl::const_string componentName = refl::reflect<T>().name;
         if (ImGui::CollapsingHeader(componentName.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
         {
+            ImGui::Columns(1);
             refl::util::for_each(refl::reflect<T>().members, [&](auto member, std::size_t index) {
-                const char *fieldName = member.name.c_str();
+                const char *fieldName = refl::descriptor::get_display_name(member).c_str();
                 std::string label = std::format("##{}_{}", componentName.c_str(), fieldName);
                 auto &value = member(object);
                 bool isEditable = refl::descriptor::has_attribute<Editable>(member);
                 ImGui::Columns(2, "##fields", false);
-                ImGui::SetColumnWidth(0, 80);
+                const int labelWidth = 100;
+                ImGui::SetColumnWidth(0, labelWidth);
                 ImGui::Text("%s: ", fieldName);
                 ImGui::NextColumn();
                 using ValueType = std::remove_reference_t<decltype(value)>;
@@ -215,11 +219,15 @@ class Editor
                     using RawType = typename ValueType::element_type;
                     if constexpr (std::is_base_of_v<IEntity, RawType>)
                     {
+                        ImGui::Columns(1);
                         if (typeid(*value) == typeid(Texture2D))
                         {
                             auto texture2D = std::dynamic_pointer_cast<Texture2D>(value);
                             InspectorUI<Texture2D>(*texture2D, dirty);
                         }
+                        ImGui::Columns(2, "##fields", false);
+                        ImGui::SetColumnWidth(0, labelWidth);
+                        ImGui::NextColumn();
                     }
                 }
                 else
@@ -228,6 +236,136 @@ class Editor
                 }
                 ImGui::Columns(1);
             });
+        }
+    }
+    template <typename T> void InspectorUI(T &object, bool &dirty)
+    {
+        const refl::const_string componentName = refl::reflect<T>().name;
+        if (ImGui::CollapsingHeader(componentName.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            ImGui::Columns(1);
+            auto metaType = entt::resolve<T>();
+            for (auto &&[id, field] : metaType.data())
+            {
+                const char *fieldDisplayName = id;
+                std::string label = std::format("##{}_{}", componentName.c_str(), fieldDisplayName);
+                auto fieldType = field.type();
+                auto fieldValue = field.get(object);
+                bool isEditable = false;
+                ImGui::Columns(2, "##fields", false);
+                const int labelWidth = 100;
+                ImGui::SetColumnWidth(0, labelWidth);
+                ImGui::Text("%s: ", fieldDisplayName);
+                ImGui::NextColumn();
+                if (!isEditable)
+                    ImGui::BeginDisabled();
+                if (fieldType == entt::resolve<std::string>())
+                {
+                    if (!isEditable)
+                        ImGui::BeginDisabled();
+                    if (ImGui::InputText(label.c_str(), fieldValue.data(), fieldValue.capacity() + 1))
+                    {
+                        fieldValue.set(id, fieldValue);
+                        dirty = true;
+                    }
+                }
+                else if (fieldType == entt::resolve<std::filesystem::path>())
+                {
+                    auto pathStr = fieldValue.string();
+                    if (ImGui::InputText(label.c_str(), pathStr.data(), pathStr.capacity() + 1))
+                    {
+                        fieldValue.set(id, std::filesystem::path(pathStr));
+                        dirty = true;
+                    }
+                }
+                else if (fieldType == entt::resolve<bool>())
+                {
+                    if (!isEditable)
+                        ImGui::BeginDisabled();
+                    if (ImGui::Checkbox(label.c_str(), &fieldValue))
+                    {
+                        fieldValue.set(id, fieldValue);
+                        dirty = true;
+                    }
+                    if (!isEditable)
+                        ImGui::EndDisabled();
+                }
+                else if (fieldType == entt::resolve<int>())
+                {
+                    if (!isEditable)
+                        ImGui::BeginDisabled();
+                    if (ImGui::InputInt(label.c_str(), &fieldValue))
+                    {
+                        fieldValue.set(id, std::clamp(fieldValue, 0, 100));
+                        dirty = true;
+                        if constexpr (std::is_base_of_v<IEntity, T>)
+                        {
+                            auto entity = mResourceManager->GetAsset<T>(object.GetID());
+                            mResourceManager->UpdateAsset(object.GetID(), entity);
+                        }
+                    }
+                    if (!isEditable)
+                        ImGui::EndDisabled();
+                }
+                else if (fieldType == entt::resolve<float>())
+                {
+                    if (ImGui::InputFloat(label.c_str(), &fieldValue))
+                    {
+                        fieldValue.set(id, std::clamp(fieldValue, 0.0f, 1.0f));
+                        dirty = true;
+                    }
+                    if (!isEditable)
+                        ImGui::EndDisabled();
+                }
+                // else if (fieldType.is_enum())
+                // {
+                //     if (!isEditable)
+                //         ImGui::BeginDisabled();
+                //     auto current = magic_enum::enum_name(fieldValue);
+                //     if (ImGui::BeginCombo(label.c_str(), current.data()))
+                //     {
+                //         for (auto [enumValue, enumName] : magic_enum::enum_entries<ValueType>())
+                //         {
+                //             bool is_selected = (enumValue == value);
+                //             if (ImGui::Selectable(enumName.data(), is_selected))
+                //             {
+                //                 value = enumValue;
+                //                 dirty = true;
+                //             }
+                //             if (is_selected)
+                //             {
+                //                 ImGui::SetItemDefaultFocus();
+                //             }
+                //         }
+                //         ImGui::EndCombo();
+                //     }
+                //     if (!isEditable)
+                //         ImGui::EndDisabled();
+                // }
+                // else if constexpr (requires { typename ValueType::element_type; })
+                // {
+                //     using RawType = typename ValueType::element_type;
+                //     if constexpr (std::is_base_of_v<IEntity, RawType>)
+                //     {
+                //         ImGui::Columns(1);
+                //         if (typeid(*value) == typeid(Texture2D))
+                //         {
+                //             auto texture2D = std::dynamic_pointer_cast<Texture2D>(value);
+                //             InspectorUI<Texture2D>(*texture2D, dirty);
+                //         }
+                //         ImGui::Columns(2, "##fields", false);
+                //         ImGui::SetColumnWidth(0, labelWidth);
+                //         ImGui::NextColumn();
+                //     }
+                // }
+                else
+                {
+                    // LogDebug("{}: {}, editable: {}", fieldName, typeid(ValueType).name(), isEditable);
+                }
+                if (!isEditable)
+                    ImGui::EndDisabled();
+            };
+            ImGui::Columns(1);
         }
     }
 };

@@ -118,6 +118,7 @@ Editor::~Editor()
 }
 void Editor::Init()
 {
+    RegisterMeta();
     InitWindow();
     InitOpenGL();
     InitSystems();
@@ -457,29 +458,28 @@ void Editor::LoadAssets(const std::filesystem::path &path)
                 if (type == typeid(Texture2D))
                 {
                     auto &textureComponent = mAssetRegistry->emplace<TextureComponent>(entity);
-                    textureComponent.texture = std::dynamic_pointer_cast<Texture2D>(asset);
+                    textureComponent.textureID = asset->GetID();
                 }
-            }
-            else
-            {
-                auto assetPath = entry.path();
-                type = mResourceManager->GetRawTypeFromExtension(extension);
-                assetPath.replace_extension(mResourceManager->GetAssetExtensionFromType(type));
-                if (!std::filesystem::exists(assetPath))
+                else
                 {
-                    mResourceManager->CreateAsset(entry.path());
-                    assetComponent.path = assetPath;
-                    assetComponent.name = assetPath.filename().string();
-                    auto it = typeToAssetType.find(type);
-                    if (it != typeToAssetType.end())
+                    auto assetPath = entry.path();
+                    type = mResourceManager->GetRawTypeFromExtension(extension);
+                    assetPath.replace_extension(mResourceManager->GetAssetExtensionFromType(type));
+                    if (!std::filesystem::exists(assetPath))
                     {
-                        assetComponent.type = it->second;
+                        mResourceManager->CreateAsset(entry.path());
+                        assetComponent.path = assetPath;
+                        assetComponent.name = assetPath.filename().string();
+                        auto it = typeToAssetType.find(type);
+                        if (it != typeToAssetType.end())
+                        {
+                            assetComponent.type = it->second;
+                        }
+                        auto entity = mAssetRegistry->create();
+                        mAssetRegistry->emplace<AssetsComponent>(entity, assetComponent);
                     }
-                    auto entity = mAssetRegistry->create();
-                    mAssetRegistry->emplace<AssetsComponent>(entity, assetComponent);
                 }
             }
         }
     }
-}
 } // namespace MEngine

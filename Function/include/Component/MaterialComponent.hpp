@@ -2,13 +2,14 @@
 
 #include "Component/Component.hpp"
 #include "Entity/IMaterial.hpp"
+#include "UUID.hpp"
 #include <memory>
 
 namespace MEngine
 {
 struct MaterialComponent : public Component
 {
-    std::shared_ptr<IMaterial> material;
+    UUID materialID;
 };
 } // namespace MEngine
-REFL_AUTO(type(MEngine::MaterialComponent, bases<MEngine::Component>), field(material))
+REFL_AUTO(type(MEngine::MaterialComponent, bases<MEngine::Component>), field(materialID))
