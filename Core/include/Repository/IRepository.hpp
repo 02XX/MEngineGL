@@ -1,10 +1,10 @@
 #pragma once
-#include "Entity/IEntity.hpp"
+#include "Entity/Entity.hpp"
 #include <memory>
 namespace MEngine
 {
 template <typename TEntity>
-    requires std::derived_from<TEntity, IEntity>
+    requires std::derived_from<TEntity, Entity>
 class IRepository
 {
   public:

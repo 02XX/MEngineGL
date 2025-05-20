@@ -1,25 +1,21 @@
 #include "Entity/PBRMaterial.hpp"
-#include "Entity/IPipeline.hpp"
 
 namespace MEngine
 {
 PBRMaterial::PBRMaterial()
 {
-    mName = "PBRMaterial";
-    mMaterialType = MaterialType::PBR;
-    glCreateBuffers(1, &mUBO);
-    glNamedBufferStorage(mUBO, sizeof(PBRProperties), nullptr, GL_DYNAMIC_STORAGE_BIT);
+    Name = "PBRMaterial";
+    MaterialType = MaterialType::PBR;
+    glCreateBuffers(1, &UBO);
+    glNamedBufferStorage(UBO, sizeof(PBRParameters), nullptr, GL_DYNAMIC_STORAGE_BIT);
 }
 PBRMaterial::~PBRMaterial()
 {
-    glDeleteBuffers(1, &mUBO);
-}
-void PBRMaterial::SetPBRProperties(const PBRProperties &properties)
-{
-    mPBRProperties = properties;
+    glDeleteBuffers(1, &UBO);
 }
 void PBRMaterial::Update()
 {
-    glNamedBufferSubData(mUBO, 0, sizeof(PBRProperties), &mPBRProperties);
+    auto parameters = Parameters.Get();
+    glNamedBufferSubData(UBO, 0, sizeof(PBRParameters), &parameters);
 }
 } // namespace MEngine

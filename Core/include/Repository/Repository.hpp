@@ -4,7 +4,7 @@
 namespace MEngine
 {
 template <typename TEntity>
-    requires std::derived_from<TEntity, IEntity>
+    requires std::derived_from<TEntity, Entity>
 class Repository : public IRepository<TEntity>
 {
   public:

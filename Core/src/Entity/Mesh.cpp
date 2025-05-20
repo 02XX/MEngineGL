@@ -1,47 +1,39 @@
 #include "Entity/Mesh.hpp"
-#include "Entity/IMaterial.hpp"
 
 namespace MEngine
 {
 Mesh::Mesh()
 {
-    glCreateVertexArrays(1, &mVAO);
-    glCreateBuffers(1, &mVBO);
-    glCreateBuffers(1, &mEBO);
+    Name = "Mesh";
+    glCreateVertexArrays(1, &VAO);
+    glCreateBuffers(1, &VBO);
+    glCreateBuffers(1, &EBO);
 }
 Mesh::~Mesh()
 {
-    glDeleteVertexArrays(1, &mVAO);
-    glDeleteBuffers(1, &mVBO);
-    glDeleteBuffers(1, &mEBO);
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &EBO);
 }
-void Mesh::SetVertexBuffer(const std::vector<Vertex> &vertices)
-{
-    mVertices = vertices;
-}
-void Mesh::SetIndexBuffer(const std::vector<uint32_t> &indices)
-{
-    mIndices = indices;
-    mIndexCount = static_cast<uint32_t>(indices.size());
-};
 void Mesh::Update()
 {
-    glNamedBufferStorage(mVBO, static_cast<GLsizeiptr>(mVertices.size() * sizeof(Vertex)), mVertices.data(), 0);
-    glVertexArrayVertexBuffer(mVAO, 0, mVBO, 0, sizeof(Vertex));
+    glNamedBufferStorage(VBO, static_cast<GLsizeiptr>(Vertices.Get().size() * sizeof(Vertex)), Vertices.Get().data(),
+                         0);
+    glVertexArrayVertexBuffer(VAO, 0, VBO, 0, sizeof(Vertex));
 
-    glEnableVertexArrayAttrib(mVAO, 0);
-    glVertexArrayAttribFormat(mVAO, 0, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, position));
-    glVertexArrayAttribBinding(mVAO, 0, 0);
+    glEnableVertexArrayAttrib(VAO, 0);
+    glVertexArrayAttribFormat(VAO, 0, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, position));
+    glVertexArrayAttribBinding(VAO, 0, 0);
 
-    glEnableVertexArrayAttrib(mVAO, 1);
-    glVertexArrayAttribFormat(mVAO, 1, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, normal));
-    glVertexArrayAttribBinding(mVAO, 1, 0);
+    glEnableVertexArrayAttrib(VAO, 1);
+    glVertexArrayAttribFormat(VAO, 1, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, normal));
+    glVertexArrayAttribBinding(VAO, 1, 0);
 
-    glEnableVertexArrayAttrib(mVAO, 2);
-    glVertexArrayAttribFormat(mVAO, 2, 2, GL_FLOAT, GL_FALSE, offsetof(Vertex, texCoords));
-    glVertexArrayAttribBinding(mVAO, 2, 0);
+    glEnableVertexArrayAttrib(VAO, 2);
+    glVertexArrayAttribFormat(VAO, 2, 2, GL_FLOAT, GL_FALSE, offsetof(Vertex, texCoord));
+    glVertexArrayAttribBinding(VAO, 2, 0);
 
-    glNamedBufferStorage(mEBO, static_cast<GLsizeiptr>(mIndices.size() * sizeof(uint32_t)), mIndices.data(), 0);
-    glVertexArrayElementBuffer(mVAO, mEBO);
+    glNamedBufferStorage(EBO, static_cast<GLsizeiptr>(Indices.size() * sizeof(uint32_t)), Indices.data(), 0);
+    glVertexArrayElementBuffer(VAO, EBO);
 }
 } // namespace MEngine

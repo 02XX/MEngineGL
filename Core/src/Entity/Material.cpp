@@ -4,7 +4,7 @@ namespace MEngine
 {
 Material::Material()
 {
-    mName = "Material";
+    Name = "Material";
 }
 Material::~Material()
 {

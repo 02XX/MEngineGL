@@ -13,4 +13,8 @@ add_executable(TypeTest TypeTest.cpp)
 add_test(NAME TypeTest COMMAND TypeTest)
 target_link_libraries(TypeTest PUBLIC Common GTest::gtest GTest::gtest_main)
 
+add_executable(PropertyTest PropertyTest.cpp)
+add_test(NAME PropertyTest COMMAND PropertyTest)
+target_link_libraries(PropertyTest PUBLIC Common GTest::gtest GTest::gtest_main)
+
 

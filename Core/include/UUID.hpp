@@ -1,4 +1,5 @@
 #pragma once
+#include "Type.hpp"
 #include <iomanip>
 #include <random>
 #include <sstream>
@@ -109,6 +110,7 @@ class UUIDGenerator final
 
     UUID operator()();
 };
+using UID = Property<UUID>;
 } // namespace MEngine
 namespace std
 {
