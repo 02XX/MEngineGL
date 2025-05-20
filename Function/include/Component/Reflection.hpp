@@ -2,6 +2,7 @@
 #include "Component/AssestComponent.hpp"
 #include "Component/Component.hpp"
 #include "Component/TextureComponent.hpp"
+#include "Component/TransformComponent.hpp"
 #include "Entity/Entity.hpp"
 #include "Entity/IEntity.hpp"
 #include "Entity/ITexture.hpp"
@@ -38,5 +39,15 @@ static void RegisterMeta()
         .type("TextureComponent"_hs)
         .base<Component>()
         .data<&TextureComponent::textureID>("texture"_hs);
+    entt::meta<TransformComponent>()
+        .type("TransformComponent"_hs)
+        .base<Component>()
+        .data<&TransformComponent::name>("name"_hs)
+        .data<&TransformComponent::localPosition>("localPosition"_hs)
+        .data<&TransformComponent::localRotation>("localRotation"_hs)
+        .data<&TransformComponent::localScale>("localScale"_hs)
+        .data<&TransformComponent::worldPosition>("worldPosition"_hs)
+        .data<&TransformComponent::worldRotation>("worldRotation"_hs)
+        .data<&TransformComponent::worldScale>("worldScale"_hs);
 }
 } // namespace MEngine

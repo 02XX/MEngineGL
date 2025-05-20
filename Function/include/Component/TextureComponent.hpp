@@ -14,4 +14,3 @@ struct TextureComponent : public Component
     UUID textureID;
 };
 } // namespace MEngine
-REFL_AUTO(type(MEngine::TextureComponent, bases<MEngine::Component>), field(textureID))

@@ -16,21 +16,7 @@
             }
         },
         {
-            "name": "vcpkg-clang-msvc",
-            "generator": "Ninja",
-            "binaryDir": "${sourceDir}/build",
-            "cacheVariables": {
-                "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-                "CMAKE_C_COMPILER": "clang",
-                "CMAKE_CXX_COMPILER": "clang++",
-                "VCPKG_TARGET_TRIPLET": "x64-windows",
-                "VCPKG_HOST_TRIPLET": "x64-windows",
-                "VCPKG_MANIFEST_MODE": "ON",
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
-            "name": "vcpkg-clang-mingw",
+            "name": "vcpkg-clang",
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build",
             "cacheVariables": {

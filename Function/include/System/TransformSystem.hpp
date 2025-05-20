@@ -7,7 +7,6 @@
 #include <entt/entt.hpp>
 #include <memory>
 
-
 namespace MEngine
 {
 class TransformSystem final : public System

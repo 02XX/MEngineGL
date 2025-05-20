@@ -26,34 +26,40 @@ void TransformSystem::CalculateMatrix(entt::entity entity)
     // 获取实体的TransformComponent
     auto &transformComponent = mRegistry->get<TransformComponent>(entity);
     // local
-    glm::mat4 localMatrix = glm::translate(glm::mat4(1.0f), transformComponent.position) *
-                            glm::mat4_cast(transformComponent.rotation) *
-                            glm::scale(glm::mat4(1.0f), transformComponent.scale);
+    glm::mat4 localMatrix = glm::translate(glm::mat4(1.0f), transformComponent.localPosition) *
+                            glm::mat4_cast(transformComponent.localRotation) *
+                            glm::scale(glm::mat4(1.0f), transformComponent.localScale);
     if (transformComponent.parent != entt::null)
     {
-        // 获取父实体的TransformComponent
         auto &parentTransform = mRegistry->get<TransformComponent>(transformComponent.parent);
-        // 计算世界矩阵
-        transformComponent.worldMatrix = parentTransform.worldMatrix * localMatrix;
+        transformComponent.modelMatrix = parentTransform.modelMatrix * localMatrix;
     }
     else
     {
-        // 如果没有父实体，则世界矩阵等于局部矩阵
-        transformComponent.worldMatrix = localMatrix;
+        transformComponent.modelMatrix = localMatrix;
     }
+
+    glm::vec3 skew;
+    glm::vec4 perspective;
+
+    glm::decompose(transformComponent.modelMatrix, transformComponent.worldScale, transformComponent.worldRotation,
+                   transformComponent.worldPosition, skew, perspective);
+
+    // 递归更新所有子节点
     for (auto child : transformComponent.children)
     {
-        auto &childTransform = mRegistry->get<TransformComponent>(child);
         CalculateMatrix(child);
     }
 }
 void TransformSystem::Translate(TransformComponent &transform, const glm::vec3 &delta)
 {
+    transform.localPosition += delta;
+    transform.dirty = true;
 }
 void TransformSystem::Rotate(TransformComponent &transform, float angle, const glm::vec3 &axis)
 {
 }
-void TransformSystem::Scale(TransformComponent &transform, const glm::vec3 &scale)
+void TransformSystem::Scale(TransformComponent &transform, const glm::vec3 &localScale)
 {
 }
 } // namespace MEngine

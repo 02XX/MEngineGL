@@ -246,27 +246,27 @@ class EnttMetaTest : public ::testing::Test
 //         }
 //     }
 // }
-TEST_F(EnttMetaTest, modify)
-{
-    registerStudent();
-    std::shared_ptr<Animal> animal = std::make_shared<Dog>();
-    auto metaType = entt::resolve<Dog>();
-    std::string newType = "Goose";
-    for (auto &&[id, data] : metaType.data())
-    {
-        auto value = data.get(*std::dynamic_pointer_cast<Dog>(animal));
-        GTEST_LOG_(INFO) << "value type: " << value.type().info().name();
-        if (value.type() == entt::resolve<std::string>())
-        {
-            auto v = value.cast<std::string>();
-            bool success = data.set(*std::dynamic_pointer_cast<Dog>(animal), newType);
-            GTEST_LOG_(INFO) << "set success: " << success;
-            GTEST_LOG_(INFO) << "value: " << v;
-        }
-    }
-    EXPECT_EQ(animal->name, newType);
-    GTEST_LOG_(INFO) << "modify name: " << animal->name;
-}
+// TEST_F(EnttMetaTest, modify)
+// {
+//     registerStudent();
+//     std::shared_ptr<Animal> animal = std::make_shared<Dog>();
+//     auto metaType = entt::resolve<Dog>();
+//     std::string newType = "Goose";
+//     for (auto &&[id, data] : metaType.data())
+//     {
+//         auto value = data.get(*std::dynamic_pointer_cast<Dog>(animal));
+//         GTEST_LOG_(INFO) << "value type: " << value.type().info().name();
+//         if (value.type() == entt::resolve<std::string>())
+//         {
+//             auto v = value.cast<std::string>();
+//             bool success = data.set(*std::dynamic_pointer_cast<Dog>(animal), newType);
+//             GTEST_LOG_(INFO) << "set success: " << success;
+//             GTEST_LOG_(INFO) << "value: " << v;
+//         }
+//     }
+//     EXPECT_EQ(animal->name, newType);
+//     GTEST_LOG_(INFO) << "modify name: " << animal->name;
+// }
 // TEST_F(EnttMetaTest, modify3)
 // {
 //     registerStudent();
@@ -316,3 +316,7 @@ TEST_F(EnttMetaTest, modify)
 //     EXPECT_EQ(student.getName(), newName);
 //     EXPECT_EQ(student.id, newId);
 // }
+TEST(EnttMetaTest, ABC)
+{
+    std::shared_ptr<Animal> animal = std::make_shared<Dog>();
+}

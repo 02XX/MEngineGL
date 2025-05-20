@@ -11,11 +11,16 @@ namespace MEngine
 
 struct TransformComponent : public Component
 {
-    glm::vec3 position{0.0f, 0.0f, 0.0f};
-    glm::quat rotation = glm::identity<glm::quat>();
-    glm::vec3 scale{1.0f, 1.0f, 1.0f};
+    std::string name = "None";
 
-    glm::mat4 worldMatrix = glm::identity<glm::mat4>();
+    glm::vec3 localPosition{0.0f, 0.0f, 0.0f};
+    glm::quat localRotation = glm::identity<glm::quat>();
+    glm::vec3 localScale{1.0f, 1.0f, 1.0f};
+    glm::vec3 worldPosition{0.0f, 0.0f, 0.0f};
+    glm::quat worldRotation = glm::identity<glm::quat>();
+    glm::vec3 worldScale{1.0f, 1.0f, 1.0f};
+
+    glm::mat4 modelMatrix = glm::identity<glm::mat4>();
     bool dirty = true;
 
     entt::entity parent = entt::null;

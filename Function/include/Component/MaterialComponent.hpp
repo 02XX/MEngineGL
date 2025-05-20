@@ -12,4 +12,3 @@ struct MaterialComponent : public Component
     UUID materialID;
 };
 } // namespace MEngine
-REFL_AUTO(type(MEngine::MaterialComponent, bases<MEngine::Component>), field(materialID))
