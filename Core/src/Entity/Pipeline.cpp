@@ -5,7 +5,7 @@ namespace MEngine
 {
 Pipeline::Pipeline()
 {
-    Name = "Shader";
+    Name = "Pipeline";
     vertexShaderID = glCreateShader(GL_VERTEX_SHADER);
     fragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
     geometryShaderID = glCreateShader(GL_GEOMETRY_SHADER);

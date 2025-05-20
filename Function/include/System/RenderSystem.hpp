@@ -15,14 +15,11 @@ namespace MEngine
 class RenderSystem : public System
 {
   private:
-    std::shared_ptr<ResourceManager> mResourceManager;
-
-  private:
     CameraComponent mMainCamera;
     std::unordered_map<UUID, std::vector<entt::entity>> mRenderQueue;
 
   public:
-    RenderSystem(std::shared_ptr<entt::registry> registry);
+    RenderSystem(std::shared_ptr<entt::registry> registry, std::shared_ptr<ResourceManager> resourceManager);
     ~RenderSystem() = default;
 
     void Init() override;

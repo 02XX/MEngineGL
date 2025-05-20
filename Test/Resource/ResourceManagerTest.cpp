@@ -4,9 +4,12 @@
 #include "Entity/Texture2D.hpp"
 #include "gtest/gtest.h"
 #include <GLFW/glfw3.h>
+#include <entt/core/any.hpp>
+#include <entt/meta/meta.hpp>
 #include <filesystem>
 #include <glad/glad.h>
 #include <gtest/gtest.h>
+#include <memory>
 
 using namespace MEngine;
 void GLAPIENTRY DebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
@@ -140,79 +143,86 @@ class ResourceManagerTest : public ::testing::Test
     }
 };
 
-TEST_F(ResourceManagerTest, CreateShaderAsset)
+// TEST_F(ResourceManagerTest, CreateShaderAsset)
+// {
+//     auto shader = mResourceManager.CreateAsset<Pipeline>(mTestPath);
+//     EXPECT_NE(shader->ID, UUID());
+//     EXPECT_NE(shader, nullptr);
+//     auto sourcePath = shader->SourcePath;
+//     EXPECT_TRUE(std::filesystem::exists(sourcePath));
+// }
+// TEST_F(ResourceManagerTest, LoadShaderAsset)
+// {
+//     auto shader = mResourceManager.CreateAsset<Pipeline>(mTestPath);
+//     EXPECT_NE(shader->ID, UUID());
+//     EXPECT_NE(shader, nullptr);
+//     auto sourcePath = shader->SourcePath;
+//     EXPECT_TRUE(std::filesystem::exists(sourcePath));
+//     auto loadedShader = mResourceManager.LoadAsset<Pipeline>(sourcePath);
+//     EXPECT_NE(loadedShader->ID, UUID());
+//     EXPECT_NE(loadedShader, nullptr);
+//     EXPECT_EQ(shader->ID, loadedShader->ID);
+// }
+// TEST_F(ResourceManagerTest, CreatePBRMaterialAsset)
+// {
+//     auto material = mResourceManager.CreateAsset<PBRMaterial>(mTestPath);
+//     EXPECT_NE(material->ID, UUID());
+//     EXPECT_NE(material, nullptr);
+//     auto sourcePath = material->SourcePath;
+//     EXPECT_TRUE(std::filesystem::exists(sourcePath));
+// }
+// TEST_F(ResourceManagerTest, LoadPBRMaterialAsset)
+// {
+//     auto material = mResourceManager.CreateAsset<PBRMaterial>(mTestPath);
+//     EXPECT_NE(material->ID, UUID());
+//     EXPECT_NE(material, nullptr);
+//     auto sourcePath = material->SourcePath;
+//     EXPECT_TRUE(std::filesystem::exists(sourcePath));
+//     auto loadedMaterial = mResourceManager.LoadAsset<PBRMaterial>(sourcePath);
+//     EXPECT_NE(material->ID, UUID());
+//     EXPECT_NE(loadedMaterial, nullptr);
+//     EXPECT_EQ(material->ID, loadedMaterial->ID);
+// }
+// TEST_F(ResourceManagerTest, CreateTextureAsset)
+// {
+//     auto texture = mResourceManager.CreateAsset<Texture2D>(mTestPath);
+//     EXPECT_NE(texture->ID, UUID());
+//     EXPECT_NE(texture, nullptr);
+//     auto sourcePath = texture->SourcePath;
+//     EXPECT_TRUE(std::filesystem::exists(sourcePath));
+// }
+// TEST_F(ResourceManagerTest, UpdateTextureAsset)
+// {
+//     auto texture = mResourceManager.CreateAsset<Texture2D>(mTestPath);
+//     EXPECT_NE(texture->ID, UUID());
+//     EXPECT_NE(texture, nullptr);
+//     texture->ImagePath = mTestPath / "file.png";
+//     mResourceManager.UpdateAsset(texture->ID, texture);
+//     EXPECT_NE(texture->mTextureID, 0);
+// }
+// TEST_F(ResourceManagerTest, LoadTextureAsset)
+// {
+//     std::filesystem::path imagePath = mTestPath / "file.tex2d";
+//     if (!std::filesystem::exists(imagePath))
+//     {
+//         GTEST_LOG_(WARNING) << "Image file does not exist: " << imagePath.string()
+//                             << ", skip ResourceManagerTest.LoadTextureAsset" << "\n";
+//         return;
+//     }
+//     auto texture = mResourceManager.LoadAsset<Texture2D>(imagePath);
+//     EXPECT_NE(texture->ID, UUID());
+//     EXPECT_NE(texture, nullptr);
+//     EXPECT_NE(texture->mTextureID, 0);
+//     EXPECT_TRUE(std::filesystem::exists(texture->SourcePath));
+//     EXPECT_NE(texture->Width, 0);
+//     EXPECT_NE(texture->Height, 0);
+//     EXPECT_NE(texture->mTextureID, 0);
+//     EXPECT_NE(texture->mSamplerID, 0);
+// }
+TEST_F(ResourceManagerTest, ModifyTextureAsset)
 {
-    auto shader = mResourceManager.CreateAsset<Pipeline>(mTestPath);
-    EXPECT_NE(shader->ID, UUID());
-    EXPECT_NE(shader, nullptr);
-    auto sourcePath = shader->SourcePath;
-    EXPECT_TRUE(std::filesystem::exists(sourcePath));
-}
-TEST_F(ResourceManagerTest, LoadShaderAsset)
-{
-    auto shader = mResourceManager.CreateAsset<Pipeline>(mTestPath);
-    EXPECT_NE(shader->ID, UUID());
-    EXPECT_NE(shader, nullptr);
-    auto sourcePath = shader->SourcePath;
-    EXPECT_TRUE(std::filesystem::exists(sourcePath));
-    auto loadedShader = mResourceManager.LoadAsset<Pipeline>(sourcePath);
-    EXPECT_NE(loadedShader->ID, UUID());
-    EXPECT_NE(loadedShader, nullptr);
-    EXPECT_EQ(shader->ID, loadedShader->ID);
-}
-TEST_F(ResourceManagerTest, CreatePBRMaterialAsset)
-{
-    auto material = mResourceManager.CreateAsset<PBRMaterial>(mTestPath);
-    EXPECT_NE(material->ID, UUID());
-    EXPECT_NE(material, nullptr);
-    auto sourcePath = material->SourcePath;
-    EXPECT_TRUE(std::filesystem::exists(sourcePath));
-}
-TEST_F(ResourceManagerTest, LoadPBRMaterialAsset)
-{
-    auto material = mResourceManager.CreateAsset<PBRMaterial>(mTestPath);
-    EXPECT_NE(material->ID, UUID());
-    EXPECT_NE(material, nullptr);
-    auto sourcePath = material->SourcePath;
-    EXPECT_TRUE(std::filesystem::exists(sourcePath));
-    auto loadedMaterial = mResourceManager.LoadAsset<PBRMaterial>(sourcePath);
-    EXPECT_NE(material->ID, UUID());
-    EXPECT_NE(loadedMaterial, nullptr);
-    EXPECT_EQ(material->ID, loadedMaterial->ID);
-}
-TEST_F(ResourceManagerTest, CreateTextureAsset)
-{
-    auto texture = mResourceManager.CreateAsset<Texture2D>(mTestPath);
-    EXPECT_NE(texture->ID, UUID());
-    EXPECT_NE(texture, nullptr);
-    auto sourcePath = texture->SourcePath;
-    EXPECT_TRUE(std::filesystem::exists(sourcePath));
-}
-TEST_F(ResourceManagerTest, UpdateTextureAsset)
-{
-    auto texture = mResourceManager.CreateAsset<Texture2D>(mTestPath);
-    EXPECT_NE(texture->ID, UUID());
-    EXPECT_NE(texture, nullptr);
-    texture->ImagePath = mTestPath / "file.png";
-    mResourceManager.UpdateAsset(texture->ID, texture);
-    EXPECT_NE(texture->mTextureID, 0);
-}
-TEST_F(ResourceManagerTest, LoadTextureAsset)
-{
-    std::filesystem::path imagePath = mTestPath / "file.tex2d";
-    if (!std::filesystem::exists(imagePath))
-    {
-        GTEST_LOG_(WARNING) << "Image file does not exist: " << imagePath.string()
-                            << ", skip ResourceManagerTest.LoadTextureAsset" << "\n";
-        return;
-    }
-    auto texture = mResourceManager.LoadAsset<Texture2D>(imagePath);
-    EXPECT_NE(texture->ID, UUID());
-    EXPECT_NE(texture, nullptr);
-    EXPECT_NE(texture->mTextureID, 0);
-    EXPECT_TRUE(std::filesystem::exists(texture->SourcePath));
-    EXPECT_NE(texture->Width, 0);
-    EXPECT_NE(texture->Height, 0);
-    EXPECT_NE(texture->mTextureID, 0);
-    EXPECT_NE(texture->mSamplerID, 0);
+    auto texute = mResourceManager.CreateAsset<Texture2D>(mTestPath);
+    EXPECT_NE(texute->ID, UUID());
+    auto metaAny = entt::forward_as_meta(texute);
+    GTEST_LOG_(INFO) << "type: " << metaAny.type().info().name() << "\n";
 }

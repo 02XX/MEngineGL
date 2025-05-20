@@ -10,16 +10,16 @@
 #include "Repository/Repository.hpp"
 #include "ResourceManager.hpp"
 #include "SceneManager.hpp"
+#include "System/CameraSystem.hpp"
+#include "System/RenderSystem.hpp"
 #include "System/TransformSystem.hpp"
 #include "UUID.hpp"
 #include <GLFW/glfw3.h>
 #include <algorithm>
 #include <concepts>
 #include <cstdint>
-#include <entt/entity/fwd.hpp>
 #include <entt/entt.hpp>
 #include <entt/meta/meta.hpp>
-#include <entt/meta/resolve.hpp>
 #include <filesystem>
 #include <format>
 #include <imgui.h>
@@ -34,6 +34,7 @@
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
+
 
 namespace MEngine
 {
@@ -107,9 +108,10 @@ class Editor
         requires std::derived_from<TComponent, Component>
     void ComponentUI(TComponent &component)
     {
-        InspectorObject(entt::forward_as_meta(component), entt::resolve<TComponent>(), component.dirty);
+        auto metaAny = entt::forward_as_meta(component);
+        InspectorObject(metaAny, entt::resolve<TComponent>(), component.dirty);
     }
-    void InspectorObject(entt::meta_any object, entt::meta_type metaType, bool &dirty)
+    void InspectorObject(entt::meta_any &object, entt::meta_type metaType, bool &dirty)
     {
         if (metaType == entt::resolve<Entity>() || metaType == entt::resolve<Component>())
             return;
@@ -237,7 +239,8 @@ class Editor
                     ImGui::Columns(1);
                     if (auto it = std::dynamic_pointer_cast<Texture2D>(entity))
                     {
-                        InspectorObject(entt::forward_as_meta(*it), entt::resolve<Texture2D>(), dirty);
+                        auto metaAny = entt::forward_as_meta(*it);
+                        InspectorObject(metaAny, entt::resolve<Texture2D>(), dirty);
                     }
                     ImGui::Columns(2, "##fields", false);
                     if (!fieldCustom->Editable)
@@ -305,12 +308,12 @@ class Editor
         if (modified)
         {
             dirty = true;
-            if (metaType == entt::resolve<Texture2D>())
-            {
-                auto entity = object.cast<Texture2D>();
-                auto texture = mResourceManager->GetAsset<Texture2D>(entity.ID);
-                mResourceManager->UpdateAsset<Texture2D>(texture->ID, texture);
-            }
+            // if (metaType == entt::resolve<Texture2D>())
+            // {
+            //     auto entity = object.try_cast<Texture2D>();
+            //     auto texture = mResourceManager->GetAsset<Texture2D>(entity->ID);
+            //     mResourceManager->UpdateAsset<Texture2D>(texture->ID, texture);
+            // }
         }
     }
 };

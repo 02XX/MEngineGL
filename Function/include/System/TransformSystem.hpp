@@ -13,7 +13,8 @@ class TransformSystem final : public System
 {
   private:
   public:
-    TransformSystem(std::shared_ptr<entt::registry> registry) : System(registry)
+    TransformSystem(std::shared_ptr<entt::registry> registry, std::shared_ptr<ResourceManager> resourceManager)
+        : System(registry, resourceManager)
     {
     }
     void Init() override;

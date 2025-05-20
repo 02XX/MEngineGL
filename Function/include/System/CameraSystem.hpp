@@ -11,7 +11,8 @@ class CameraSystem final : public System
 {
   private:
   public:
-    CameraSystem(std::shared_ptr<entt::registry> registry) : System(registry)
+    CameraSystem(std::shared_ptr<entt::registry> registry, std::shared_ptr<ResourceManager> resourceManager)
+        : System(registry, resourceManager)
     {
     }
     void Init() override;

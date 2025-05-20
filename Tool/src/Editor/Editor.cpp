@@ -2,7 +2,13 @@
 #include <boost/di.hpp>
 namespace MEngine
 {
-auto injector = boost::di::make_injector(boost::di::bind<IConfigure>().to<Configure>().in(boost::di::unique));
+namespace DI = boost::di;
+auto injector = DI::make_injector(DI::bind<IConfigure>().to<Configure>().in(DI::unique),
+                                  DI::bind<ResourceManager>().to<ResourceManager>().in(DI::singleton),
+                                  DI::bind<RenderSystem>().to<RenderSystem>().in(DI::singleton),
+                                  DI::bind<TransformSystem>().to<TransformSystem>().in(DI::singleton),
+                                  DI::bind<CameraSystem>().to<CameraSystem>().in(DI::singleton),
+                                  DI::bind<entt::registry>().to<entt::registry>().in(DI::singleton));
 
 void GLAPIENTRY DebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
                               const GLchar *message, const void *userParam)
@@ -92,7 +98,7 @@ void GLAPIENTRY DebugCallback(GLenum source, GLenum type, GLuint id, GLenum seve
 }
 Editor::Editor()
 {
-    mRegistry = std::make_shared<entt::registry>();
+    mRegistry = injector.create<std::shared_ptr<entt::registry>>();
     mResourceManager = injector.create<std::shared_ptr<ResourceManager>>();
     LogInfo("Editor initialized");
 }
@@ -192,8 +198,8 @@ void Editor::InitImGui()
 }
 void Editor::InitSystems()
 {
-    mSystems.push_back(std::make_shared<TransformSystem>(mRegistry));
-
+    auto transformSystem = injector.create<std::shared_ptr<TransformSystem>>();
+    mSystems.push_back(transformSystem);
     for (auto &system : mSystems)
     {
         system->Init();

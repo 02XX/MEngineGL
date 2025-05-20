@@ -1,4 +1,5 @@
 #include "Entity/Texture2D.hpp"
+#include "Logger.hpp"
 
 namespace MEngine
 {
@@ -12,6 +13,8 @@ Texture2D::~Texture2D()
 {
     glDeleteTextures(1, &mTextureID);
     glDeleteSamplers(1, &mSamplerID);
+    mTextureID = 0;
+    mSamplerID = 0;
 }
 void Texture2D::Update()
 {
@@ -27,6 +30,12 @@ void Texture2D::Update()
         {
             Importer.mipLevels =
                 std::min(1 + static_cast<GLsizei>(std::floor(std::log2(std::max(width, height)))), Importer.mipLevels);
+            if (mTextureID)
+            {
+                glDeleteTextures(1, &mTextureID);
+                mTextureID = 0;
+                glCreateTextures(GL_TEXTURE_2D, 1, &mTextureID);
+            }
             glTextureStorage2D(mTextureID, Importer.mipLevels, (GLenum)mInternalFormat, width, height);
             glTextureSubImage2D(mTextureID, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
             if (Importer.mipLevels > 1)

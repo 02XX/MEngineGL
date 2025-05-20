@@ -119,7 +119,9 @@ class Animal
     {
         name = "Animal";
     }
-    virtual ~Animal() = default;
+    virtual ~Animal() {
+
+    };
     virtual void Speak() const
     {
         GTEST_LOG_(INFO) << "Animal speaks";
@@ -131,8 +133,12 @@ class Dog : public Animal
     Dog()
     {
         name = "Dog";
+        GTEST_LOG_(INFO) << "Dog constructor";
     }
-    virtual ~Dog() = default;
+    virtual ~Dog()
+    {
+        GTEST_LOG_(INFO) << "Dog destructor";
+    };
     virtual void Speak() const override
     {
         GTEST_LOG_(INFO) << "Dog barks";
@@ -332,15 +338,8 @@ class EnttMetaTest : public ::testing::Test
 // }
 TEST_F(EnttMetaTest, ABC)
 {
-    std::shared_ptr<Animal> animal = std::make_shared<Dog>();
-    auto metaType = entt::resolve<Dog>();
-    auto custom = metaType.custom();
-    if (auto ddd = static_cast<DisplayName *>(custom))
-    {
-        GTEST_LOG_(INFO) << ddd->name;
-    }
-    auto base = metaType.base();
-    for (auto &&[id, data] : base)
-    {
-    }
+    std::shared_ptr<Dog> animal = std::make_shared<Dog>();
+    auto metaAny = entt::forward_as_meta(*animal);
+    GTEST_LOG_(INFO) << "class: " << metaAny.type().info().name();
+    auto dog = metaAny.try_cast<Dog>();
 }
