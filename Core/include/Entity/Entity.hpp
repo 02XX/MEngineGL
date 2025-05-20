@@ -1,15 +1,17 @@
 #pragma once
 #include "UUID.hpp"
+#include <filesystem>
 #include <glad/glad.h>
 #include <memory>
+#include <string>
 namespace MEngine
 {
 class Entity
 {
   public:
-    UID ID = UUIDGenerator()();
-    Path SourcePath = std::filesystem::path();
-    String Name = "Unknown";
+    UUID ID = UUIDGenerator()();
+    std::filesystem::path SourcePath = std::filesystem::path();
+    std::string Name = "Unknown";
 
   public:
     Entity() = default;
@@ -24,10 +26,10 @@ template <> struct adl_serializer<MEngine::Entity>
 {
     static void to_json(json &j, const MEngine::Entity &entity)
     {
-        auto uuid = entity.ID.Get();
+        auto uuid = entity.ID;
         j["id"] = uuid.ToString();
-        j["path"] = entity.SourcePath.Get().string();
-        j["name"] = entity.Name.Get();
+        j["path"] = entity.SourcePath.string();
+        j["name"] = entity.Name;
     }
 
     static void from_json(const json &j, MEngine::Entity &entity)

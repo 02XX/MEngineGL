@@ -138,7 +138,7 @@ TEST_F(Texture2DTest, CreateTexture2D)
 {
     auto texture = std::make_shared<Texture2D>();
     EXPECT_NE(texture, nullptr);
-    EXPECT_NE(texture->ID.Get(), UUID());
+    EXPECT_NE(texture->ID, UUID());
 }
 TEST_F(Texture2DTest, UpdateTexture2D)
 {

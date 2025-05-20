@@ -559,7 +559,7 @@ void Editor::LoadAssets(const std::filesystem::path &path)
                 if (type == typeid(Texture2D))
                 {
                     auto &textureComponent = mRegistry->emplace<TextureComponent>(entity);
-                    textureComponent.textureID = asset->ID.Get();
+                    textureComponent.textureID = asset->ID;
                 }
             }
             else

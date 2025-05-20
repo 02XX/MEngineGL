@@ -1,22 +1,21 @@
 #pragma once
 #include "Entity/Entity.hpp"
 #include "Math.hpp"
-
 #include <vector>
 namespace MEngine
 {
 struct Vertex
 {
-    Vec3 position;
-    Vec3 normal;
-    Vec2 texCoord;
-    Vec3 tangent;
-    Vec3 bitangent;
+    glm::vec3 position;
+    glm::vec3 normal;
+    glm::vec2 texCoord;
+    glm::vec3 tangent;
+    glm::vec3 bitangent;
 };
 class Mesh final : public Entity
 {
   public:
-    Property<std::vector<Vertex>> Vertices;
+    std::vector<Vertex> Vertices;
     std::vector<uint32_t> Indices;
     uint32_t IndexCount = 0;
 

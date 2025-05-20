@@ -1,7 +1,9 @@
 #pragma once
 #include "Component/AssestComponent.hpp"
+#include "Component/Component.hpp"
 #include "Component/Reflection.hpp"
 #include "Component/TextureComponent.hpp"
+#include "Entity/Entity.hpp"
 #include "Entity/Texture2D.hpp"
 #include "IConfigure.hpp"
 #include "Logger.hpp"
@@ -11,6 +13,7 @@
 #include "System/TransformSystem.hpp"
 #include "UUID.hpp"
 #include <GLFW/glfw3.h>
+#include <algorithm>
 #include <concepts>
 #include <cstdint>
 #include <entt/entity/fwd.hpp>
@@ -104,19 +107,30 @@ class Editor
         requires std::derived_from<TComponent, Component>
     void ComponentUI(TComponent &component)
     {
-        InspectorUI(component, component.dirty);
+        InspectorObject(entt::forward_as_meta(component), entt::resolve<TComponent>(), component.dirty);
     }
-    template <typename T> void InspectorUI(T &object, bool &dirty)
+    void InspectorObject(entt::meta_any object, entt::meta_type metaType, bool &dirty)
     {
-        entt::meta_type metaType = entt::resolve<T>();
-
-        auto objectName = metaType.info().name();
-        if (ImGui::CollapsingHeader(objectName.data(), ImGuiTreeNodeFlags_DefaultOpen))
+        if (metaType == entt::resolve<Entity>() || metaType == entt::resolve<Component>())
+            return;
+        auto *info = static_cast<Info *>(metaType.custom());
+        if (!info->Serializable)
+            return;
+        auto objectName = info->DisplayName;
+        auto headerName = std::format("{}##{}", objectName.data(), object.type().id());
+        bool modified = false;
+        if (ImGui::CollapsingHeader(headerName.data(), ImGuiTreeNodeFlags_DefaultOpen))
         {
+            for (auto &&[id, base] : metaType.base())
+            {
+                InspectorObject(object, base, dirty);
+            }
             for (auto &&[id, field] : metaType.data())
             {
-                auto idStr = std::to_string(id).substr(0, 8);
-                const char *fieldDisplayName = idStr.c_str();
+                auto fieldCustom = static_cast<Info *>(field.custom());
+                if (!fieldCustom->Serializable)
+                    continue;
+                const char *fieldDisplayName = fieldCustom->DisplayName.data();
                 std::string label = std::format("##{}_{}", objectName.data(), fieldDisplayName);
                 auto fieldType = field.type();
                 entt::meta_any fieldValue = field.get(object);
@@ -124,8 +138,8 @@ class Editor
                 ImGui::Columns(2, "##fields", false);
                 const int labelWidth = 100;
                 ImGui::SetColumnWidth(0, labelWidth);
-                // if (!isEditable)
-                //     ImGui::BeginDisabled();
+                if (!fieldCustom->Editable)
+                    ImGui::BeginDisabled();
                 if (fieldType == entt::resolve<std::string>())
                 {
                     ImGui::Text("%s: ", fieldDisplayName);
@@ -134,7 +148,7 @@ class Editor
                     if (ImGui::InputText(label.c_str(), value.data(), value.capacity() + 1))
                     {
                         field.set(object, value);
-                        dirty = true;
+                        modified = true;
                     }
                 }
                 else if (fieldType == entt::resolve<std::filesystem::path>())
@@ -146,7 +160,7 @@ class Editor
                     if (ImGui::InputText(label.c_str(), pathStr.data(), pathStr.capacity() + 1))
                     {
                         field.set(object, std::filesystem::path(pathStr));
-                        dirty = true;
+                        modified = true;
                     }
                 }
                 else if (fieldType == entt::resolve<bool>())
@@ -157,7 +171,7 @@ class Editor
                     if (ImGui::Checkbox(label.c_str(), &value))
                     {
                         field.set(object, value);
-                        dirty = true;
+                        modified = true;
                     }
                 }
                 else if (fieldType == entt::resolve<int>())
@@ -168,12 +182,7 @@ class Editor
                     if (ImGui::InputInt(label.c_str(), &value))
                     {
                         field.set(object, std::clamp(value, 0, 100));
-                        dirty = true;
-                        if constexpr (std::is_base_of_v<Entity, T>)
-                        {
-                            auto entity = mResourceManager->GetAsset<T>(object.GetID());
-                            mResourceManager->UpdateAsset(object.GetID(), entity);
-                        }
+                        modified = true;
                     }
                 }
                 else if (fieldType == entt::resolve<float>())
@@ -184,7 +193,7 @@ class Editor
                     if (ImGui::InputFloat(label.c_str(), &value))
                     {
                         field.set(object, std::clamp(value, 0.0f, 1.0f));
-                        dirty = true;
+                        modified = true;
                     }
                 }
                 else if (fieldType == entt::resolve<AssetType>())
@@ -201,7 +210,7 @@ class Editor
                             if (ImGui::Selectable(enumName.data(), is_selected))
                             {
                                 field.set(object, enumValue);
-                                dirty = true;
+                                modified = true;
                             }
                             if (is_selected)
                             {
@@ -220,8 +229,19 @@ class Editor
                     if (ImGui::InputText(label.c_str(), uuidStr.data(), uuidStr.capacity() + 1))
                     {
                         field.set(object, UUID(uuidStr));
-                        dirty = true;
+                        modified = true;
                     }
+                    auto entity = mResourceManager->GetAsset<Entity>(value);
+                    if (!fieldCustom->Editable)
+                        ImGui::EndDisabled();
+                    ImGui::Columns(1);
+                    if (auto it = std::dynamic_pointer_cast<Texture2D>(entity))
+                    {
+                        InspectorObject(entt::forward_as_meta(*it), entt::resolve<Texture2D>(), dirty);
+                    }
+                    ImGui::Columns(2, "##fields", false);
+                    if (!fieldCustom->Editable)
+                        ImGui::BeginDisabled();
                 }
                 else if (fieldType == entt::resolve<glm::vec2>())
                 {
@@ -231,7 +251,7 @@ class Editor
                     if (ImGui::DragFloat2(label.c_str(), &value[0], 0.1f))
                     {
                         field.set(object, value);
-                        dirty = true;
+                        modified = true;
                     }
                 }
                 else if (fieldType == entt::resolve<glm::vec3>())
@@ -242,7 +262,7 @@ class Editor
                     if (ImGui::DragFloat3(label.c_str(), &value[0], 0.1f))
                     {
                         field.set(object, value);
-                        dirty = true;
+                        modified = true;
                     }
                 }
                 else if (fieldType == entt::resolve<glm::vec4>())
@@ -253,7 +273,7 @@ class Editor
                     if (ImGui::InputFloat4(label.c_str(), &value[0]))
                     {
                         field.set(object, value);
-                        dirty = true;
+                        modified = true;
                     }
                 }
                 else if (fieldType == entt::resolve<glm::quat>())
@@ -266,29 +286,31 @@ class Editor
                     {
                         value = glm::quat(glm::radians(euler));
                         field.set(object, value);
-                        dirty = true;
+                        modified = true;
                     }
                 }
-                // else if (fieldType.is_pointer_like())
-                // {
-
-                //     ImGui::Columns(1);
-                //     auto rawType = fieldType.remove_pointer();
-                //     if (rawType == entt::resolve<Texture2D>())
-                //     {
-                //         auto texture2D = fieldValue.cast<std::shared_ptr<Texture2D>>();
-                //         InspectorUI<Texture2D>(*texture2D, dirty);
-                //     }
-                //     ImGui::Columns(2, "##fields", false);
-                //     ImGui::SetColumnWidth(0, labelWidth);
-                //     ImGui::NextColumn();
-                // }
+                else if (fieldType == entt::resolve<Importer>())
+                {
+                    InspectorObject(object, entt::resolve<Importer>(), dirty);
+                }
                 else
                 {
                     // LogDebug("{}: {}, editable: {}", fieldName, typeid(ValueType).name(), isEditable);
                 }
+                if (!fieldCustom->Editable)
+                    ImGui::EndDisabled();
                 ImGui::Columns(1);
             };
+        }
+        if (modified)
+        {
+            dirty = true;
+            if (metaType == entt::resolve<Texture2D>())
+            {
+                auto entity = object.cast<Texture2D>();
+                auto texture = mResourceManager->GetAsset<Texture2D>(entity.ID);
+                mResourceManager->UpdateAsset<Texture2D>(texture->ID, texture);
+            }
         }
     }
 };

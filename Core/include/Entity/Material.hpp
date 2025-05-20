@@ -14,8 +14,8 @@ enum class MaterialType
 class Material : public Entity
 {
   public:
-    Property<MaterialType> MaterialType{MaterialType::PBR};
-    UID PipelineID{};
+    MaterialType MaterialType{MaterialType::PBR};
+    UUID PipelineID{};
 
   public:
     Material();
@@ -34,8 +34,8 @@ template <> struct adl_serializer<MEngine::Material>
     static void to_json(json &j, const MEngine::Material &material)
     {
         j = static_cast<MEngine::Entity>(material);
-        j["materialType"] = magic_enum::enum_name(material.MaterialType.Get());
-        j["pipelineID"] = material.PipelineID.Get().ToString();
+        j["materialType"] = magic_enum::enum_name(material.MaterialType);
+        j["pipelineID"] = material.PipelineID.ToString();
     }
     static void from_json(const json &j, MEngine::Material &material)
     {

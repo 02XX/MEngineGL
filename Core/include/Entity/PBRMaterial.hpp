@@ -15,16 +15,16 @@ class PBRMaterial final : public Material
 {
   public:
     // PBR properties
-    Property<PBRParameters> Parameters;
+    PBRParameters Parameters;
     // uniforms
     GLuint UBO;
 
     // textures
-    UID AlbedoTextureID = UUID();
-    UID NormalTextureID = UUID();
-    UID ARMTextureID = UUID(); // Ambient, Roughness, Metallic
+    UUID AlbedoTextureID = UUID();
+    UUID NormalTextureID = UUID();
+    UUID ARMTextureID = UUID(); // Ambient, Roughness, Metallic
     // shader
-    UID ShaderID = UUID();
+    UUID ShaderID = UUID();
 
     // program
     GLuint programID = 0;
@@ -68,10 +68,10 @@ template <> struct adl_serializer<MEngine::PBRMaterial>
     static void to_json(json &j, const MEngine::PBRMaterial &material)
     {
         j = static_cast<MEngine::Material>(material);
-        j["pbrProperties"] = material.Parameters.Get();
-        j["albedoTexture"] = material.AlbedoTextureID.Get().ToString();
-        j["normalTexture"] = material.NormalTextureID.Get().ToString();
-        j["armTexture"] = material.ARMTextureID.Get().ToString();
+        j["pbrProperties"] = material.Parameters;
+        j["albedoTexture"] = material.AlbedoTextureID.ToString();
+        j["normalTexture"] = material.NormalTextureID.ToString();
+        j["armTexture"] = material.ARMTextureID.ToString();
     }
     static void from_json(const json &j, MEngine::PBRMaterial &material)
     {

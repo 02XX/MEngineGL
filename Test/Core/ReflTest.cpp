@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include <entt/core/fwd.hpp>
 #include <entt/entt.hpp>
 #include <entt/meta/meta.hpp>
 #include <entt/meta/resolve.hpp>
@@ -150,7 +151,14 @@ class Cat : public Animal
         GTEST_LOG_(INFO) << "Cat meows";
     }
 };
-void registerStudent()
+struct DisplayName
+{
+    const char *name;
+    constexpr DisplayName(const char *name) noexcept : name(name)
+    {
+    }
+};
+void registerMeta()
 {
     entt::meta<Student>()
         .type("Player"_hs)
@@ -158,7 +166,11 @@ void registerStudent()
         .custom<MyCustomData>(MyCustomData{"草年末", 42})
         .data<&Student::id>("id"_hs);
     entt::meta<Animal>().type("Animal"_hs).data<&Animal::name>("name"_hs);
-    entt::meta<Dog>().type("Dog"_hs).base<Animal>().data<&Animal::name>("name"_hs);
+    entt::meta<Dog>()
+        .type("Dog"_hs)
+        .base<Animal>()
+        .custom<DisplayName>(DisplayName{"hhhhhh"})
+        .data<&Animal::name>("name"_hs);
     entt::meta<Cat>().type("Cat"_hs).base<Animal>();
 }
 class ReflTest : public ::testing::Test
@@ -167,6 +179,7 @@ class ReflTest : public ::testing::Test
   protected:
     void SetUp() override
     {
+        registerMeta();
     }
 
     void TearDown() override
@@ -179,6 +192,7 @@ class EnttMetaTest : public ::testing::Test
   protected:
     void SetUp() override
     {
+        registerMeta();
     }
 
     void TearDown() override
@@ -205,7 +219,7 @@ class EnttMetaTest : public ::testing::Test
 // }
 // TEST_F(EnttMetaTest, basic)
 // {
-//     registerStudent();
+//     registerMeta();
 //     auto metaStudent = entt::forward_as_meta(student);
 //     GTEST_LOG_(INFO) << "class: " << metaStudent.type().info().name();
 //     auto data = metaStudent.type().data();
@@ -228,7 +242,7 @@ class EnttMetaTest : public ::testing::Test
 // }
 // TEST_F(EnttMetaTest, base)
 // {
-//     registerStudent();
+//     registerMeta();
 //     std::shared_ptr<Animal> animal = std::make_shared<Dog>();
 //     auto metaAny = entt::forward_as_meta(*animal);
 //     GTEST_LOG_(INFO) << "class: " << metaAny.type().info().name();
@@ -248,7 +262,7 @@ class EnttMetaTest : public ::testing::Test
 // }
 // TEST_F(EnttMetaTest, modify)
 // {
-//     registerStudent();
+//     registerMeta();
 //     std::shared_ptr<Animal> animal = std::make_shared<Dog>();
 //     auto metaType = entt::resolve<Dog>();
 //     std::string newType = "Goose";
@@ -269,7 +283,7 @@ class EnttMetaTest : public ::testing::Test
 // }
 // TEST_F(EnttMetaTest, modify3)
 // {
-//     registerStudent();
+//     registerMeta();
 //     Dog animal;
 //     auto metaType = entt::resolve<Dog>();
 //     std::string newType = "Goose";
@@ -290,7 +304,7 @@ class EnttMetaTest : public ::testing::Test
 // }
 // TEST_F(EnttMetaTest, modify2)
 // {
-//     registerStudent();
+//     registerMeta();
 //     Student student{123, "John Doe", true};
 //     auto metaType = entt::resolve<Student>();
 //     std::string newName = "Tom Smith";
@@ -316,7 +330,17 @@ class EnttMetaTest : public ::testing::Test
 //     EXPECT_EQ(student.getName(), newName);
 //     EXPECT_EQ(student.id, newId);
 // }
-TEST(EnttMetaTest, ABC)
+TEST_F(EnttMetaTest, ABC)
 {
     std::shared_ptr<Animal> animal = std::make_shared<Dog>();
+    auto metaType = entt::resolve<Dog>();
+    auto custom = metaType.custom();
+    if (auto ddd = static_cast<DisplayName *>(custom))
+    {
+        GTEST_LOG_(INFO) << ddd->name;
+    }
+    auto base = metaType.base();
+    for (auto &&[id, data] : base)
+    {
+    }
 }

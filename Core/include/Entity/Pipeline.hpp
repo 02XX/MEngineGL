@@ -11,9 +11,9 @@ namespace MEngine
 class Pipeline final : public Entity
 {
   public:
-    Path VertexShaderPath{};
-    Path FragmentShaderPath{};
-    Path GeometryShaderPath{};
+    std::filesystem::path VertexShaderPath{};
+    std::filesystem::path FragmentShaderPath{};
+    std::filesystem::path GeometryShaderPath{};
 
     GLuint vertexShaderID = 0;
     GLuint fragmentShaderID = 0;
@@ -35,9 +35,9 @@ template <> struct adl_serializer<MEngine::Pipeline>
     static void to_json(json &j, const MEngine::Pipeline &shader)
     {
         j = static_cast<MEngine::Entity>(shader);
-        j["vertexShaderPath"] = shader.VertexShaderPath.Get().string();
-        j["fragmentShaderPath"] = shader.FragmentShaderPath.Get().string();
-        j["geometryShaderPath"] = shader.GeometryShaderPath.Get().string();
+        j["vertexShaderPath"] = shader.VertexShaderPath.string();
+        j["fragmentShaderPath"] = shader.FragmentShaderPath.string();
+        j["geometryShaderPath"] = shader.GeometryShaderPath.string();
     }
     static void from_json(const json &j, MEngine::Pipeline &shader)
     {

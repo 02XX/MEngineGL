@@ -75,7 +75,7 @@ class ResourceManager
         // 检查 ID 是否已存在
         if (mEntities.contains(entity->ID))
         {
-            LogWarn("Entity with ID {} already exists.", entity->ID.Get().ToString());
+            LogWarn("Entity with ID {} already exists.", entity->ID.ToString());
         }
         // 更新相应的存储库
         using repoType = typename RepositoryTraits<TEntity>::RepositoryType;
@@ -268,7 +268,7 @@ class ResourceManager
             // 更新entity
             it->second = entity;
             repository.Update(entity);
-            Serialize<TEntity>(entity->SourcePath.Get(), entity);
+            Serialize<TEntity>(entity->SourcePath, entity);
         }
     }
     /**
@@ -280,7 +280,7 @@ class ResourceManager
         auto it = mEntities.find(id);
         if (it != mEntities.end())
         {
-            std::filesystem::remove(it->second->SourcePath.Get());
+            std::filesystem::remove(it->second->SourcePath);
             mEntities.erase(it);
         }
     }

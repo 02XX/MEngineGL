@@ -15,7 +15,7 @@ PBRMaterial::~PBRMaterial()
 }
 void PBRMaterial::Update()
 {
-    auto parameters = Parameters.Get();
+    auto parameters = Parameters;
     glNamedBufferSubData(UBO, 0, sizeof(PBRParameters), &parameters);
 }
 } // namespace MEngine

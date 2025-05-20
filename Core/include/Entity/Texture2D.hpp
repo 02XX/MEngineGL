@@ -2,6 +2,7 @@
 #include "Entity/Entity.hpp"
 #include "ImageUtil.hpp"
 #include "Logger.hpp"
+#include <filesystem>
 #include <glad/glad.h>
 #include <magic_enum/magic_enum.hpp>
 #include <refl.hpp>
@@ -66,13 +67,12 @@ struct Importer
 class Texture2D final : public Entity
 {
   public:
-    Path ImagePath;
-    Int Width = 0;
-    Int Height = 0;
-    Int Channels = 0;
-    Property<Importer> Importer;
+    std::filesystem::path ImagePath;
+    int Width = 0;
+    int Height = 0;
+    int Channels = 0;
+    Importer Importer;
 
-    GLsizei mMipLevels = 1;
     TextureFormatType mInternalFormat = TextureFormatType::RGBA8;
     int test = 0;
     GLuint mSamplerID = 0;
@@ -149,24 +149,24 @@ template <> struct adl_serializer<MEngine::Texture2D>
     static void to_json(json &j, const MEngine::Texture2D &texture)
     {
         j = static_cast<MEngine::Entity>(texture);
-        j["image_path"] = texture.ImagePath.Get().string();
-        j["width"] = texture.Width.Get();
-        j["height"] = texture.Height.Get();
+        j["image_path"] = texture.ImagePath.string();
+        j["width"] = texture.Width;
+        j["height"] = texture.Height;
         j["test"] = texture.test;
-        j["importer"]["mip_levels"] = texture.Importer.Get().mipLevels;
-        j["importer"]["min_filter"] = magic_enum::enum_name(texture.Importer.Get().minFilter);
-        j["importer"]["mag_filter"] = magic_enum::enum_name(texture.Importer.Get().magFilter);
-        j["importer"]["wrap_s"] = magic_enum::enum_name(texture.Importer.Get().wrapS);
-        j["importer"]["wrap_t"] = magic_enum::enum_name(texture.Importer.Get().wrapT);
-        j["importer"]["wrap_r"] = magic_enum::enum_name(texture.Importer.Get().wrapR);
-        j["importer"]["compare_mode"] = magic_enum::enum_name(texture.Importer.Get().compareMode);
-        j["importer"]["compare_func"] = magic_enum::enum_name(texture.Importer.Get().compareFunc);
-        j["importer"]["lod_min"] = texture.Importer.Get().lodMin;
-        j["importer"]["lod_max"] = texture.Importer.Get().lodMax;
-        j["importer"]["lod_bias"] = texture.Importer.Get().lodBias;
-        j["importer"]["max_anisotropy"] = texture.Importer.Get().maxAnisotropy;
-        j["importer"]["border_color"] = {texture.Importer.Get().borderColor[0], texture.Importer.Get().borderColor[1],
-                                         texture.Importer.Get().borderColor[2], texture.Importer.Get().borderColor[3]};
+        j["importer"]["mip_levels"] = texture.Importer.mipLevels;
+        j["importer"]["min_filter"] = magic_enum::enum_name(texture.Importer.minFilter);
+        j["importer"]["mag_filter"] = magic_enum::enum_name(texture.Importer.magFilter);
+        j["importer"]["wrap_s"] = magic_enum::enum_name(texture.Importer.wrapS);
+        j["importer"]["wrap_t"] = magic_enum::enum_name(texture.Importer.wrapT);
+        j["importer"]["wrap_r"] = magic_enum::enum_name(texture.Importer.wrapR);
+        j["importer"]["compare_mode"] = magic_enum::enum_name(texture.Importer.compareMode);
+        j["importer"]["compare_func"] = magic_enum::enum_name(texture.Importer.compareFunc);
+        j["importer"]["lod_min"] = texture.Importer.lodMin;
+        j["importer"]["lod_max"] = texture.Importer.lodMax;
+        j["importer"]["lod_bias"] = texture.Importer.lodBias;
+        j["importer"]["max_anisotropy"] = texture.Importer.maxAnisotropy;
+        j["importer"]["border_color"] = {texture.Importer.borderColor[0], texture.Importer.borderColor[1],
+                                         texture.Importer.borderColor[2], texture.Importer.borderColor[3]};
     }
     static void from_json(const json &j, MEngine::Texture2D &texture)
     {

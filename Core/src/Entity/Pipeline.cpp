@@ -50,7 +50,7 @@ GLuint Pipeline::LoadShader(GLuint shaderID, const std::filesystem::path &shader
 }
 void Pipeline::Update()
 {
-    if (std::filesystem::exists(VertexShaderPath.Get()))
+    if (std::filesystem::exists(VertexShaderPath))
     {
         vertexShaderID = LoadShader(vertexShaderID, VertexShaderPath);
         glAttachShader(programID, vertexShaderID);
