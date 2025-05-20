@@ -1,6 +1,5 @@
 #pragma once
 #include "Component/Component.hpp"
-#include "Entity/ITexture.hpp"
 #include "UUID.hpp"
 #include <entt/entt.hpp>
 #include <filesystem>

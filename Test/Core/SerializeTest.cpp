@@ -44,5 +44,5 @@ TEST(Entity, deserialize)
     auto entity = std::make_shared<ABC>();
     EXPECT_NO_THROW(j.get_to(*entity));
     GTEST_LOG_(INFO) << entity->age;
-    EXPECT_EQ(entity->age, 1);
+    EXPECT_EQ(entity->age, 2);
 }

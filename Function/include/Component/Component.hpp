@@ -1,5 +1,5 @@
 #pragma once
-#include <refl.hpp>
+#include "UUID.hpp"
 namespace MEngine
 {
 class Component
@@ -9,5 +9,3 @@ class Component
     bool dirty = false;
 };
 } // namespace MEngine
-
-REFL_AUTO(type(MEngine::Component), field(dirty))

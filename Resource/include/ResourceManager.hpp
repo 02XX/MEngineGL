@@ -8,7 +8,6 @@
 #include <unordered_map>
 
 #include "Entity/Entity.hpp"
-#include "Entity/IEntity.hpp"
 #include "Entity/Material.hpp"
 #include "Entity/PBRMaterial.hpp"
 #include "Entity/Pipeline.hpp"
@@ -27,7 +26,7 @@ namespace MEngine
 class ResourceManager
 {
   private:
-    std::unordered_map<UUID, std::shared_ptr<IEntity>> mEntities;
+    std::unordered_map<UUID, std::shared_ptr<Entity>> mEntities;
     const std::unordered_map<std::type_index, std::string> mTypeToAssetExtensions = {
         {typeid(Pipeline), ".shader"}, {typeid(PBRMaterial), ".pbrmaterial"}, {typeid(Texture2D), ".tex2d"}
         // {typeid(Material), ".material"}, {typeid(Animation), ".animation"}, {typeid(Model), ".model"},
@@ -68,26 +67,26 @@ class ResourceManager
         return it != mAssetExtensionToTypes.end();
     }
     template <typename TEntity>
-        requires std::derived_from<TEntity, IEntity>
+        requires std::derived_from<TEntity, Entity>
     std::shared_ptr<TEntity> LoadAsset(const std::filesystem::path &path)
     {
         auto entity = std::make_shared<TEntity>();
         Deserialize<TEntity>(path, entity);
         // 检查 ID 是否已存在
-        if (mEntities.contains(entity->GetID()))
+        if (mEntities.contains(entity->ID))
         {
-            LogWarn("Entity with ID {} already exists.", entity->GetID().ToString());
+            LogWarn("Entity with ID {} already exists.", entity->ID.Get().ToString());
         }
         // 更新相应的存储库
         using repoType = typename RepositoryTraits<TEntity>::RepositoryType;
         static repoType repository;
         repository.Update(entity);
         // 存储实体并返回 ID
-        mEntities[entity->GetID()] = entity;
+        mEntities[entity->ID] = entity;
         LogInfo("Loaded asset: {}", path.string());
         return entity;
     }
-    std::shared_ptr<IEntity> LoadAsset(const std::filesystem::path &path)
+    std::shared_ptr<Entity> LoadAsset(const std::filesystem::path &path)
     {
         // 检查文件是否存在
         if (!std::filesystem::exists(path))
@@ -131,7 +130,7 @@ class ResourceManager
         }
     }
     template <typename TEntity>
-        requires std::derived_from<TEntity, IEntity>
+        requires std::derived_from<TEntity, Entity>
     std::shared_ptr<TEntity> CreateAsset(const std::filesystem::path &path, std::string name = "New Asset")
     {
         if (!std::filesystem::exists(path))
@@ -143,14 +142,14 @@ class ResourceManager
         static RepositoryType repository;
         auto entity = repository.Create();
         repository.Update(entity);
-        mEntities[entity->GetID()] = entity;
+        mEntities[entity->ID] = entity;
         std::string ext = GetAssetExtensionFromType(typeid(TEntity));
         std::filesystem::path sourcePath = path / (name + ext);
-        entity->SetPath(sourcePath);
+        entity->SourcePath = sourcePath;
         Serialize(sourcePath, entity);
         return entity;
     }
-    std::shared_ptr<IEntity> CreateAsset(const std::filesystem::path &supportRawPath)
+    std::shared_ptr<Entity> CreateAsset(const std::filesystem::path &supportRawPath)
     {
         auto extension = supportRawPath.extension().string();
         if (extension.empty())
@@ -176,8 +175,8 @@ class ResourceManager
             else if (type == typeid(Texture2D))
             {
                 auto texture2D = CreateAsset<Texture2D>(supportRawPath.parent_path(), supportRawPath.stem().string());
-                texture2D->SetImagePath(supportRawPath);
-                UpdateAsset(texture2D->GetID(), texture2D);
+                texture2D->ImagePath = supportRawPath;
+                UpdateAsset(texture2D->ID, texture2D);
                 return texture2D;
             }
             else
@@ -194,7 +193,7 @@ class ResourceManager
     }
 
     template <typename TEntity>
-        requires std::derived_from<TEntity, IEntity>
+        requires std::derived_from<TEntity, Entity>
     void Serialize(std::filesystem::path path, std::shared_ptr<TEntity> target)
     {
         std::ofstream file(path);
@@ -208,7 +207,7 @@ class ResourceManager
         file.close();
     }
     template <typename TEntity>
-        requires std::derived_from<TEntity, IEntity>
+        requires std::derived_from<TEntity, Entity>
     void Deserialize(std::filesystem::path path, std::shared_ptr<TEntity> target)
     {
         if (!std::filesystem::exists(path))
@@ -229,7 +228,7 @@ class ResourceManager
      * @return std::shared_ptr<TEntity> 资源实体
      */
     template <typename TEntity>
-        requires std::derived_from<TEntity, IEntity>
+        requires std::derived_from<TEntity, Entity>
     std::shared_ptr<TEntity> GetAsset(const UUID &id)
     {
         auto it = mEntities.find(id);
@@ -253,12 +252,12 @@ class ResourceManager
     }
     /**
      * @brief 更新资源
-     * @tparam TEntity 实体类型，需继承自 IEntity
+     * @tparam TEntity 实体类型，需继承自 Entity
      * @param id 资源的唯一标识
      * @param entity 资源实体
      */
     template <typename TEntity>
-        requires std::derived_from<TEntity, IEntity>
+        requires std::derived_from<TEntity, Entity>
     void UpdateAsset(const UUID &id, std::shared_ptr<TEntity> entity)
     {
         using RepositoryType = typename RepositoryTraits<TEntity>::RepositoryType;
@@ -269,7 +268,7 @@ class ResourceManager
             // 更新entity
             it->second = entity;
             repository.Update(entity);
-            Serialize<TEntity>(entity->GetPath(), entity);
+            Serialize<TEntity>(entity->SourcePath.Get(), entity);
         }
     }
     /**
@@ -281,7 +280,7 @@ class ResourceManager
         auto it = mEntities.find(id);
         if (it != mEntities.end())
         {
-            std::filesystem::remove(it->second->GetPath());
+            std::filesystem::remove(it->second->SourcePath.Get());
             mEntities.erase(it);
         }
     }

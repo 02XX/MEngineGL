@@ -1,21 +1,5 @@
 #include "Editor/Editor.hpp"
-#include "Component/AssestComponent.hpp"
-#include "Component/TextureComponent.hpp"
-#include "Component/TransformComponent.hpp"
-#include "Entity/IMaterial.hpp"
-#include "Entity/PBRMaterial.hpp"
-#include "Entity/Pipeline.hpp"
-#include "Entity/Texture2D.hpp"
-#include "IConfigure.hpp"
-#include "Logger.hpp"
-#include <GLFW/glfw3.h>
 #include <boost/di.hpp>
-#include <cstddef>
-#include <filesystem>
-#include <imgui.h>
-#include <imgui_freetype.h>
-#include <memory>
-#include <typeindex>
 namespace MEngine
 {
 auto injector = boost::di::make_injector(boost::di::bind<IConfigure>().to<Configure>().in(boost::di::unique));
@@ -529,8 +513,8 @@ void Editor::LoadUIResources()
         std::dynamic_pointer_cast<Texture2D>(mResourceManager->CreateAsset(mUIResourcesPath / "folder.png"));
     auto fileTexture =
         std::dynamic_pointer_cast<Texture2D>(mResourceManager->CreateAsset(mUIResourcesPath / "file.png"));
-    mAssetIcons[AssetType::Folder] = foldTexture->GetTextureID();
-    mAssetIcons[AssetType::File] = fileTexture->GetTextureID();
+    mAssetIcons[AssetType::Folder] = foldTexture->mTextureID;
+    mAssetIcons[AssetType::File] = fileTexture->mTextureID;
     LogInfo("Loaded UI resources");
 }
 void Editor::LoadAssets(const std::filesystem::path &path)
@@ -575,7 +559,7 @@ void Editor::LoadAssets(const std::filesystem::path &path)
                 if (type == typeid(Texture2D))
                 {
                     auto &textureComponent = mRegistry->emplace<TextureComponent>(entity);
-                    textureComponent.textureID = asset->GetID();
+                    textureComponent.textureID = asset->ID.Get();
                 }
             }
             else

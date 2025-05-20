@@ -48,7 +48,7 @@ void RenderSystem::RenderForwardPass()
     for (auto [pipelineID, entities] : mRenderQueue)
     {
         auto pipeline = mResourceManager->GetAsset<Pipeline>(pipelineID);
-        auto program = pipeline->GetProgramID();
+        auto program = pipeline->programID;
         glUseProgram(program);
         for (auto entity : entities)
         {

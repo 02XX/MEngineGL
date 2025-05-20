@@ -1,5 +1,4 @@
 #include "UUID.hpp"
-#include "Entity/IEntity.hpp"
 #include <gtest/gtest.h>
 
 using namespace MEngine;

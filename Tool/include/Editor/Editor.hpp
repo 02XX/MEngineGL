@@ -2,7 +2,6 @@
 #include "Component/AssestComponent.hpp"
 #include "Component/Reflection.hpp"
 #include "Component/TextureComponent.hpp"
-#include "Entity/IEntity.hpp"
 #include "Entity/Texture2D.hpp"
 #include "IConfigure.hpp"
 #include "Logger.hpp"
@@ -110,6 +109,7 @@ class Editor
     template <typename T> void InspectorUI(T &object, bool &dirty)
     {
         entt::meta_type metaType = entt::resolve<T>();
+
         auto objectName = metaType.info().name();
         if (ImGui::CollapsingHeader(objectName.data(), ImGuiTreeNodeFlags_DefaultOpen))
         {
@@ -169,7 +169,7 @@ class Editor
                     {
                         field.set(object, std::clamp(value, 0, 100));
                         dirty = true;
-                        if constexpr (std::is_base_of_v<IEntity, T>)
+                        if constexpr (std::is_base_of_v<Entity, T>)
                         {
                             auto entity = mResourceManager->GetAsset<T>(object.GetID());
                             mResourceManager->UpdateAsset(object.GetID(), entity);
