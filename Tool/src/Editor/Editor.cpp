@@ -1,4 +1,7 @@
 #include "Editor/Editor.hpp"
+#include "Component/TransformComponent.hpp"
+#include "Entity/Mesh.hpp"
+#include "UUID.hpp"
 #include <boost/di.hpp>
 namespace MEngine
 {
@@ -8,7 +11,8 @@ auto injector = DI::make_injector(DI::bind<IConfigure>().to<Configure>().in(DI::
                                   DI::bind<RenderSystem>().to<RenderSystem>().in(DI::singleton),
                                   DI::bind<TransformSystem>().to<TransformSystem>().in(DI::singleton),
                                   DI::bind<CameraSystem>().to<CameraSystem>().in(DI::singleton),
-                                  DI::bind<entt::registry>().to<entt::registry>().in(DI::singleton));
+                                  DI::bind<entt::registry>().to<entt::registry>().in(DI::singleton),
+                                  DI::bind<BasicGeometryFactory>().to<BasicGeometryFactory>().in(DI::singleton));
 
 void GLAPIENTRY DebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
                               const GLchar *message, const void *userParam)
@@ -100,6 +104,7 @@ Editor::Editor()
 {
     mRegistry = injector.create<std::shared_ptr<entt::registry>>();
     mResourceManager = injector.create<std::shared_ptr<ResourceManager>>();
+
     LogInfo("Editor initialized");
 }
 Editor::~Editor()
@@ -111,10 +116,46 @@ void Editor::Init()
     RegisterMeta();
     InitWindow();
     InitOpenGL();
+    // camera
+    auto camera = mRegistry->create();
+    auto &cameraComponent = mRegistry->emplace<CameraComponent>(camera);
+    cameraComponent.isMainCamera = true;
+    cameraComponent.dirty = true;
+    cameraComponent.aspectRatio = 16.0f / 9.0f;
+
+    // cube
+    auto cube = mRegistry->create();
+    auto &transformComponent = mRegistry->emplace<TransformComponent>(cube);
+    auto &meshComponent = mRegistry->emplace<MeshComponent>(cube);
+    auto &materialComponent = mRegistry->emplace<MaterialComponent>(cube);
+    meshComponent.meshID = UUID("8cbe59c3-8a7b-48ae-ba1c-7f56b2af16d9");
+    materialComponent.materialID = UUID("074ef30b-eb2b-4a74-9256-2fde241909e3");
+    // auto basicGeometryFactory = injector.create<std::shared_ptr<BasicGeometryFactory>>();
+    // auto geometry = basicGeometryFactory->GetGeometry(PrimitiveType::Cube);
+    // auto cube = mRegistry->create();
+    // auto &meshComponent = mRegistry->emplace<MeshComponent>(cube);
+    // auto cubeMesh = mResourceManager->CreateAsset<Mesh>(mProjectPath, "Cube");
+    // cubeMesh->Vertices = geometry.vertices;
+    // cubeMesh->Indices = geometry.indices;
+    // meshComponent.meshID = cubeMesh->ID;
+    // auto material = mResourceManager->CreateAsset<PBRMaterial>(mProjectPath, "Cube");
+    // auto pipeline = mResourceManager->CreateAsset<Pipeline>(mProjectPath, "Cube");
+    // pipeline->VertexShaderPath = mAssetsPath / "Shaders" / "forward.vert";
+    // pipeline->FragmentShaderPath = mAssetsPath / "Shaders" / "forward.frag";
+    // material->PipelineID = pipeline->ID;
+    // auto &materialComponent = mRegistry->emplace<MaterialComponent>(cube);
+    // materialComponent.materialID = material->ID;
+    // auto &transformComponent = mRegistry->emplace<TransformComponent>(cube);
+    // cubeMesh->Update();
+    // pipeline->Update();
+    // material->Update();
+    // mResourceManager->UpdateAsset(cubeMesh->ID, cubeMesh);
+    // mResourceManager->UpdateAsset(pipeline->ID, pipeline);
+    // mResourceManager->UpdateAsset(material->ID, material);
     InitSystems();
     InitImGui();
     LoadUIResources();
-    LoadAssets(mAssetsPath);
+    LoadAssets(mProjectPath);
     mIsRunning = true;
 }
 void Editor::InitWindow()
@@ -195,11 +236,18 @@ void Editor::InitImGui()
     mDefaultFont = mImGuiIO->Fonts->AddFontFromFileTTF(fontPath.string().c_str(), 24.0f, nullptr,
                                                        mImGuiIO->Fonts->GetGlyphRangesChineseSimplifiedCommon());
     mImGuiIO->FontDefault = mDefaultFont;
+
+    ImGuizmo::SetImGuiContext(ImGui::GetCurrentContext());
+    ImGuizmo::Enable(true);
 }
 void Editor::InitSystems()
 {
     auto transformSystem = injector.create<std::shared_ptr<TransformSystem>>();
+    auto cameraSystem = injector.create<std::shared_ptr<CameraSystem>>();
+    auto renderSystem = injector.create<std::shared_ptr<RenderSystem>>();
     mSystems.push_back(transformSystem);
+    mSystems.push_back(cameraSystem);
+    mSystems.push_back(renderSystem);
     for (auto &system : mSystems)
     {
         system->Init();
@@ -207,7 +255,6 @@ void Editor::InitSystems()
 }
 void Editor::Update(float deltaTime)
 {
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     while (!glfwWindowShouldClose(mWindow))
     {
         glfwPollEvents();
@@ -216,10 +263,10 @@ void Editor::Update(float deltaTime)
             ImGui_ImplOpenGL3_NewFrame();
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
+            ImGuizmo::BeginFrame();
             EditorUI();
 
             // Render
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
             for (auto &system : mSystems)
             {
                 system->Update(deltaTime);
@@ -274,15 +321,130 @@ void Editor::EditorUI()
         ImGui::DockBuilderDockWindow("Toolbar", dockTopCenterID);     // 顶部
         ImGui::DockBuilderFinish(mDockSpaceID);
     }
-    RenderViewportPanel();
     RenderHierarchyPanel();
     RenderInspectorPanel();
     RenderAssetPanel();
+    RenderViewportPanel();
+    RenderToolbarPanel();
+}
+void Editor::RenderToolbarPanel()
+{
+    ImGui::Begin("Toolbar", nullptr, ImGuiWindowFlags_None);
+    // 显示工具栏按钮
+    ImGui::BeginGroup();
+    {
+        // if (ImGui::Button("Play"))
+        // {
+        //     mIsPlay = !mIsPlay;
+        // }
+        // ImGui::SameLine();
+        // if (ImGui::Button("Pause"))
+        // {
+        //     mIsPause = !mIsPause;
+        // }
+        // ImGui::SameLine();
+        // if (ImGui::Button("Stop"))
+        // {
+        //     mIsStop = !mIsStop;
+        // }
+        ImGui::EndGroup();
+    }
+    ImGui::SameLine();
+    // 显示窗口标题 FPS 等信息
+    ImGui::BeginGroup();
+    {
+        auto sceneWindow = ImGui::FindWindowByName("Viewport");
+        ImGui::Text("SceneView Size: %1.f x %1.f", sceneWindow->ContentSize.x, sceneWindow->ContentSize.y);
+        ImGui::SameLine();
+        ImGui::TextColored(ImVec4(1, 1, 0, 1), "FPS: %1.f", ImGui::GetIO().Framerate);
+        if (ImGui::RadioButton("Translate", mGuizmoOperation == ImGuizmo::TRANSLATE) || ImGui::IsKeyDown(ImGuiKey_W))
+            mGuizmoOperation = ImGuizmo::TRANSLATE;
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Rotate", mGuizmoOperation == ImGuizmo::ROTATE) || ImGui::IsKeyDown(ImGuiKey_E))
+            mGuizmoOperation = ImGuizmo::ROTATE;
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Scale", mGuizmoOperation == ImGuizmo::SCALE) || ImGui::IsKeyDown(ImGuiKey_R))
+            mGuizmoOperation = ImGuizmo::SCALE;
+        if (ImGui::RadioButton("Local", mGuizmoMode == ImGuizmo::LOCAL))
+            mGuizmoMode = ImGuizmo::LOCAL;
+        ImGui::SameLine();
+        if (ImGui::RadioButton("World", mGuizmoMode == ImGuizmo::WORLD))
+            mGuizmoMode = ImGuizmo::WORLD;
+    }
+    ImGui::EndGroup();
+    ImGui::End();
 }
 void Editor::RenderViewportPanel()
 {
     ImGui::Begin("Viewport");
-    ImGui::Text("Viewport");
+    auto renderSystem = injector.create<std::shared_ptr<RenderSystem>>();
+    auto colorAttachment = renderSystem->ColorAttachment;
+    ImVec2 windowPos = ImGui::GetWindowPos();
+    ImVec2 windowSize = ImGui::GetContentRegionAvail();
+    uint32_t width = static_cast<uint32_t>(windowSize.x);
+    uint32_t height = static_cast<uint32_t>(windowSize.y);
+    // 获取Camera
+    // 获取相机组件
+    auto view = mRegistry->view<CameraComponent>();
+    CameraComponent cameraComponent;
+    for (auto entity : view)
+    {
+        cameraComponent = view.get<CameraComponent>(entity);
+        if (cameraComponent.isMainCamera)
+        {
+            break;
+        }
+    }
+
+    float targetAspectRatio = cameraComponent.aspectRatio; // 或者固定值，如 16.0f / 9.0f
+    float currentAspectRatio = static_cast<float>(width) / static_cast<float>(height);
+
+    // 计算按比例缩放后的图像显示大小
+    ImVec2 displaySize = windowSize;
+    if (currentAspectRatio > targetAspectRatio)
+    {
+        // 窗口太宽，限制宽度
+        displaySize.x = windowSize.y * targetAspectRatio;
+    }
+    else
+    {
+        // 窗口太高，限制高度
+        displaySize.y = windowSize.x / targetAspectRatio;
+    }
+
+    // 居中显示图像
+    ImGui::SetCursorPos(ImVec2((windowSize.x - displaySize.x) * 0.5f, (windowSize.y - displaySize.y) * 0.5f));
+    ImVec2 imagePos = ImGui::GetCursorScreenPos(); // 获取图像的实际屏幕坐标
+    ImGui::Image((ImTextureID)(intptr_t)colorAttachment, displaySize, ImVec2(0, 1), ImVec2(1, 0));
+
+    // 设置 ImGuizmo 绘制区域
+    ImGuizmo::SetRect(imagePos.x, imagePos.y, displaySize.x, displaySize.y);
+    ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
+    if (mSelectedEntity != entt::null)
+    {
+        if (mRegistry->any_of<TransformComponent>(mSelectedEntity))
+        {
+            auto &transform = mRegistry->get<TransformComponent>(mSelectedEntity);
+            auto modelMatrix = transform.modelMatrix;
+            ImGuizmo::Manipulate(glm::value_ptr(cameraComponent.viewMatrix),
+                                 glm::value_ptr(cameraComponent.projectionMatrix), mGuizmoOperation, mGuizmoMode,
+                                 glm::value_ptr(modelMatrix));
+            if (ImGuizmo::IsUsing())
+            {
+                // 分解矩阵
+                glm::vec3 translation, scale, skew;
+                glm::quat rotation;
+                glm::vec4 perspective;
+                if (glm::decompose(modelMatrix, scale, rotation, translation, skew, perspective))
+                {
+                    transform.localPosition = translation;
+                    transform.localRotation = rotation;
+                    transform.localScale = scale;
+                    transform.dirty = true;
+                }
+            }
+        }
+    }
     ImGui::End();
 }
 void Editor::RenderHierarchyPanel()
@@ -441,7 +603,7 @@ void Editor::RenderAssetPanel()
     ImGui::Begin("Assets", nullptr, ImGuiWindowFlags_None);
     if (ImGui::Button("<-"))
     {
-        if (mCurrentPath != mAssetsPath)
+        if (mCurrentPath != mProjectPath)
         {
             mCurrentPath = mCurrentPath.parent_path();
         }

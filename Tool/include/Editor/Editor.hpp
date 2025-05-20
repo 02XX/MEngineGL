@@ -1,4 +1,5 @@
 #pragma once
+#include "BasicGeometryFactory.hpp"
 #include "Component/AssestComponent.hpp"
 #include "Component/Component.hpp"
 #include "Component/Reflection.hpp"
@@ -35,6 +36,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <ImGuizmo.h>
 
 namespace MEngine
 {
@@ -71,7 +73,8 @@ class Editor
     bool mIsFullscreen = false;
     std::filesystem::path mDefaultFontPath = std::filesystem::current_path() / "Assets/Fonts/NotoSans-Medium.ttf";
     std::filesystem::path mUIResourcesPath = std::filesystem::current_path() / "Assets" / "UI";
-    std::filesystem::path mAssetsPath = std::filesystem::current_path() / "Project";
+    std::filesystem::path mAssetsPath = std::filesystem::current_path() / "Assets";
+    std::filesystem::path mProjectPath = std::filesystem::current_path() / "Project";
 
   private:
     // UI
@@ -79,9 +82,13 @@ class Editor
     ImFont *mDefaultFont = nullptr;
     entt::entity mSelectedEntity = entt::null;
     entt::entity mHoveredEntity = entt::null;
-    std::filesystem::path mCurrentPath = mAssetsPath;
+    std::filesystem::path mCurrentPath = mProjectPath;
     uint32_t mAssetIconSize = 64;
     std::unordered_map<AssetType, ImTextureID> mAssetIcons;
+    float mGizmoWidth = 10.f;
+    float mGizmoHeight = 10.f;
+    ImGuizmo::OPERATION mGuizmoOperation = ImGuizmo::TRANSLATE;
+    ImGuizmo::MODE mGuizmoMode = ImGuizmo::LOCAL;
 
   public:
     Editor();
@@ -96,6 +103,7 @@ class Editor
     void Shutdown();
 
     void EditorUI();
+    void RenderToolbarPanel();
     void RenderViewportPanel();
     void RenderHierarchyPanel();
     void RenderHierarchyItem(entt::entity entity);

@@ -9,15 +9,11 @@
 
 #include "Entity/Entity.hpp"
 #include "Entity/Material.hpp"
+#include "Entity/Mesh.hpp"
 #include "Entity/PBRMaterial.hpp"
 #include "Entity/Pipeline.hpp"
 #include "Entity/Texture2D.hpp"
 #include "Logger.hpp"
-#include "Repository/IRepository.hpp"
-#include "Repository/MaterialRepository.hpp"
-#include "Repository/PipelineRepository.hpp"
-#include "Repository/Repository.hpp"
-#include "Repository/TextureRepository.hpp"
 #include "UUID.hpp"
 
 using json = nlohmann::json;
@@ -28,12 +24,18 @@ class ResourceManager
   private:
     std::unordered_map<UUID, std::shared_ptr<Entity>> mEntities;
     const std::unordered_map<std::type_index, std::string> mTypeToAssetExtensions = {
-        {typeid(Pipeline), ".shader"}, {typeid(PBRMaterial), ".pbrmaterial"}, {typeid(Texture2D), ".tex2d"}
+        {typeid(Pipeline), ".shader"},
+        {typeid(PBRMaterial), ".pbrmaterial"},
+        {typeid(Texture2D), ".tex2d"},
+        {typeid(Mesh), ".mesh"},
         // {typeid(Material), ".material"}, {typeid(Animation), ".animation"}, {typeid(Model), ".model"},
         // {typeid(Audio), ".audio"},       {typeid(Scene), ".scene"},
     };
     const std::unordered_map<std::string, std::type_index> mAssetExtensionToTypes = {
-        {".shader", typeid(Pipeline)}, {".pbrmaterial", typeid(PBRMaterial)}, {".tex2d", typeid(Texture2D)}
+        {".shader", typeid(Pipeline)},
+        {".pbrmaterial", typeid(PBRMaterial)},
+        {".tex2d", typeid(Texture2D)},
+        {".mesh", typeid(Mesh)}
         // {".texture", typeid(Texture)},     {".mesh", typeid(Mesh)},
         // {".material", typeid(Material)},   {".animation", typeid(Animation)},
         // {".model", typeid(Model)},         {".audio", typeid(Audio)},
@@ -78,12 +80,10 @@ class ResourceManager
             LogWarn("Entity with ID {} already exists.", entity->ID.ToString());
         }
         // 更新相应的存储库
-        using repoType = typename RepositoryTraits<TEntity>::RepositoryType;
-        static repoType repository;
-        repository.Update(entity);
+        entity->Update();
         // 存储实体并返回 ID
         mEntities[entity->ID] = entity;
-        LogInfo("Loaded asset: {}", path.string());
+        LogInfo("Loaded asset: {}, ID {}", path.string(), entity->ID.ToString());
         return entity;
     }
     std::shared_ptr<Entity> LoadAsset(const std::filesystem::path &path)
@@ -117,6 +117,10 @@ class ResourceManager
             {
                 return LoadAsset<Texture2D>(path);
             }
+            else if (typeIdx == typeid(Mesh))
+            {
+                return LoadAsset<Mesh>(path);
+            }
             else
             {
                 LogWarn("Not implement file type {}", mTypeToAssetExtensions.at(typeIndex->second));
@@ -138,10 +142,8 @@ class ResourceManager
             LogError("Project path does not exist: {}", path.string());
             throw std::runtime_error("path does not exist: " + path.string());
         }
-        using RepositoryType = typename RepositoryTraits<TEntity>::RepositoryType;
-        static RepositoryType repository;
-        auto entity = repository.Create();
-        repository.Update(entity);
+        auto entity = std::make_shared<TEntity>();
+        entity->Update();
         mEntities[entity->ID] = entity;
         std::string ext = GetAssetExtensionFromType(typeid(TEntity));
         std::filesystem::path sourcePath = path / (name + ext);
@@ -247,6 +249,7 @@ class ResourceManager
         else
         {
             LogError("Entity with ID {} not found.", id.ToString());
+            throw std::runtime_error("Entity with ID " + id.ToString() + " not found.");
         }
         return nullptr;
     }
@@ -260,14 +263,12 @@ class ResourceManager
         requires std::derived_from<TEntity, Entity>
     void UpdateAsset(const UUID &id, std::shared_ptr<TEntity> entity)
     {
-        using RepositoryType = typename RepositoryTraits<TEntity>::RepositoryType;
-        static RepositoryType repository;
         auto it = mEntities.find(id);
         if (it != mEntities.end())
         {
             // 更新entity
             it->second = entity;
-            repository.Update(entity);
+            entity->Update();
             Serialize<TEntity>(entity->SourcePath, entity);
         }
     }

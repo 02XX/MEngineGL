@@ -4,6 +4,7 @@
 #include "Component/MaterialComponent.hpp"
 #include "Component/MeshComponent.hpp"
 #include "Component/TransformComponent.hpp"
+#include "Entity/Entity.hpp"
 #include "ResourceManager.hpp"
 #include "System/System.hpp"
 #include <memory>
@@ -12,21 +13,29 @@
 
 namespace MEngine
 {
-class RenderSystem : public System
+class RenderSystem final : public System
 {
   private:
     CameraComponent mMainCamera;
     std::unordered_map<UUID, std::vector<entt::entity>> mRenderQueue;
 
   public:
+    int Width = 1280;
+    int Height = 720;
+    GLuint FBO = 0;
+    GLuint ColorAttachment;
+    GLuint DepthAttachment;
+
+  public:
     RenderSystem(std::shared_ptr<entt::registry> registry, std::shared_ptr<ResourceManager> resourceManager);
-    ~RenderSystem() = default;
+    ~RenderSystem();
 
     void Init() override;
     void Update(float deltaTime) override;
     void Shutdown() override;
 
     void GetMainCamera();
+    void CreateFrameBuffer();
 
     void RenderQueue();
     void RenderShadowPass();

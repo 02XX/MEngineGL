@@ -18,9 +18,10 @@
         },
         "magic-enum",
         "nlohmann-json",
+        "refl-cpp",
         "spdlog",
         "stb",
-        "refl-cpp"
+        "imguizmo"
     ],
     "overrides": [
         {
@@ -74,6 +75,10 @@
         {
             "name": "refl-cpp",
             "version": "0.12.4"
+        },
+        {
+            "name": "imguizmo",
+            "version": "2024-05-29#1"
         }
     ]
 }
