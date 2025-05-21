@@ -6,6 +6,7 @@
 #include "Component/Reflection.hpp"
 #include "Component/TextureComponent.hpp"
 #include "Entity/Entity.hpp"
+#include "Entity/Folder.hpp"
 #include "Entity/Texture2D.hpp"
 #include "IConfigure.hpp"
 #include "Logger.hpp"
@@ -107,12 +108,14 @@ class Editor
     entt::entity mHoveredEntity = entt::null;
     std::filesystem::path mCurrentPath = mProjectPath;
     uint32_t mAssetIconSize = 64;
-    std::unordered_map<AssetType, ImTextureID> mAssetIcons;
+    std::unordered_map<EntityType, ImTextureID> mAssetIcons;
     float mGizmoWidth = 10.f;
     float mGizmoHeight = 10.f;
     ImGuizmo::OPERATION mGuizmoOperation = ImGuizmo::TRANSLATE;
     ImGuizmo::MODE mGuizmoMode = ImGuizmo::LOCAL;
     entt::entity mEditorCamera;
+    std::shared_ptr<Entity> mSelectedAsset;
+    std::shared_ptr<Entity> mHoveredAsset;
 
   public:
     Editor();
@@ -135,16 +138,15 @@ class Editor
     void RenderInspectorPanel();
     void RenderAssetPanel();
     void LoadUIResources();
+    void GetEntityFromModel(const UUID &modelID, std::shared_ptr<entt::registry> registry);
     void CreateAssetsForRaw(const std::filesystem::path &path);
     void LoadAssets(const std::filesystem::path &path);
-    template <typename TComponent>
-        requires std::derived_from<TComponent, Component>
-    void ComponentUI(TComponent &component)
+    template <typename T> void InspectorUI(T &object)
     {
-        auto metaAny = entt::forward_as_meta(component);
-        InspectorObject(metaAny, entt::resolve<TComponent>(), component.dirty);
+        auto metaAny = entt::forward_as_meta(object);
+        InspectorObject(metaAny, entt::resolve<T>());
     }
-    void InspectorObject(entt::meta_any &object, entt::meta_type metaType, bool &dirty)
+    void InspectorObject(entt::meta_any &object, entt::meta_type metaType)
     {
         auto *info = static_cast<Info *>(metaType.custom());
         if (info == nullptr)
@@ -158,7 +160,7 @@ class Editor
         {
             for (auto &&[id, base] : metaType.base())
             {
-                InspectorObject(object, base, dirty);
+                InspectorObject(object, base);
             }
             for (auto &&[id, field] : metaType.data())
             {
@@ -326,7 +328,7 @@ class Editor
                 }
                 else if (fieldType == entt::resolve<Importer>())
                 {
-                    InspectorObject(object, entt::resolve<Importer>(), dirty);
+                    InspectorObject(object, entt::resolve<Importer>());
                 }
                 else
                 {
@@ -339,7 +341,6 @@ class Editor
         }
         if (modified)
         {
-            dirty = true;
             // if (metaType == entt::resolve<Texture2D>())
             // {
             //     auto entity = object.try_cast<Texture2D>();

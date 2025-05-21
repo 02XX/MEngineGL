@@ -22,8 +22,10 @@ void RenderSystem::Init()
 void RenderSystem::Update(float deltaTime)
 {
     glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-    glClearNamedFramebufferfv(FBO, GL_COLOR, 0, (GLfloat[]){0.2f, 0.3f, 0.3f, 1.0f});
-    glClearNamedFramebufferfv(FBO, GL_DEPTH, 0, (GLfloat[]){1.0f});
+    GLfloat clearColor[] = { 0.2f, 0.3f, 0.3f, 1.0f };
+    GLfloat clearDepth[] = { 1.0f };
+    glClearNamedFramebufferfv(FBO, GL_COLOR, 0, clearColor);
+    glClearNamedFramebufferfv(FBO, GL_DEPTH, 0, clearDepth);
     glEnable(GL_DEPTH_TEST);
     GetMainCamera();
     RenderQueue();
@@ -152,8 +154,10 @@ void RenderSystem::RenderForwardPass()
             auto &meshComponent = mRegistry->get<MeshComponent>(entity);
             auto &materialComponent = mRegistry->get<MaterialComponent>(entity);
             auto materialID = materialComponent.materialID;
-            auto meshID = meshComponent.meshID;
-            auto mesh = mResourceManager->GetAsset<Mesh>(meshID);
+            auto modelID = meshComponent.modelID;
+            auto meshIndex = meshComponent.meshIndex;
+            auto model = mResourceManager->GetAsset<Model>(modelID);
+            auto mesh = model->Meshes[meshIndex];
             glm::mat4 modelMatrix = transformComponent.modelMatrix;
             glProgramUniformMatrix4fv(program, 2, 1, GL_FALSE, glm::value_ptr(modelMatrix)); // layout(location =
             glBindVertexArray(mesh->VAO);

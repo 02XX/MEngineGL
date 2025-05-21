@@ -6,6 +6,7 @@ PBRMaterial::PBRMaterial()
 {
     Name = "PBRMaterial";
     MaterialType = MaterialType::PBR;
+    Type = EntityType::PBRMaterial;
     glCreateBuffers(1, &UBO);
     glNamedBufferStorage(UBO, sizeof(PBRParameters), nullptr, GL_DYNAMIC_STORAGE_BIT);
 }

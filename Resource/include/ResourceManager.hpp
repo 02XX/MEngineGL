@@ -10,6 +10,7 @@
 
 #include "BasicGeometryFactory.hpp"
 #include "Entity/Entity.hpp"
+#include "Entity/Folder.hpp"
 #include "Entity/Material.hpp"
 #include "Entity/Mesh.hpp"
 #include "Entity/Model.hpp"
@@ -17,6 +18,7 @@
 #include "Entity/Pipeline.hpp"
 #include "Entity/Texture2D.hpp"
 #include "Logger.hpp"
+#include "Repository/FolderRepository.hpp"
 #include "Repository/MaterialRepository.hpp"
 #include "Repository/MeshRepository.hpp"
 #include "Repository/ModelRepository.hpp"
@@ -27,14 +29,20 @@
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
+#include <vector>
+
 
 using json = nlohmann::json;
 namespace MEngine
 {
+
 class ResourceManager
 {
+    template <typename T> struct RepositoryTraits;
+
   private:
     BasicGeometryFactory mBasicGeometryFactory;
+    std::filesystem::path mProjectPath{};
 
   private:
     std::shared_ptr<IRepository<Material>> mMaterialRepository;
@@ -42,15 +50,17 @@ class ResourceManager
     std::shared_ptr<IRepository<Pipeline>> mPipelineRepository;
     std::shared_ptr<IRepository<Texture2D>> mTextureRepository;
     std::shared_ptr<IRepository<Model>> mModelRepository;
+    std::shared_ptr<IRepository<Folder>> mFolderRepository;
     std::unordered_map<PrimitiveType, UUID> mGeometries;
 
-    std::unordered_map<std::filesystem::path, UUID> mCachedAssets;
+    std::unordered_map<std::filesystem::path, std::shared_ptr<Entity>> mCachedAssets;
 
     const std::unordered_map<std::type_index, std::string> mTypeToAssetExtensions = {
         {typeid(Pipeline), ".shader"},
         {typeid(PBRMaterial), ".pbrmaterial"},
         {typeid(Texture2D), ".tex2d"},
         {typeid(Mesh), ".mesh"},
+        {typeid(Model), ".model"}
         // {typeid(Material), ".material"}, {typeid(Animation), ".animation"}, {typeid(Model), ".model"},
         // {typeid(Audio), ".audio"},       {typeid(Scene), ".scene"},
     };
@@ -58,14 +68,26 @@ class ResourceManager
         {".shader", typeid(Pipeline)},
         {".pbrmaterial", typeid(PBRMaterial)},
         {".tex2d", typeid(Texture2D)},
-        {".mesh", typeid(Mesh)}
+        {".mesh", typeid(Mesh)},
+        {".model", typeid(Model)}
         // {".texture", typeid(Texture)},     {".mesh", typeid(Mesh)},
         // {".material", typeid(Material)},   {".animation", typeid(Animation)},
         // {".model", typeid(Model)},         {".audio", typeid(Audio)},
         // {".scene", typeid(Scene)},
     };
+    const std::unordered_map<std::string, std::type_index> mRawExtensionToType = {
+        {".fbx", typeid(Model)}, {".png", typeid(Texture2D)}
+        // {".obj", typeid(Mesh)}, {".fbx", typeid(Model)}, {".gltf", typeid(Model)},
+        // {".glb", typeid(Model)}, {".stl", typeid(Mesh)}, {".3ds", typeid(Mesh)},
+        // {".dae", typeid(Model)}, {".blend", typeid(Model)}, {".ply", typeid(Mesh)},
+        // {".dxf", typeid(Mesh)},  {".3mf", typeid(Mesh)},  {".abc", typeid(Mesh)},
+    };
 
   public:
+    void SetProjectPath(std::filesystem::path projectPath)
+    {
+        mProjectPath = projectPath;
+    }
     ResourceManager()
     {
         mMaterialRepository = std::make_shared<MaterialRepository>();
@@ -73,6 +95,7 @@ class ResourceManager
         mPipelineRepository = std::make_shared<PipelineRepository>();
         mTextureRepository = std::make_shared<Texture2DRepository>();
         mModelRepository = std::make_shared<ModelRepository>();
+        mFolderRepository = std::make_shared<FolderRepository>();
     }
     bool IsAsset(const std::filesystem::path &path)
     {
@@ -96,33 +119,19 @@ class ResourceManager
         requires std::derived_from<TEntity, Entity>
     std::shared_ptr<TEntity> LoadAsset(const std::filesystem::path &path)
     {
-        if constexpr (std::is_same_v<TEntity, Pipeline>)
-        {
-            return mPipelineRepository->LoadAsset(path);
-        }
-        else if constexpr (std::is_same_v<TEntity, Material>)
-        {
-            return mMaterialRepository->LoadAsset(path);
-        }
-        else if constexpr (std::is_same_v<TEntity, Texture2D>)
-        {
-            return mTextureRepository->LoadAsset(path);
-        }
-        else if constexpr (std::is_same_v<TEntity, Mesh>)
-        {
-            return mMeshRepository->LoadAsset(path);
-        }
-        else
-        {
-            LogError("Unsupported asset type: {}", typeid(TEntity).name());
-            return nullptr;
-        }
+        auto entity = GetRepository<TEntity>()->LoadAsset(path);
+        mCachedAssets[path] = entity;
+        return std::dynamic_pointer_cast<TEntity>(entity);
     }
     std::shared_ptr<Entity> LoadAsset(const std::filesystem::path &path)
     {
         if (!std::filesystem::exists(path))
         {
             throw std::runtime_error("File does not exist: " + path.string());
+        }
+        if (std::filesystem::is_directory(path))
+        {
+            return LoadAsset<Folder>(path);
         }
         std::string extension = path.extension().string();
         // 检查扩展名是否支持
@@ -152,6 +161,10 @@ class ResourceManager
             {
                 return LoadAsset<Mesh>(path);
             }
+            else if (typeIdx == typeid(Model))
+            {
+                return LoadAsset<Model>(path);
+            }
             else
             {
                 LogWarn("Not implement file type {}", mTypeToAssetExtensions.at(typeIndex->second));
@@ -170,203 +183,80 @@ class ResourceManager
         {
             throw std::runtime_error("File does not exist: " + path.string());
         }
+        std::shared_ptr<Entity> entity;
         std::string extension = path.extension().string();
-        if (extension == ".fbx")
+        auto typeIndex = mRawExtensionToType.find(extension);
+        auto assetPath = path;
+        if (typeIndex != mRawExtensionToType.end())
         {
-            LoadFBX(path);
-        }
-    }
-    void LoadFBX(const std::filesystem::path &path)
-    {
-        if (!std::filesystem::exists(path))
-        {
-            throw std::runtime_error("File does not exist: " + path.string());
-        }
-        std::string extension = path.extension().string();
-        if (extension != ".fbx")
-        {
-            throw std::runtime_error("File is not a FBX file: " + path.string());
-        }
-        // 读取FBX文件
-        Assimp::Importer importer;
-        auto scene =
-            importer.ReadFile(path.string(), aiProcess_GenUVCoords | aiProcess_ForceGenNormals | aiProcess_Triangulate |
-                                                 aiProcess_CalcTangentSpace | aiProcess_FlipUVs);
-        if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
-        {
-            throw std::runtime_error("Load fbx file failed.");
-        }
-        auto modelEntity = CreateAsset<Model>();
-
-        std::function<void(const aiNode *, const aiScene *, std::shared_ptr<Node>)> ProcessNode =
-            [&](const aiNode *node, const aiScene *scene, std::shared_ptr<Node> parent = nullptr) {
-                // 处理节点的网格
-                std::shared_ptr<Node> currentNode = std::make_shared<Node>();
-                for (unsigned int i = 0; i < node->mNumMeshes; i++)
-                {
-                    auto mesh = scene->mMeshes[node->mMeshes[i]];
-                    auto meshEntity = CreateAsset<Mesh>();
-                    auto materialEntity = CreateAsset<Material>();
-                    currentNode->meshID = meshEntity->ID;
-                    currentNode->materialID = materialEntity->ID;
-                    currentNode->parent = parent;
-                    parent->children.push_back(currentNode);
-                    // 处理网格数据
-                    for (unsigned int i = 0; i < mesh->mNumVertices; i++)
-                    {
-                        Vertex vertex;
-                        vertex.position = glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
-                        if (mesh->HasNormals())
-                        {
-                            vertex.normal = glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
-                        }
-                        if (mesh->HasTextureCoords(0))
-                        {
-                            vertex.texCoord = glm::vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
-                        }
-                        meshEntity->Vertices.push_back(vertex);
-                    }
-                    for (unsigned int i = 0; i < mesh->mNumFaces; i++)
-                    {
-                        auto face = mesh->mFaces[i];
-                        for (unsigned int j = 0; j < face.mNumIndices; j++)
-                        {
-                            meshEntity->Indices.push_back(face.mIndices[j]);
-                        }
-                    }
-                    if (mesh->mMaterialIndex >= 0)
-                    {
-                        aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
-                    }
-                    UpdateAsset(meshEntity);
-                }
-                // 递归处理子节点
-                for (unsigned int i = 0; i < node->mNumChildren; i++)
-                {
-                    ProcessNode(node->mChildren[i], scene, currentNode);
-                }
-            };
-    }
-    template <typename TEntity>
-        requires std::derived_from<TEntity, Entity>
-    void SaveAsset(const UUID &id, const std::filesystem::path &path, std::string name = "New Asset")
-    {
-        auto sourcePath = GenerateUniquePath<TEntity>(path, name);
-        if constexpr (std::is_same_v<TEntity, Pipeline>)
-        {
-            mPipelineRepository->SaveAsset(id, sourcePath);
-        }
-        else if constexpr (std::is_same_v<TEntity, Material>)
-        {
-            mMaterialRepository->SaveAsset(id, sourcePath);
-        }
-        else if constexpr (std::is_same_v<TEntity, Texture2D>)
-        {
-            mTextureRepository->SaveAsset(id, sourcePath);
-        }
-        else if constexpr (std::is_same_v<TEntity, Mesh>)
-        {
-            mMeshRepository->SaveAsset(id, sourcePath);
+            auto typeIdx = typeIndex->second;
+            auto type = mTypeToAssetExtensions.find(typeIdx);
+            assetPath.replace_extension(type->second);
+            if (std::filesystem::exists(assetPath))
+            {
+                LogTrace("File already exists: {}", assetPath.string());
+                return;
+            }
+            if (typeIdx == typeid(Model))
+            {
+                auto model = CreateAsset<Model>();
+                model->ModelPath = path;
+                UpdateAsset(model);
+                entity = model;
+            }
+            else if (typeIdx == typeid(Texture2D))
+            {
+                auto texture = CreateAsset<Texture2D>();
+                texture->ImagePath = path;
+                UpdateAsset(texture);
+                entity = texture;
+            }
+            else
+            {
+                LogWarn("Not implement file type {}", extension);
+            }
+            entity->SourcePath = GenerateUniquePath<Model>(mProjectPath, path.stem().string());
+            entity->Name = path.stem().string();
+            mCachedAssets[assetPath] = entity;
         }
         else
         {
-            LogError("Unsupported asset type: {}", typeid(TEntity).name());
+            LogWarn("Not Support file type {}", extension);
+        }
+    }
+    std::shared_ptr<Entity> GetAsset(const std::filesystem::path &path)
+    {
+        auto it = mCachedAssets.find(path);
+        if (it != mCachedAssets.end())
+        {
+            return it->second;
+        }
+        else
+        {
+            LogWarn("Asset not found in cache: {}", path.string());
+            return nullptr;
         }
     }
     template <typename TEntity>
         requires std::derived_from<TEntity, Entity>
     std::shared_ptr<TEntity> CreateAsset()
     {
-        if constexpr (std::is_same_v<TEntity, Pipeline>)
-        {
-            return mPipelineRepository->Create();
-        }
-        else if constexpr (std::is_same_v<TEntity, Material>)
-        {
-            return mMaterialRepository->Create();
-        }
-        else if constexpr (std::is_same_v<TEntity, Texture2D>)
-        {
-            return mTextureRepository->Create();
-        }
-        else if constexpr (std::is_same_v<TEntity, Mesh>)
-        {
-            return mMeshRepository->Create();
-        }
-        else
-        {
-            LogError("Unsupported asset type: {}", typeid(TEntity).name());
-            return nullptr;
-        }
+        auto entity = GetRepository<TEntity>()->Create();
+        return std::dynamic_pointer_cast<TEntity>(entity);
     }
     template <typename TEntity>
         requires std::derived_from<TEntity, Entity>
     std::shared_ptr<TEntity> GetAsset(const UUID &id)
     {
-        if constexpr (std::is_same_v<TEntity, Pipeline>)
-        {
-            return mPipelineRepository->GetAsset(id);
-        }
-        else if constexpr (std::is_same_v<TEntity, Material>)
-        {
-            return mMaterialRepository->GetAsset(id);
-        }
-        else if constexpr (std::is_same_v<TEntity, Texture2D>)
-        {
-            return mTextureRepository->GetAsset(id);
-        }
-        else if constexpr (std::is_same_v<TEntity, Mesh>)
-        {
-            return mMeshRepository->GetAsset(id);
-        }
-        else
-        {
-            LogError("Unsupported asset type: {}", typeid(TEntity).name());
-            return nullptr;
-        }
-    }
-    std::shared_ptr<Mesh> GetBasicGeometry(PrimitiveType type)
-    {
-        auto it = mGeometries.find(type);
-        if (it != mGeometries.end())
-        {
-            return GetAsset<Mesh>(it->second);
-        }
-        else
-        {
-            auto [vertices, indices] = mBasicGeometryFactory.GetGeometry(type);
-            auto mesh = CreateAsset<Mesh>();
-            mesh->Vertices = vertices;
-            mesh->Indices = indices;
-            mesh->Update();
-            mGeometries[type] = mesh->ID;
-            return mesh;
-        }
+        auto entity = GetRepository<TEntity>()->GetAsset(id);
+        return std::dynamic_pointer_cast<TEntity>(entity);
     }
     template <typename TEntity>
         requires std::derived_from<TEntity, Entity>
     void UpdateAsset(std::shared_ptr<TEntity> entity)
     {
-        if constexpr (std::is_same_v<TEntity, Pipeline>)
-        {
-            mPipelineRepository->UpdateAsset(entity);
-        }
-        else if constexpr (std::is_same_v<TEntity, Material>)
-        {
-            mMaterialRepository->UpdateAsset(entity);
-        }
-        else if constexpr (std::is_same_v<TEntity, Texture2D>)
-        {
-            mTextureRepository->UpdateAsset(entity);
-        }
-        else if constexpr (std::is_same_v<TEntity, Mesh>)
-        {
-            mMeshRepository->UpdateAsset(entity);
-        }
-        else
-        {
-            LogError("Unsupported asset type: {}", typeid(TEntity).name());
-        }
+        auto repository = GetRepository<TEntity>();
+        repository->UpdateAsset(entity);
     }
     /**
      * @brief 删除资源
@@ -376,22 +266,8 @@ class ResourceManager
         requires std::derived_from<TEntity, Entity>
     void DeleteAsset(const UUID &id)
     {
-        if constexpr (std::is_same_v<TEntity, Pipeline>)
-        {
-            mPipelineRepository->DeleteAsset(id);
-        }
-        else if constexpr (std::is_same_v<TEntity, Material>)
-        {
-            mMaterialRepository->DeleteAsset(id);
-        }
-        else if constexpr (std::is_same_v<TEntity, Texture2D>)
-        {
-            mTextureRepository->DeleteAsset(id);
-        }
-        else if constexpr (std::is_same_v<TEntity, Mesh>)
-        {
-            mMeshRepository->DeleteAsset(id);
-        }
+        auto repository = GetRepository<TEntity>();
+        repository->DeleteAsset(id);
     }
     /**
      * @brief 生成唯一的文件路径
@@ -426,5 +302,95 @@ class ResourceManager
         }
         return std::type_index(typeid(void));
     }
+    std::shared_ptr<Model> GetBasicGeometry(PrimitiveType type)
+    {
+        auto it = mGeometries.find(type);
+        if (it != mGeometries.end())
+        {
+            return GetAsset<Model>(it->second);
+        }
+        else
+        {
+            auto [vertices, indices] = mBasicGeometryFactory.GetGeometry(type);
+            auto model = CreateAsset<Model>();
+            std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
+            mesh->Vertices = vertices;
+            mesh->Indices = indices;
+            model->Meshes.push_back(mesh);
+            model->Update();
+            mGeometries[type] = model->ID;
+            return model;
+        }
+    }
+    std::vector<std::shared_ptr<Entity>> GetAssetsFromDirectory(const std::filesystem::path &path)
+    {
+        std::vector<std::shared_ptr<Entity>> assets;
+        for (auto entity : mCachedAssets)
+        {
+            if (entity.first.parent_path() == path)
+            {
+                assets.push_back(entity.second);
+            }
+        }
+        return assets;
+    }
+    template <typename TEntity> auto &GetRepository()
+    {
+        return RepositoryTraits<TEntity>::repository(*this);
+    }
 };
+
+template <> struct ResourceManager::RepositoryTraits<Pipeline>
+{
+    static auto &repository(ResourceManager &rm)
+    {
+        return rm.mPipelineRepository;
+    }
+};
+
+template <> struct ResourceManager::RepositoryTraits<PBRMaterial>
+{
+    static auto &repository(ResourceManager &rm)
+    {
+        return rm.mMaterialRepository;
+    }
+};
+template <> struct MEngine::ResourceManager::RepositoryTraits<Material>
+{
+    static auto &repository(ResourceManager &rm)
+    {
+        return rm.mMaterialRepository;
+    }
+};
+template <> struct ResourceManager::RepositoryTraits<Texture2D>
+{
+    static auto &repository(ResourceManager &rm)
+    {
+        return rm.mTextureRepository;
+    }
+};
+
+template <> struct ResourceManager::RepositoryTraits<Mesh>
+{
+    static auto &repository(ResourceManager &rm)
+    {
+        return rm.mMeshRepository;
+    }
+};
+
+template <> struct ResourceManager::RepositoryTraits<Model>
+{
+    static auto &repository(ResourceManager &rm)
+    {
+        return rm.mModelRepository;
+    }
+};
+template <> struct ResourceManager::RepositoryTraits<Folder>
+{
+    static auto &repository(ResourceManager &rm)
+    {
+        return rm.mFolderRepository;
+    }
+};
+
 } // namespace MEngine

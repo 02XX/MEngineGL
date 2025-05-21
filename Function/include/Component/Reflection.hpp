@@ -7,6 +7,7 @@
 #include "Component/TextureComponent.hpp"
 #include "Component/TransformComponent.hpp"
 #include "Entity/Entity.hpp"
+#include "Entity/Folder.hpp"
 #include "Entity/PBRMaterial.hpp"
 #include "Entity/Texture2D.hpp"
 #include <entt/entt.hpp>
@@ -32,7 +33,9 @@ static void RegisterMeta()
         .data<&Entity::ID>("ID"_hs)
         .custom<Info>(Info{.DisplayName = "ID", .Serializable = false})
         .data<&Entity::SourcePath>("SourcePath"_hs)
-        .custom<Info>(Info{.DisplayName = "SourcePath", .Serializable = false});
+        .custom<Info>(Info{.DisplayName = "SourcePath", .Serializable = true})
+        .data<&Entity::Name>("Name"_hs)
+        .custom<Info>(Info{.DisplayName = "Name", .Editable = false});
     entt::meta<Texture2D>()
         .type("Texture2D"_hs)
         .base<Entity>()
@@ -209,9 +212,14 @@ static void RegisterMeta()
             .DisplayName = "MeshComponent",
         })
         .base<Component>()
-        .data<&MeshComponent::meshID>("meshID"_hs)
+        .data<&MeshComponent::modelID>("modelID"_hs)
         .custom<Info>(Info{
-            .DisplayName = "meshID",
+            .DisplayName = "modelID",
+            .Editable = true,
+        })
+        .data<&MeshComponent::meshIndex>("meshIndex"_hs)
+        .custom<Info>(Info{
+            .DisplayName = "meshIndex",
             .Editable = true,
         });
     entt::meta<MaterialComponent>()
@@ -269,6 +277,17 @@ static void RegisterMeta()
         .data<&PBRParameters::color>("color"_hs)
         .custom<Info>(Info{
             .DisplayName = "Color",
+            .Editable = true,
+        });
+    entt::meta<Folder>()
+        .type("Folder"_hs)
+        .custom<Info>(Info{
+            .DisplayName = "Folder",
+        })
+        .base<Entity>()
+        .data<&Folder::FolderPath>("FolderPath"_hs)
+        .custom<Info>(Info{
+            .DisplayName = "FolderPath",
             .Editable = true,
         });
 }

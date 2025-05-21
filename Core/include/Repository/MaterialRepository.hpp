@@ -21,6 +21,7 @@ class MaterialRepository final : public Repository<Material>
         mEntities[material->ID] = material;
         material->Update();
     }
+    
 };
 template <> struct RepositoryTraits<Material>
 {

@@ -8,9 +8,27 @@
 using json = nlohmann::json;
 namespace MEngine
 {
+enum class EntityType
+{
+    None,
+    Folder,
+    File,
+    Material,
+    Mesh,
+    PBRMaterial,
+    PhongMaterial,
+    Texture2D,
+    TextureCube,
+    Model,
+    Animation,
+    Shader,
+    Audio,
+    Pipeline
+};
 class Entity
 {
   public:
+    EntityType Type = EntityType::None;
     UUID ID = UUIDGenerator()();
     std::filesystem::path SourcePath = std::filesystem::path();
     std::string Name = "Unknown";

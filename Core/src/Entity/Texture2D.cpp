@@ -6,6 +6,7 @@ namespace MEngine
 Texture2D::Texture2D()
 {
     Name = "Texture2D";
+    Type = EntityType::Texture2D;
     glCreateTextures(GL_TEXTURE_2D, 1, &mTextureID);
     glCreateSamplers(1, &mSamplerID);
 }

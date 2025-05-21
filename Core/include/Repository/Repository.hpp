@@ -1,5 +1,6 @@
 #pragma once
 #include "Entity/Entity.hpp"
+#include "Entity/Folder.hpp"
 #include "Logger.hpp"
 #include "Repository/IRepository.hpp"
 #include <filesystem>
@@ -33,11 +34,19 @@ class Repository : public IRepository<TEntity>
         {
             throw std::runtime_error("path does not exist: " + path.string());
         }
+        entity->SourcePath = path;
+        entity->Name = path.filename().string();
         auto cachedAsset = mCachedAssets.find(path);
         if (cachedAsset != mCachedAssets.end())
         {
             LogTrace("Find cached asset: {} in {}", cachedAsset->second.ToString(), path.string());
             return GetAsset(cachedAsset->second);
+        }
+        if (std::filesystem::is_directory(path) && typeid(TEntity) == typeid(Folder))
+        {
+            mEntities[entity->ID] = entity;
+            mCachedAssets[path] = entity->ID;
+            return entity;
         }
         std::ifstream file(path);
         if (!file.is_open())

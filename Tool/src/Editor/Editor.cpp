@@ -2,11 +2,15 @@
 #include "BasicGeometryFactory.hpp"
 #include "Component/TransformComponent.hpp"
 #include "Entity/Mesh.hpp"
+#include "Entity/Model.hpp"
 #include "Logger.hpp"
 #include "UUID.hpp"
 #include <boost/di.hpp>
 #include <entt/entity/entity.hpp>
+#include <entt/entity/fwd.hpp>
+#include <functional>
 #include <imgui.h>
+#include <memory>
 namespace MEngine
 {
 namespace DI = boost::di;
@@ -123,6 +127,7 @@ void Editor::Init()
     InitOpenGL();
     InitSystems();
     InitImGui();
+    mResourceManager->SetProjectPath(mProjectPath);
     LoadUIResources();
     LoadAssets(mProjectPath);
     mResourceManager->CreateDefault();
@@ -134,7 +139,7 @@ void Editor::Init()
     cameraComponent.aspectRatio = 16.0f / 9.0f;
     transformComponent.localPosition = glm::vec3(0.0f, 0.0f, 5.0f);
     transformComponent.name = "EditorCamera";
-
+    GetEntityFromModel(UUID("c770c339-6a47-4201-aafe-c9208443baee"), mRegistry);
     mIsRunning = true;
 }
 void Editor::InitWindow()
@@ -483,7 +488,7 @@ void Editor::RenderHierarchyPanel()
                 auto &meshComponent = mRegistry->emplace<MeshComponent>(entity);
                 auto &materialComponent = mRegistry->emplace<MaterialComponent>(entity);
                 auto cube = mResourceManager->GetBasicGeometry(PrimitiveType::Cube);
-                meshComponent.meshID = cube->ID;
+                meshComponent.modelID = cube->ID;
                 transformComponent.name = "Cube";
             }
             if (ImGui::MenuItem("Sphere"))
@@ -493,7 +498,7 @@ void Editor::RenderHierarchyPanel()
                 auto &meshComponent = mRegistry->emplace<MeshComponent>(entity);
                 auto &materialComponent = mRegistry->emplace<MaterialComponent>(entity);
                 auto sphere = mResourceManager->GetBasicGeometry(PrimitiveType::Sphere);
-                meshComponent.meshID = sphere->ID;
+                meshComponent.modelID = sphere->ID;
                 transformComponent.name = "Sphere";
             }
             if (ImGui::MenuItem("Cylinder"))
@@ -503,7 +508,7 @@ void Editor::RenderHierarchyPanel()
                 auto &meshComponent = mRegistry->emplace<MeshComponent>(entity);
                 auto &materialComponent = mRegistry->emplace<MaterialComponent>(entity);
                 auto cylinder = mResourceManager->GetBasicGeometry(PrimitiveType::Cylinder);
-                meshComponent.meshID = cylinder->ID;
+                meshComponent.modelID = cylinder->ID;
                 transformComponent.name = "Cylinder";
             }
             if (ImGui::MenuItem("Quad"))
@@ -513,7 +518,7 @@ void Editor::RenderHierarchyPanel()
                 auto &meshComponent = mRegistry->emplace<MeshComponent>(entity);
                 auto &materialComponent = mRegistry->emplace<MaterialComponent>(entity);
                 auto quad = mResourceManager->GetBasicGeometry(PrimitiveType::Quad);
-                meshComponent.meshID = quad->ID;
+                meshComponent.modelID = quad->ID;
                 transformComponent.name = "Quad";
             }
             ImGui::EndMenu();
@@ -563,6 +568,38 @@ void Editor::RenderHierarchyPanel()
     {
         RenderHierarchyItem(entity);
     }
+    // 添加空白区域的拖拽目标
+    ImGuiWindow *window = ImGui::GetCurrentWindow();
+    ImRect windowRect(window->InnerRect.Min, window->InnerRect.Max);
+
+    // 创建一个覆盖整个窗口的透明拖拽目标
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
+    if (ImGui::BeginDragDropTargetCustom(windowRect, ImGui::GetID("EmptySpaceDragDropTarget")))
+    {
+        if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("ENTITY_DRAG_DROP"))
+        {
+            IM_ASSERT(payload->DataSize == sizeof(entt::entity));
+            entt::entity draggedEntity = *(const entt::entity *)payload->Data;
+
+            auto &draggedTransform = mRegistry->get<TransformComponent>(draggedEntity);
+
+            // 如果当前有父节点，则移除父节点关系
+            if (draggedTransform.parent != entt::null)
+            {
+                auto &parentTransform = mRegistry->get<TransformComponent>(draggedTransform.parent);
+                auto it = std::find(parentTransform.children.begin(), parentTransform.children.end(), draggedEntity);
+                if (it != parentTransform.children.end())
+                {
+                    parentTransform.children.erase(it);
+                }
+                draggedTransform.parent = entt::null;
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }
+    ImGui::PopStyleColor(3);
     ImGui::End();
 }
 void Editor::RenderHierarchyItem(entt::entity entity)
@@ -633,38 +670,6 @@ void Editor::RenderHierarchyItem(entt::entity entity)
         }
         ImGui::EndDragDropTarget();
     }
-    // 添加空白区域的拖拽目标
-    ImGuiWindow *window = ImGui::GetCurrentWindow();
-    ImRect windowRect(window->InnerRect.Min, window->InnerRect.Max);
-
-    // 创建一个覆盖整个窗口的透明拖拽目标
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
-    if (ImGui::BeginDragDropTargetCustom(windowRect, ImGui::GetID("EmptySpaceDragDropTarget")))
-    {
-        if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("ENTITY_DRAG_DROP"))
-        {
-            IM_ASSERT(payload->DataSize == sizeof(entt::entity));
-            entt::entity draggedEntity = *(const entt::entity *)payload->Data;
-
-            auto &draggedTransform = mRegistry->get<TransformComponent>(draggedEntity);
-
-            // 如果当前有父节点，则移除父节点关系
-            if (draggedTransform.parent != entt::null)
-            {
-                auto &parentTransform = mRegistry->get<TransformComponent>(draggedTransform.parent);
-                auto it = std::find(parentTransform.children.begin(), parentTransform.children.end(), draggedEntity);
-                if (it != parentTransform.children.end())
-                {
-                    parentTransform.children.erase(it);
-                }
-                draggedTransform.parent = entt::null;
-            }
-        }
-        ImGui::EndDragDropTarget();
-    }
-    ImGui::PopStyleColor(3);
 
     // 递归绘制子节点
     if (opened)
@@ -686,32 +691,42 @@ void Editor::RenderInspectorPanel()
         if (mRegistry->any_of<AssetsComponent>(mSelectedEntity))
         {
             auto &assetComponent = mRegistry->get<AssetsComponent>(mSelectedEntity);
-            ComponentUI(assetComponent);
+            InspectorUI(assetComponent);
         }
         if (mRegistry->any_of<TextureComponent>(mSelectedEntity))
         {
             auto &textureComponent = mRegistry->get<TextureComponent>(mSelectedEntity);
-            ComponentUI(textureComponent);
+            InspectorUI(textureComponent);
         }
         if (mRegistry->any_of<TransformComponent>(mSelectedEntity))
         {
             auto &transformComponent = mRegistry->get<TransformComponent>(mSelectedEntity);
-            ComponentUI(transformComponent);
+            InspectorUI(transformComponent);
         }
         if (mRegistry->any_of<CameraComponent>(mSelectedEntity))
         {
             auto &cameraComponent = mRegistry->get<CameraComponent>(mSelectedEntity);
-            ComponentUI(cameraComponent);
+            InspectorUI(cameraComponent);
         }
         if (mRegistry->any_of<MeshComponent>(mSelectedEntity))
         {
             auto &meshComponent = mRegistry->get<MeshComponent>(mSelectedEntity);
-            ComponentUI(meshComponent);
+            InspectorUI(meshComponent);
         }
         if (mRegistry->any_of<MaterialComponent>(mSelectedEntity))
         {
             auto &materialComponent = mRegistry->get<MaterialComponent>(mSelectedEntity);
-            ComponentUI(materialComponent);
+            InspectorUI(materialComponent);
+        }
+    }
+    if (mSelectedAsset != nullptr)
+    {
+        auto assetLabel = std::format("Asset {}", mSelectedAsset->ID.ToString());
+        ImGui::Text("%s", assetLabel.c_str());
+        if (mSelectedAsset->Type == EntityType::Folder)
+        {
+            auto entity = std::dynamic_pointer_cast<Folder>(mSelectedAsset);
+            InspectorUI<Folder>(*entity);
         }
     }
     // 右键菜单
@@ -774,63 +789,60 @@ void Editor::RenderAssetPanel()
     auto view = mRegistry->view<AssetsComponent>();
     int columns = std::max(1, static_cast<int>(ImGui::GetContentRegionAvail().x / (mAssetIconSize + 10)));
     ImGui::Columns(columns, "AssetColumns", false); // false = 不显示边框
-    for (auto entity : view)
+    auto currentPathAssets = mResourceManager->GetAssetsFromDirectory(mCurrentPath);
+    for (auto asset : currentPathAssets)
     {
-        auto &assetComponent = view.get<AssetsComponent>(entity);
-        if (assetComponent.path.parent_path() == mCurrentPath)
+        ImGui::PushID(asset->ID.ToString().c_str());
+        ImTextureID textureID = 0;
+        if (mAssetIcons.find(asset->Type) != mAssetIcons.end())
         {
-            ImGui::PushID(entt::to_integral(entity));
-            ImTextureID textureID = 0;
-            if (mAssetIcons.find(assetComponent.type) != mAssetIcons.end())
-            {
-                textureID = mAssetIcons[assetComponent.type];
-            }
-            if (ImGui::Selectable("##btn", mSelectedEntity == entity,
-                                  ImGuiSelectableFlags_AllowItemOverlap | ImGuiSelectableFlags_AllowDoubleClick,
-                                  ImVec2(mAssetIconSize + 10, mAssetIconSize + 20)))
-            {
-                mSelectedEntity = entity;
-                if (ImGui::IsMouseDoubleClicked(0))
-                {
-                    if (assetComponent.type == AssetType::Folder)
-                    {
-                        mCurrentPath = assetComponent.path;
-                    }
-                }
-            }
-            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup))
-            {
-                mHoveredEntity = entity;
-                if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
-                    mSelectedEntity = entity;
-                if (ImGui::IsMouseDragging(0))
-                {
-                    if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
-                    {
-                        // 设置拖拽数据
-                        ImGui::SetDragDropPayload("ASSET_ITEM", &entity, sizeof(entity));
-                        // 显示拖拽预览（图标）
-                        ImGui::Image(textureID, ImVec2(0, 1), ImVec2(1, 0));
-                        // 可选：添加文字说明
-                        ImGui::Text("拖动 %s", assetComponent.name.c_str());
-                        ImGui::EndDragDropSource();
-                    }
-                }
-            }
-            ImVec2 ContainerMinPos = ImGui::GetItemRectMin();
-            ImVec2 ContainerMaxPos = ImGui::GetItemRectMax();
-            ImVec2 ContainerSize = ImGui::GetItemRectSize();
-            ImVec2 iconPos = ImVec2(ContainerMinPos.x, ContainerMinPos.y);
-            ImGui::SetCursorScreenPos(iconPos);
-            ImGui::Image(textureID, ImVec2(mAssetIconSize, mAssetIconSize), ImVec2(0, 1), ImVec2(1, 0));
-            // 绘制文本
-            ImVec2 textPos =
-                ImVec2(ContainerMinPos.x + (ContainerSize.x - mAssetIconSize) / 2, ContainerMinPos.y + mAssetIconSize);
-            ImGui::SetCursorScreenPos(textPos);
-            ImGui::Text("%s", assetComponent.name.c_str());
-            ImGui::PopID();
-            ImGui::NextColumn(); // 移动到下一列
+            textureID = mAssetIcons[asset->Type];
         }
+        if (ImGui::Selectable("##btn", mSelectedAsset == asset,
+                              ImGuiSelectableFlags_AllowItemOverlap | ImGuiSelectableFlags_AllowDoubleClick,
+                              ImVec2(mAssetIconSize + 10, mAssetIconSize + 20)))
+        {
+            mSelectedAsset = asset;
+            if (ImGui::IsMouseDoubleClicked(0))
+            {
+                if (asset->Type == EntityType::Folder)
+                {
+                    mCurrentPath = std::dynamic_pointer_cast<Folder>(asset)->FolderPath;
+                }
+            }
+        }
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup))
+        {
+            mHoveredAsset = asset;
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+                mSelectedAsset = asset;
+            if (ImGui::IsMouseDragging(0))
+            {
+                if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
+                {
+                    // 设置拖拽数据
+                    ImGui::SetDragDropPayload("ASSET_ITEM", &asset, sizeof(asset));
+                    // 显示拖拽预览（图标）
+                    ImGui::Image(textureID, ImVec2(0, 1), ImVec2(1, 0));
+                    // 可选：添加文字说明
+                    ImGui::Text("拖动 %s", asset->Name.c_str());
+                    ImGui::EndDragDropSource();
+                }
+            }
+        }
+        ImVec2 ContainerMinPos = ImGui::GetItemRectMin();
+        ImVec2 ContainerMaxPos = ImGui::GetItemRectMax();
+        ImVec2 ContainerSize = ImGui::GetItemRectSize();
+        ImVec2 iconPos = ImVec2(ContainerMinPos.x, ContainerMinPos.y);
+        ImGui::SetCursorScreenPos(iconPos);
+        ImGui::Image(textureID, ImVec2(mAssetIconSize, mAssetIconSize), ImVec2(0, 1), ImVec2(1, 0));
+        // 绘制文本
+        ImVec2 textPos =
+            ImVec2(ContainerMinPos.x + (ContainerSize.x - mAssetIconSize) / 2, ContainerMinPos.y + mAssetIconSize);
+        ImGui::SetCursorScreenPos(textPos);
+        ImGui::Text("%s", asset->Name.c_str());
+        ImGui::PopID();
+        ImGui::NextColumn(); // 移动到下一列
     }
     ImGui::Columns(1); // 恢复单列模式
     ImGui::End();
@@ -843,8 +855,8 @@ void Editor::LoadUIResources()
     fileTexture->ImagePath = mUIResourcesPath / "file.png";
     mResourceManager->UpdateAsset(foldTexture);
     mResourceManager->UpdateAsset(fileTexture);
-    mAssetIcons[AssetType::Folder] = foldTexture->mTextureID;
-    mAssetIcons[AssetType::File] = fileTexture->mTextureID;
+    mAssetIcons[EntityType::Folder] = foldTexture->mTextureID;
+    mAssetIcons[EntityType::File] = fileTexture->mTextureID;
     LogInfo("Loaded UI resources");
 }
 void Editor::LoadAssets(const std::filesystem::path &path)
@@ -853,22 +865,13 @@ void Editor::LoadAssets(const std::filesystem::path &path)
     {
         throw std::runtime_error("Project path does not exist: " + path.string());
     }
-    static const std::unordered_map<std::type_index, AssetType> typeToAssetType = {
-        {typeid(Pipeline), AssetType::Shader},
-        {typeid(PBRMaterial), AssetType::PBRMaterial},
-        {typeid(Texture2D), AssetType::Texture2D}};
     auto directory = std::filesystem::directory_iterator(path);
     for (auto &entry : directory)
     {
-        AssetsComponent assetComponent;
-        assetComponent.path = entry.path();
-        assetComponent.name = entry.path().filename().string();
-        assetComponent.type = AssetType::File;
         if (entry.is_directory())
         {
-            assetComponent.type = AssetType::Folder;
-            auto entity = mRegistry->create();
-            mRegistry->emplace<AssetsComponent>(entity, assetComponent);
+            auto folder = mResourceManager->LoadAsset<Folder>(entry.path());
+            folder->FolderPath = entry.path();
             LoadAssets(entry.path());
         }
         else if (entry.is_regular_file())
@@ -879,39 +882,47 @@ void Editor::LoadAssets(const std::filesystem::path &path)
             {
                 type = mResourceManager->GetAssetTypeFromExtension(extension);
                 auto asset = mResourceManager->LoadAsset(entry.path());
-                auto it = typeToAssetType.find(type);
-                if (it != typeToAssetType.end())
-                {
-                    assetComponent.type = it->second;
-                }
-                auto entity = mRegistry->create();
-                mRegistry->emplace<AssetsComponent>(entity, assetComponent);
-                if (type == typeid(Texture2D))
-                {
-                    auto &textureComponent = mRegistry->emplace<TextureComponent>(entity);
-                    textureComponent.textureID = asset->ID;
-                }
             }
             else
             {
-                auto assetPath = entry.path();
-                type = mResourceManager->GetRawTypeFromExtension(extension);
-                assetPath.replace_extension(mResourceManager->GetAssetExtensionFromType(type));
-                if (!std::filesystem::exists(assetPath))
-                {
-                    mResourceManager->LoadRawAsset(entry.path());
-                    assetComponent.path = assetPath;
-                    assetComponent.name = assetPath.filename().string();
-                    auto it = typeToAssetType.find(type);
-                    if (it != typeToAssetType.end())
-                    {
-                        assetComponent.type = it->second;
-                    }
-                    auto entity = mRegistry->create();
-                    mRegistry->emplace<AssetsComponent>(entity, assetComponent);
-                }
+                mResourceManager->LoadRawAsset(entry.path());
             }
         }
     }
+}
+void Editor::GetEntityFromModel(const UUID &modelID, std::shared_ptr<entt::registry> registry)
+{
+    auto model = mResourceManager->GetAsset<Model>(modelID);
+    auto &meshes = model->Meshes;
+    auto RootNode = model->RootNode;
+    std::function<entt::entity(std::shared_ptr<Node> node)> traverseNode = [&](std::shared_ptr<Node> node) {
+        auto currentNode = registry->create();
+        auto &currentNodeTransformComponent = registry->emplace<TransformComponent>(currentNode);
+        currentNodeTransformComponent.name = node->Name;
+        auto transform = node->Transform;
+        currentNodeTransformComponent.modelMatrix = transform;
+        // TODO: 添加根据modelmatrix计算localposition,localrotation,localscale
+        for (auto index : node->Meshes)
+        {
+            auto mesh = meshes[index];
+            auto entity = registry->create();
+            auto &meshComponent = registry->emplace<MeshComponent>(entity);
+            auto &materialComponent = registry->emplace<MaterialComponent>(entity);
+            auto &transformComponent = registry->emplace<TransformComponent>(entity);
+            transformComponent.parent = currentNode;
+            meshComponent.modelID = model->ID;
+            meshComponent.meshIndex = index;
+            currentNodeTransformComponent.children.push_back(entity);
+        }
+        for (auto child : node->Children)
+        {
+            auto childEntity = traverseNode(child);
+            auto &childTransformComponent = registry->get<TransformComponent>(childEntity);
+            childTransformComponent.parent = currentNode;
+            currentNodeTransformComponent.children.push_back(childEntity);
+        }
+        return currentNode;
+    };
+    traverseNode(RootNode);
 }
 } // namespace MEngine

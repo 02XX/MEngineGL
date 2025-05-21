@@ -133,3 +133,18 @@ template <> struct hash<MEngine::UUID>
     }
 };
 } // namespace std
+
+namespace nlohmann
+{
+template <> struct adl_serializer<MEngine::UUID>
+{
+    static void to_json(json &j, const MEngine::UUID &uuid)
+    {
+        j = uuid.ToString();
+    }
+    static void from_json(const json &j, MEngine::UUID &uuid)
+    {
+        uuid = MEngine::UUID(j.get<std::string>());
+    }
+};
+} // namespace nlohmann

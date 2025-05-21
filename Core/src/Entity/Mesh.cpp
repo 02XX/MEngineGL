@@ -5,6 +5,7 @@ namespace MEngine
 Mesh::Mesh()
 {
     Name = "Mesh";
+    Type = EntityType::Mesh;
     glCreateVertexArrays(1, &VAO);
     glCreateBuffers(1, &VBO);
     glCreateBuffers(1, &EBO);

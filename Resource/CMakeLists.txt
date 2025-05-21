@@ -16,6 +16,15 @@ add_custom_target(
     VERBATIM
 )
 add_dependencies(Resource Assets)
+add_custom_target(
+    ProjectD
+    ALL
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/bin/Project
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/Project ${CMAKE_BINARY_DIR}/bin/Project
+    COMMENT "Copying Project files from source_folder to destination_folder..."
+    VERBATIM
+)
+add_dependencies(Resource ProjectD)
 
 #appsetting.json
 add_custom_target(

@@ -8,6 +8,7 @@ namespace MEngine
 {
 struct MeshComponent : public Component
 {
-    UUID meshID;
+    UUID modelID;
+    int meshIndex;
 };
 } // namespace MEngine
