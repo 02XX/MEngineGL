@@ -11,11 +11,7 @@ void TransformSystem::Update(float deltaTime)
     for (auto entity : view)
     {
         auto &transformComponent = view.get<TransformComponent>(entity);
-        if (transformComponent.dirty)
-        {
-            CalculateMatrix(entity);
-            transformComponent.dirty = false;
-        }
+        CalculateMatrix(entity);
     }
 }
 void TransformSystem::Shutdown()

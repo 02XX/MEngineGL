@@ -1,4 +1,5 @@
 #include "System/RenderSystem.hpp"
+#include "Component/TransformComponent.hpp"
 #include "Entity/Entity.hpp"
 #include "Logger.hpp"
 
@@ -21,24 +22,32 @@ void RenderSystem::Init()
 void RenderSystem::Update(float deltaTime)
 {
     glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-    glViewport(0, 0, Width, Height);
     glClearNamedFramebufferfv(FBO, GL_COLOR, 0, (GLfloat[]){0.2f, 0.3f, 0.3f, 1.0f});
     glClearNamedFramebufferfv(FBO, GL_DEPTH, 0, (GLfloat[]){1.0f});
     glEnable(GL_DEPTH_TEST);
+    GetMainCamera();
     RenderQueue();
+    UpdateSource();
     RenderForwardPass();
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 void RenderSystem::Shutdown()
 {
 }
-void RenderSystem::CreateFrameBuffer()
+void RenderSystem::CreateFrameBuffer(int width, int height)
 {
+    if (FBO != 0)
+    {
+        glDeleteTextures(1, &ColorAttachment);
+        glDeleteTextures(1, &DepthAttachment);
+        glDeleteFramebuffers(1, &FBO);
+        FBO = 0;
+    }
     glCreateFramebuffers(1, &FBO);
     glCreateTextures(GL_TEXTURE_2D, 1, &ColorAttachment);
-    glTextureStorage2D(ColorAttachment, 1, GL_RGBA8, Width, Height);
+    glTextureStorage2D(ColorAttachment, 1, GL_RGBA8, width, height);
     glCreateTextures(GL_TEXTURE_2D, 1, &DepthAttachment);
-    glTextureStorage2D(DepthAttachment, 1, GL_DEPTH24_STENCIL8, Width, Height);
+    glTextureStorage2D(DepthAttachment, 1, GL_DEPTH24_STENCIL8, width, height);
 
     glNamedFramebufferTexture(FBO, GL_COLOR_ATTACHMENT0, ColorAttachment, 0);
     glNamedFramebufferTexture(FBO, GL_DEPTH_STENCIL_ATTACHMENT, DepthAttachment, 0);
@@ -46,22 +55,74 @@ void RenderSystem::CreateFrameBuffer()
     {
         LogError("Framebuffer is not complete!");
     }
+    glViewport(0, 0, width, height);
+    LogInfo("Create framebuffer: {}x{}", width, height);
 }
 void RenderSystem::GetMainCamera()
 {
-    auto view = mRegistry->view<CameraComponent>();
+    auto view = mRegistry->view<CameraComponent, TransformComponent>();
+    for (auto entity : view)
+    {
+        auto &cameraComponent = view.get<CameraComponent>(entity);
+        if (cameraComponent.isEditorCamera)
+        {
+            mMainCamera = cameraComponent;
+            return;
+        }
+    }
     for (auto entity : view)
     {
         auto &cameraComponent = view.get<CameraComponent>(entity);
         if (cameraComponent.isMainCamera)
         {
             mMainCamera = cameraComponent;
-            break;
+            return;
         }
     }
 }
+void RenderSystem::UpdateSource()
+{
+    auto materialView = mRegistry->view<MaterialComponent>();
+    for (auto entity : materialView)
+    {
+        auto &materialComponent = materialView.get<MaterialComponent>(entity);
+
+        auto materialID = materialComponent.materialID;
+        auto material = mResourceManager->GetAsset<Material>(materialID);
+        if (material->MaterialType == MaterialType::PBR)
+        {
+            // auto pbrMaterial = std::dynamic_pointer_cast<PBRMaterial>(material);
+            // auto albedoTexture = mResourceManager->GetAsset<Texture2D>(pbrMaterial->AlbedoTextureID);
+            // auto normalTexture = mResourceManager->GetAsset<Texture2D>(pbrMaterial->NormalTextureID);
+            // auto armTexture = mResourceManager->GetAsset<Texture2D>(pbrMaterial->ARMTextureID);
+            // glBindTextureUnit(0, albedoTexture->mTextureID);
+            // glBindSampler(0, albedoTexture->mSamplerID);
+            // glBindTextureUnit(1, normalTexture->mTextureID);
+            // glBindSampler(1, normalTexture->mSamplerID);
+            // glBindTextureUnit(2, armTexture->mTextureID);
+            // glBindSampler(2, armTexture->mSamplerID);
+        }
+        else if (material->MaterialType == MaterialType::Phong)
+        {
+            // auto phongMaterial = std::dynamic_pointer_cast<PhongMaterial>(material);
+            // auto diffuseTexture = mResourceManager->GetAsset<Texture2D>(phongMaterial->DiffuseTextureID);
+            // glBindTextureUnit(0, diffuseTexture->mTextureID);
+            // glBindSampler(0, diffuseTexture->mSamplerID);
+        }
+        else if (material->MaterialType == MaterialType::Default)
+        {
+        }
+        else
+        {
+            LogError("Unknown material type: {}", magic_enum::enum_name(material->MaterialType));
+        }
+        materialComponent.dirty = false;
+    }
+}
+
 void RenderSystem::RenderQueue()
 {
+    mRenderQueue.clear();
     auto entities = mRegistry->view<TransformComponent, MeshComponent, MaterialComponent>();
     for (auto entity : entities)
     {
@@ -70,9 +131,6 @@ void RenderSystem::RenderQueue()
         auto material = mResourceManager->GetAsset<Material>(materialID);
         mRenderQueue[material->PipelineID].push_back(entity);
     }
-}
-void RenderSystem::RenderShadowPass()
-{
 }
 void RenderSystem::RenderDeferredPass()
 {
@@ -96,38 +154,10 @@ void RenderSystem::RenderForwardPass()
             auto materialID = materialComponent.materialID;
             auto meshID = meshComponent.meshID;
             auto mesh = mResourceManager->GetAsset<Mesh>(meshID);
-            auto material = mResourceManager->GetAsset<Material>(materialID);
-            switch (material->MaterialType)
-            {
-            case MaterialType::PBR: {
-                auto pbrMaterial = std::dynamic_pointer_cast<PBRMaterial>(material);
-                // 传入变换矩阵
-                glm::mat4 modelMatrix = transformComponent.modelMatrix;
-                glProgramUniformMatrix4fv(program, 2, 1, GL_FALSE, glm::value_ptr(modelMatrix)); // layout(location =
-
-                // // 更新材质参数
-                // auto pbrProperties = pbrMaterial->Parameters;
-                // glProgramUniform1f(program, 0, pbrProperties.roughness); // layout(location = 0)
-                // glProgramUniform1f(program, 1, pbrProperties.metallic);  // layout(location = 1)
-                // glProgramUniform3f(program, 2, pbrProperties.color.r, pbrProperties.color.g,
-                //                    pbrProperties.color.b); // layout(location = 2)
-                // 更新纹理
-                // auto albedoTexture = mResourceManager->GetAsset<Texture2D>(pbrMaterial->AlbedoTextureID);
-                // auto normalTexture = mResourceManager->GetAsset<Texture2D>(pbrMaterial->NormalTextureID);
-                // auto armTexture = mResourceManager->GetAsset<Texture2D>(pbrMaterial->ARMTextureID);
-                // glBindTextureUnit(0, albedoTexture->mTextureID);
-                // glBindSampler(0, albedoTexture->mSamplerID);
-                // glBindTextureUnit(1, normalTexture->mTextureID);
-                // glBindSampler(1, normalTexture->mSamplerID);
-                // glBindTextureUnit(2, armTexture->mTextureID);
-                // glBindSampler(2, armTexture->mSamplerID);
-                glBindVertexArray(mesh->VAO);
-                glDrawElements(GL_TRIANGLES, mesh->IndexCount, GL_UNSIGNED_INT, nullptr);
-                break;
-            }
-            case MaterialType::Phong:
-                break;
-            }
+            glm::mat4 modelMatrix = transformComponent.modelMatrix;
+            glProgramUniformMatrix4fv(program, 2, 1, GL_FALSE, glm::value_ptr(modelMatrix)); // layout(location =
+            glBindVertexArray(mesh->VAO);
+            glDrawElements(GL_TRIANGLES, mesh->Indices.size(), GL_UNSIGNED_INT, nullptr);
         }
     }
 }

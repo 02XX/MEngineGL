@@ -7,6 +7,7 @@
 #include <typeindex>
 #include <unordered_map>
 
+#include "BasicGeometryFactory.hpp"
 #include "Entity/Entity.hpp"
 #include "Entity/Material.hpp"
 #include "Entity/Mesh.hpp"
@@ -27,10 +28,14 @@ namespace MEngine
 class ResourceManager
 {
   private:
+    BasicGeometryFactory mBasicGeometryFactory;
+
+  private:
     std::shared_ptr<Repository<Material>> mMaterialRepository;
     std::shared_ptr<Repository<Mesh>> mMeshRepository;
     std::shared_ptr<Repository<Pipeline>> mPipelineRepository;
     std::shared_ptr<Repository<Texture2D>> mTextureRepository;
+    std::unordered_map<PrimitiveType, UUID> mGeometries;
 
     const std::unordered_map<std::type_index, std::string> mTypeToAssetExtensions = {
         {typeid(Pipeline), ".shader"},
@@ -239,6 +244,24 @@ class ResourceManager
         {
             LogError("Unsupported asset type: {}", typeid(TEntity).name());
             return nullptr;
+        }
+    }
+    std::shared_ptr<Mesh> GetBasicGeometry(PrimitiveType type)
+    {
+        auto it = mGeometries.find(type);
+        if (it != mGeometries.end())
+        {
+            return GetAsset<Mesh>(it->second);
+        }
+        else
+        {
+            auto [vertices, indices] = mBasicGeometryFactory.GetGeometry(type);
+            auto mesh = CreateAsset<Mesh>();
+            mesh->Vertices = vertices;
+            mesh->Indices = indices;
+            mesh->Update();
+            mGeometries[type] = mesh->ID;
+            return mesh;
         }
     }
     template <typename TEntity>

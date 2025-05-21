@@ -8,13 +8,14 @@ namespace MEngine
 {
 enum class MaterialType
 {
+    Default,
     PBR,
     Phong
 };
 class Material : public Entity
 {
   public:
-    MaterialType MaterialType{MaterialType::PBR};
+    MaterialType MaterialType{MaterialType::Default};
     UUID PipelineID{};
 
   public:

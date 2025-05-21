@@ -17,7 +17,6 @@ class Mesh final : public Entity
   public:
     std::vector<Vertex> Vertices{};
     std::vector<uint32_t> Indices{};
-    uint32_t IndexCount = 0;
 
     GLuint VAO = 0;
     GLuint VBO = 0;
@@ -63,7 +62,6 @@ template <> struct adl_serializer<MEngine::Mesh>
         static_cast<MEngine::Entity &>(mesh) = j;
         mesh.Vertices = j.at("Vertices").get<std::vector<MEngine::Vertex>>();
         mesh.Indices = j.at("Indices").get<std::vector<uint32_t>>();
-        mesh.IndexCount = static_cast<uint32_t>(mesh.Indices.size());
     }
 };
 } // namespace nlohmann

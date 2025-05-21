@@ -1,6 +1,8 @@
 #include "Editor/Editor.hpp"
+#include "BasicGeometryFactory.hpp"
 #include "Component/TransformComponent.hpp"
 #include "Entity/Mesh.hpp"
+#include "Logger.hpp"
 #include "UUID.hpp"
 #include <boost/di.hpp>
 #include <entt/entity/entity.hpp>
@@ -106,7 +108,8 @@ Editor::Editor()
 {
     mRegistry = injector.create<std::shared_ptr<entt::registry>>();
     mResourceManager = injector.create<std::shared_ptr<ResourceManager>>();
-
+    mBasicGeometryFactory = injector.create<std::shared_ptr<BasicGeometryFactory>>();
+    mRenderSystem = injector.create<std::shared_ptr<RenderSystem>>();
     LogInfo("Editor initialized");
 }
 Editor::~Editor()
@@ -118,29 +121,6 @@ void Editor::Init()
     RegisterMeta();
     InitWindow();
     InitOpenGL();
-
-    // auto basicGeometryFactory = injector.create<std::shared_ptr<BasicGeometryFactory>>();
-    // auto geometry = basicGeometryFactory->GetGeometry(PrimitiveType::Cube);
-    // auto cube = mRegistry->create();
-    // auto &meshComponent = mRegistry->emplace<MeshComponent>(cube);
-    // auto cubeMesh = mResourceManager->CreateAsset<Mesh>(mProjectPath, "Cube");
-    // cubeMesh->Vertices = geometry.vertices;
-    // cubeMesh->Indices = geometry.indices;
-    // meshComponent.meshID = cubeMesh->ID;
-    // auto material = mResourceManager->CreateAsset<PBRMaterial>(mProjectPath, "Cube");
-    // auto pipeline = mResourceManager->CreateAsset<Pipeline>(mProjectPath, "Cube");
-    // pipeline->VertexShaderPath = mAssetsPath / "Shaders" / "forward.vert";
-    // pipeline->FragmentShaderPath = mAssetsPath / "Shaders" / "forward.frag";
-    // material->PipelineID = pipeline->ID;
-    // auto &materialComponent = mRegistry->emplace<MaterialComponent>(cube);
-    // materialComponent.materialID = material->ID;
-    // auto &transformComponent = mRegistry->emplace<TransformComponent>(cube);
-    // cubeMesh->Update();
-    // pipeline->Update();
-    // material->Update();
-    // mResourceManager->UpdateAsset(cubeMesh->ID, cubeMesh);
-    // mResourceManager->UpdateAsset(pipeline->ID, pipeline);
-    // mResourceManager->UpdateAsset(material->ID, material);
     InitSystems();
     InitImGui();
     LoadUIResources();
@@ -149,15 +129,12 @@ void Editor::Init()
     // camera
     auto camera = mRegistry->create();
     auto &cameraComponent = mRegistry->emplace<CameraComponent>(camera);
-    cameraComponent.isMainCamera = true;
-    cameraComponent.dirty = true;
+    auto &transformComponent = mRegistry->emplace<TransformComponent>(camera);
+    cameraComponent.isEditorCamera = true;
     cameraComponent.aspectRatio = 16.0f / 9.0f;
+    transformComponent.localPosition = glm::vec3(0.0f, 0.0f, 5.0f);
+    transformComponent.name = "EditorCamera";
 
-    // cube
-    auto cube = mRegistry->create();
-    auto &transformComponent = mRegistry->emplace<TransformComponent>(cube);
-    auto &meshComponent = mRegistry->emplace<MeshComponent>(cube);
-    meshComponent.meshID = UUID("8cbe59c3-8a7b-48ae-ba1c-7f56b2af16d9");
     mIsRunning = true;
 }
 void Editor::InitWindow()
@@ -314,7 +291,7 @@ void Editor::EditorUI()
         ImGui::DockBuilderSplitNode(remainingTop, ImGuiDir_Right, 0.4, &dockRightID, &dockCenterID);
         // 4. 中部拆分上(20%)和下(80%)
         ImGuiID dockTopCenterID, dockBottomCenterID;
-        ImGui::DockBuilderSplitNode(dockCenterID, ImGuiDir_Up, 0.15, &dockTopCenterID, &dockBottomCenterID);
+        ImGui::DockBuilderSplitNode(dockCenterID, ImGuiDir_Up, 0.2, &dockTopCenterID, &dockBottomCenterID);
         // 绑定窗口
         ImGui::DockBuilderDockWindow("Viewport", dockBottomCenterID); // 中间
         ImGui::DockBuilderDockWindow("Hierarchy", dockLeftID);        // 左侧
@@ -323,35 +300,57 @@ void Editor::EditorUI()
         ImGui::DockBuilderDockWindow("Toolbar", dockTopCenterID);     // 顶部
         ImGui::DockBuilderFinish(mDockSpaceID);
     }
-    RenderHierarchyPanel();
+    EditorCamera();
     RenderInspectorPanel();
     RenderAssetPanel();
     RenderViewportPanel();
     RenderToolbarPanel();
+    RenderHierarchyPanel();
+}
+void Editor::EditorCamera()
+{
+    // 获取相机组件
+    auto view = mRegistry->view<CameraComponent>();
+    for (auto entity : view)
+    {
+        auto &cameraComponent = view.get<CameraComponent>(entity);
+        if (cameraComponent.isEditorCamera)
+        {
+            mEditorCamera = entity;
+            // if (mSelectedEntity != entt::null)
+            // {
+            //     auto &transformComponent = mRegistry->get<TransformComponent>(mSelectedEntity);
+            //     cameraComponent.target = transformComponent.worldPosition;
+            // }
+            break;
+        }
+    }
 }
 void Editor::RenderToolbarPanel()
 {
     ImGui::Begin("Toolbar", nullptr, ImGuiWindowFlags_None);
+    ImGui::Columns(2, "##toolbar", false);
+    ImGui::SetColumnWidth(0, 500);
     // 显示工具栏按钮
-    ImGui::BeginGroup();
-    {
-        // if (ImGui::Button("Play"))
-        // {
-        //     mIsPlay = !mIsPlay;
-        // }
-        // ImGui::SameLine();
-        // if (ImGui::Button("Pause"))
-        // {
-        //     mIsPause = !mIsPause;
-        // }
-        // ImGui::SameLine();
-        // if (ImGui::Button("Stop"))
-        // {
-        //     mIsStop = !mIsStop;
-        // }
-        ImGui::EndGroup();
-    }
-    ImGui::SameLine();
+    // ImGui::BeginGroup();
+    // {
+    //     if (ImGui::Button("Play"))
+    //     {
+    //         mIsPlay = !mIsPlay;
+    //     }
+    //     ImGui::SameLine();
+    //     if (ImGui::Button("Pause"))
+    //     {
+    //         mIsPause = !mIsPause;
+    //     }
+    //     ImGui::SameLine();
+    //     if (ImGui::Button("Stop"))
+    //     {
+    //         mIsStop = !mIsStop;
+    //     }
+    //     ImGui::EndGroup();
+    // }
+    // ImGui::SameLine();
     // 显示窗口标题 FPS 等信息
     ImGui::BeginGroup();
     {
@@ -372,8 +371,33 @@ void Editor::RenderToolbarPanel()
         ImGui::SameLine();
         if (ImGui::RadioButton("World", mGuizmoMode == ImGuizmo::WORLD))
             mGuizmoMode = ImGuizmo::WORLD;
+        ImGui::EndGroup();
     }
-    ImGui::EndGroup();
+    ImGui::NextColumn();
+    ImGui::BeginGroup();
+    {
+        if (ImGui::BeginCombo("Resolution", mCurrentResolution.ToString().c_str()))
+        {
+            for (Resolution &resolution : mResolutions)
+            {
+                if (ImGui::Selectable(resolution.ToString().data(), mCurrentResolution == resolution))
+                {
+                    mCurrentResolution = resolution;
+                    mRenderSystem->CreateFrameBuffer(resolution.width, resolution.height);
+                    auto &cameraComponent = mRegistry->get<CameraComponent>(mEditorCamera);
+                    if (cameraComponent.isMainCamera)
+                    {
+                        cameraComponent.aspectRatio = static_cast<float>(resolution.width) / resolution.height;
+                        cameraComponent.dirty = true;
+                        break;
+                    }
+                }
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::EndGroup();
+    }
+    ImGui::Columns(1);
     ImGui::End();
 }
 void Editor::RenderViewportPanel()
@@ -387,17 +411,7 @@ void Editor::RenderViewportPanel()
     uint32_t height = static_cast<uint32_t>(windowSize.y);
     // 获取Camera
     // 获取相机组件
-    auto view = mRegistry->view<CameraComponent>();
-    CameraComponent cameraComponent;
-    for (auto entity : view)
-    {
-        cameraComponent = view.get<CameraComponent>(entity);
-        if (cameraComponent.isMainCamera)
-        {
-            break;
-        }
-    }
-
+    auto &cameraComponent = mRegistry->get<CameraComponent>(mEditorCamera);
     float targetAspectRatio = cameraComponent.aspectRatio; // 或者固定值，如 16.0f / 9.0f
     float currentAspectRatio = static_cast<float>(width) / static_cast<float>(height);
 
@@ -428,9 +442,9 @@ void Editor::RenderViewportPanel()
         {
             auto &transform = mRegistry->get<TransformComponent>(mSelectedEntity);
             auto modelMatrix = transform.modelMatrix;
-            ImGuizmo::Manipulate(glm::value_ptr(cameraComponent.viewMatrix),
-                                 glm::value_ptr(cameraComponent.projectionMatrix), mGuizmoOperation, mGuizmoMode,
-                                 glm::value_ptr(modelMatrix));
+            auto viewMatrix = cameraComponent.viewMatrix;
+            ImGuizmo::Manipulate(glm::value_ptr(viewMatrix), glm::value_ptr(cameraComponent.projectionMatrix),
+                                 mGuizmoOperation, mGuizmoMode, glm::value_ptr(modelMatrix));
             if (ImGuizmo::IsUsing())
             {
                 // 分解矩阵
@@ -453,6 +467,88 @@ void Editor::RenderViewportPanel()
 void Editor::RenderHierarchyPanel()
 {
     ImGui::Begin("Hierarchy", nullptr, ImGuiWindowFlags_None);
+    if (ImGui::BeginPopupContextWindow("HierarchyContextMenu", ImGuiPopupFlags_MouseButtonRight))
+    {
+        if (ImGui::MenuItem("Create Empty"))
+        {
+            auto entity = mRegistry->create();
+            auto &transform = mRegistry->emplace<TransformComponent>(entity);
+        }
+        if (ImGui::BeginMenu("Create"))
+        {
+            if (ImGui::MenuItem("Cube"))
+            {
+                auto entity = mRegistry->create();
+                auto &transformComponent = mRegistry->emplace<TransformComponent>(entity);
+                auto &meshComponent = mRegistry->emplace<MeshComponent>(entity);
+                auto &materialComponent = mRegistry->emplace<MaterialComponent>(entity);
+                auto cube = mResourceManager->GetBasicGeometry(PrimitiveType::Cube);
+                meshComponent.meshID = cube->ID;
+                transformComponent.name = "Cube";
+            }
+            if (ImGui::MenuItem("Sphere"))
+            {
+                auto entity = mRegistry->create();
+                auto &transformComponent = mRegistry->emplace<TransformComponent>(entity);
+                auto &meshComponent = mRegistry->emplace<MeshComponent>(entity);
+                auto &materialComponent = mRegistry->emplace<MaterialComponent>(entity);
+                auto sphere = mResourceManager->GetBasicGeometry(PrimitiveType::Sphere);
+                meshComponent.meshID = sphere->ID;
+                transformComponent.name = "Sphere";
+            }
+            if (ImGui::MenuItem("Cylinder"))
+            {
+                auto entity = mRegistry->create();
+                auto &transformComponent = mRegistry->emplace<TransformComponent>(entity);
+                auto &meshComponent = mRegistry->emplace<MeshComponent>(entity);
+                auto &materialComponent = mRegistry->emplace<MaterialComponent>(entity);
+                auto cylinder = mResourceManager->GetBasicGeometry(PrimitiveType::Cylinder);
+                meshComponent.meshID = cylinder->ID;
+                transformComponent.name = "Cylinder";
+            }
+            if (ImGui::MenuItem("Quad"))
+            {
+                auto entity = mRegistry->create();
+                auto &transformComponent = mRegistry->emplace<TransformComponent>(entity);
+                auto &meshComponent = mRegistry->emplace<MeshComponent>(entity);
+                auto &materialComponent = mRegistry->emplace<MaterialComponent>(entity);
+                auto quad = mResourceManager->GetBasicGeometry(PrimitiveType::Quad);
+                meshComponent.meshID = quad->ID;
+                transformComponent.name = "Quad";
+            }
+            ImGui::EndMenu();
+        }
+        if (mSelectedEntity != entt::null && mRegistry->valid(mSelectedEntity))
+        {
+            if (ImGui::MenuItem("Delete"))
+            {
+                auto &transform = mRegistry->get<TransformComponent>(mSelectedEntity);
+                // 删除子节点
+                for (auto child : transform.children)
+                {
+                    if (mRegistry->valid(child))
+                    {
+                        mRegistry->destroy(child);
+                    }
+                }
+                if (transform.parent != entt::null)
+                {
+                    auto &parentTransform = mRegistry->get<TransformComponent>(transform.parent);
+                    parentTransform.children.erase(
+                        std::remove(parentTransform.children.begin(), parentTransform.children.end(), mSelectedEntity),
+                        parentTransform.children.end());
+                }
+                // 删除当前节点
+                mRegistry->destroy(mSelectedEntity);
+                mSelectedEntity = entt::null;
+            }
+        }
+        ImGui::EndPopup();
+    }
+    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && !ImGui::IsAnyItemHovered())
+    {
+        mSelectedEntity = entt::null;
+    }
     auto view = mRegistry->view<TransformComponent>();
     std::vector<entt::entity> rootEntities;
     for (auto entity : view)
@@ -462,16 +558,6 @@ void Editor::RenderHierarchyPanel()
         {
             rootEntities.push_back(entity);
         }
-    }
-    if (ImGui::BeginPopupContextWindow("HierarchyContextMenu", ImGuiPopupFlags_MouseButtonRight))
-    {
-        if (ImGui::MenuItem("Create Entity"))
-        {
-            auto entity = mRegistry->create();
-            auto &transform = mRegistry->emplace<TransformComponent>(entity);
-        }
-
-        ImGui::EndPopup();
     }
     for (auto entity : rootEntities)
     {
@@ -489,8 +575,25 @@ void Editor::RenderHierarchyItem(entt::entity entity)
     {
         flags |= ImGuiTreeNodeFlags_Leaf;
     }
+    bool isSelected = (mSelectedEntity == entity);
+    // 如果选中，设置背景色
+    if (isSelected)
+    {
+        ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.2f, 0.3f, 0.8f, 1.0f));        // 选中时的背景色
+        ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.3f, 0.4f, 0.9f, 1.0f)); // 悬停时的背景色
+        ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.2f, 0.3f, 0.8f, 1.0f));  // 激活时的背景色
+        flags |= ImGuiTreeNodeFlags_Selected;
+    }
     bool opened = ImGui::TreeNodeEx((void *)(uint64_t)entity, flags, "%s", name.data());
+    if (isSelected)
+    {
+        ImGui::PopStyleColor(3);
+    }
     if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+    {
+        mSelectedEntity = entity;
+    }
+    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
     {
         mSelectedEntity = entity;
     }
@@ -500,7 +603,6 @@ void Editor::RenderHierarchyItem(entt::entity entity)
         ImGui::Text("Move %s", name.data());
         ImGui::EndDragDropSource();
     }
-
     if (ImGui::BeginDragDropTarget())
     {
         if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("ENTITY_DRAG_DROP"))
@@ -539,7 +641,6 @@ void Editor::RenderHierarchyItem(entt::entity entity)
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
-
     if (ImGui::BeginDragDropTargetCustom(windowRect, ImGui::GetID("EmptySpaceDragDropTarget")))
     {
         if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("ENTITY_DRAG_DROP"))
@@ -563,8 +664,8 @@ void Editor::RenderHierarchyItem(entt::entity entity)
         }
         ImGui::EndDragDropTarget();
     }
-
     ImGui::PopStyleColor(3);
+
     // 递归绘制子节点
     if (opened)
     {

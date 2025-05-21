@@ -20,8 +20,6 @@ class RenderSystem final : public System
     std::unordered_map<UUID, std::vector<entt::entity>> mRenderQueue;
 
   public:
-    int Width = 1280;
-    int Height = 720;
     GLuint FBO = 0;
     GLuint ColorAttachment;
     GLuint DepthAttachment;
@@ -35,7 +33,8 @@ class RenderSystem final : public System
     void Shutdown() override;
 
     void GetMainCamera();
-    void CreateFrameBuffer();
+    void CreateFrameBuffer(int width = 1280, int height = 720);
+    void UpdateSource();
 
     void RenderQueue();
     void RenderShadowPass();

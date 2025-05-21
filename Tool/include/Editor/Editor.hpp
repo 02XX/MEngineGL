@@ -1,6 +1,7 @@
 #pragma once
 #include "BasicGeometryFactory.hpp"
 #include "Component/AssestComponent.hpp"
+#include "Component/CameraComponent.hpp"
 #include "Component/Component.hpp"
 #include "Component/Reflection.hpp"
 #include "Component/TextureComponent.hpp"
@@ -19,6 +20,7 @@
 #include <algorithm>
 #include <concepts>
 #include <cstdint>
+#include <entt/entity/fwd.hpp>
 #include <entt/entt.hpp>
 #include <entt/meta/meta.hpp>
 #include <filesystem>
@@ -33,6 +35,7 @@
 #include <refl.hpp>
 #include <string>
 #include <type_traits>
+#include <typeinfo>
 #include <unordered_map>
 #include <vector>
 
@@ -51,12 +54,28 @@ struct WindowConfig
     std::string fontPath = "Assets/Fonts/NotoSans-Medium.ttf";
     float fontSize = 16.0f;
 };
+struct Resolution
+{
+    int width = 1280;
+    int height = 720;
+    std::string ToString()
+    {
+        std::string resolution = std::format("{}x{}", width, height);
+        return resolution;
+    }
+    bool operator==(const Resolution &other) const
+    {
+        return width == other.width && height == other.height;
+    }
+};
 class Editor
 {
   private:
     std::shared_ptr<entt::registry> mRegistry;
     std::vector<std::shared_ptr<ISystem>> mSystems;
+    std::shared_ptr<RenderSystem> mRenderSystem;
     std::shared_ptr<ResourceManager> mResourceManager;
+    std::shared_ptr<BasicGeometryFactory> mBasicGeometryFactory;
 
   private:
     GLFWwindow *mWindow;
@@ -76,6 +95,10 @@ class Editor
     std::filesystem::path mAssetsPath = std::filesystem::current_path() / "Assets";
     std::filesystem::path mProjectPath = std::filesystem::current_path() / "Project";
 
+    std::vector<Resolution> mResolutions = {{100, 100},   {800, 600},   {1280, 720}, {1920, 1080},
+                                            {2560, 1440}, {3840, 2160}, {5120, 2880}};
+    Resolution mCurrentResolution = {1280, 720};
+
   private:
     // UI
     ImGuiID mDockSpaceID;
@@ -89,6 +112,7 @@ class Editor
     float mGizmoHeight = 10.f;
     ImGuizmo::OPERATION mGuizmoOperation = ImGuizmo::TRANSLATE;
     ImGuizmo::MODE mGuizmoMode = ImGuizmo::LOCAL;
+    entt::entity mEditorCamera;
 
   public:
     Editor();
@@ -103,6 +127,7 @@ class Editor
     void Shutdown();
 
     void EditorUI();
+    void EditorCamera();
     void RenderToolbarPanel();
     void RenderViewportPanel();
     void RenderHierarchyPanel();
@@ -241,18 +266,17 @@ class Editor
                         field.set(object, UUID(uuidStr));
                         modified = true;
                     }
-                    auto entity = mResourceManager->GetAsset<Entity>(value);
-                    if (!fieldCustom->Editable)
-                        ImGui::EndDisabled();
-                    ImGui::Columns(1);
-                    if (auto it = std::dynamic_pointer_cast<Texture2D>(entity))
-                    {
-                        auto metaAny = entt::forward_as_meta(*it);
-                        InspectorObject(metaAny, entt::resolve<Texture2D>(), dirty);
-                    }
-                    ImGui::Columns(2, "##fields", false);
-                    if (!fieldCustom->Editable)
-                        ImGui::BeginDisabled();
+                    // if (!fieldCustom->Editable)
+                    //     ImGui::EndDisabled();
+                    // ImGui::Columns(1);
+                    // if (auto it = std::dynamic_pointer_cast<Texture2D>(entity))
+                    // {
+                    //     auto metaAny = entt::forward_as_meta(*it);
+                    //     InspectorObject(metaAny, entt::resolve<Texture2D>(), dirty);
+                    // }
+                    // ImGui::Columns(2, "##fields", false);
+                    // if (!fieldCustom->Editable)
+                    //     ImGui::BeginDisabled();
                 }
                 else if (fieldType == entt::resolve<glm::vec2>())
                 {

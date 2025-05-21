@@ -1,5 +1,6 @@
 #pragma once
 #include "Component/CameraComponent.hpp"
+#include "Component/TransformComponent.hpp"
 #include "Math.hpp"
 #include "System/System.hpp"
 #include <entt/entt.hpp>

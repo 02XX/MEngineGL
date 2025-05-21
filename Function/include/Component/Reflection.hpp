@@ -188,9 +188,19 @@ static void RegisterMeta()
             .DisplayName = "aspectRatio",
             .Editable = true,
         })
-        .data<&CameraComponent::fov>("fov"_hs)
+        .data<&CameraComponent::fovX>("fovX"_hs)
         .custom<Info>(Info{
             .DisplayName = "fov",
+            .Editable = true,
+        })
+        .data<&CameraComponent::fovY>("fovY"_hs)
+        .custom<Info>(Info{
+            .DisplayName = "fovY",
+            .Editable = true,
+        })
+        .data<&CameraComponent::zoom>("zoom"_hs)
+        .custom<Info>(Info{
+            .DisplayName = "zoom",
             .Editable = true,
         });
     entt::meta<MeshComponent>()
