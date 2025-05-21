@@ -3,6 +3,8 @@
 #include "Entity/Mesh.hpp"
 #include "UUID.hpp"
 #include <boost/di.hpp>
+#include <entt/entity/entity.hpp>
+#include <imgui.h>
 namespace MEngine
 {
 namespace DI = boost::di;
@@ -440,6 +442,7 @@ void Editor::RenderViewportPanel()
                     transform.localPosition = translation;
                     transform.localRotation = rotation;
                     transform.localScale = scale;
+
                     transform.dirty = true;
                 }
             }
@@ -594,6 +597,62 @@ void Editor::RenderInspectorPanel()
             auto &transformComponent = mRegistry->get<TransformComponent>(mSelectedEntity);
             ComponentUI(transformComponent);
         }
+        if (mRegistry->any_of<CameraComponent>(mSelectedEntity))
+        {
+            auto &cameraComponent = mRegistry->get<CameraComponent>(mSelectedEntity);
+            ComponentUI(cameraComponent);
+        }
+        if (mRegistry->any_of<MeshComponent>(mSelectedEntity))
+        {
+            auto &meshComponent = mRegistry->get<MeshComponent>(mSelectedEntity);
+            ComponentUI(meshComponent);
+        }
+        if (mRegistry->any_of<MaterialComponent>(mSelectedEntity))
+        {
+            auto &materialComponent = mRegistry->get<MaterialComponent>(mSelectedEntity);
+            ComponentUI(materialComponent);
+        }
+    }
+    // 右键菜单
+    if (ImGui::BeginPopupContextWindow("AddComponentContextMenu", ImGuiPopupFlags_MouseButtonRight))
+    {
+        if (mSelectedEntity != entt::null)
+        {
+            if (ImGui::BeginMenu("Add Component"))
+            {
+                if (!mRegistry->any_of<TransformComponent>(mSelectedEntity))
+                {
+                    if (ImGui::MenuItem("Transform"))
+                    {
+                        auto &transformComponent = mRegistry->emplace<TransformComponent>(mSelectedEntity);
+                    }
+                }
+                if (!mRegistry->any_of<CameraComponent>(mSelectedEntity))
+                {
+                    if (ImGui::MenuItem("Camera"))
+                    {
+                        auto &cameraComponent = mRegistry->emplace<CameraComponent>(mSelectedEntity);
+                        cameraComponent.isMainCamera = false;
+                    }
+                }
+                if (!mRegistry->any_of<MeshComponent>(mSelectedEntity))
+                {
+                    if (ImGui::MenuItem("Mesh"))
+                    {
+                        auto &meshComponent = mRegistry->emplace<MeshComponent>(mSelectedEntity);
+                    }
+                }
+                if (!mRegistry->any_of<MaterialComponent>(mSelectedEntity))
+                {
+                    if (ImGui::MenuItem("Material"))
+                    {
+                        auto &materialComponent = mRegistry->emplace<MaterialComponent>(mSelectedEntity);
+                    }
+                }
+                ImGui::EndMenu();
+            }
+        }
+        ImGui::EndPopup();
     }
     ImGui::End();
 }

@@ -121,9 +121,9 @@ class Editor
     }
     void InspectorObject(entt::meta_any &object, entt::meta_type metaType, bool &dirty)
     {
-        if (metaType == entt::resolve<Entity>() || metaType == entt::resolve<Component>())
-            return;
         auto *info = static_cast<Info *>(metaType.custom());
+        if (info == nullptr)
+            return;
         if (!info->Serializable)
             return;
         auto objectName = info->DisplayName;

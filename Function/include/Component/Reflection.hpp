@@ -1,6 +1,9 @@
 #pragma once
 #include "Component/AssestComponent.hpp"
+#include "Component/CameraComponent.hpp"
 #include "Component/Component.hpp"
+#include "Component/MaterialComponent.hpp"
+#include "Component/MeshComponent.hpp"
 #include "Component/TextureComponent.hpp"
 #include "Component/TransformComponent.hpp"
 #include "Entity/Entity.hpp"
@@ -24,6 +27,7 @@ static void RegisterMeta()
         .type("Entity"_hs)
         .custom<Info>(Info{
             .DisplayName = "Entity",
+            .Serializable = false,
         })
         .data<&Entity::ID>("ID"_hs)
         .custom<Info>(Info{.DisplayName = "ID", .Serializable = false})
@@ -94,6 +98,7 @@ static void RegisterMeta()
         .type("Component"_hs)
         .custom<Info>(Info{
             .DisplayName = "Component",
+            .Serializable = false,
         })
         .data<&Component::dirty>("dirty"_hs)
         .custom<Info>(Info{
@@ -165,6 +170,95 @@ static void RegisterMeta()
         .data<&TransformComponent::worldScale>("worldScale"_hs)
         .custom<Info>(Info{
             .DisplayName = "worldScale",
+            .Editable = true,
+        });
+    entt::meta<CameraComponent>()
+        .type("CameraComponent"_hs)
+        .custom<Info>(Info{
+            .DisplayName = "CameraComponent",
+        })
+        .base<Component>()
+        .data<&CameraComponent::isMainCamera>("isMainCamera"_hs)
+        .custom<Info>(Info{
+            .DisplayName = "isMainCamera",
+            .Editable = true,
+        })
+        .data<&CameraComponent::aspectRatio>("aspectRatio"_hs)
+        .custom<Info>(Info{
+            .DisplayName = "aspectRatio",
+            .Editable = true,
+        })
+        .data<&CameraComponent::fov>("fov"_hs)
+        .custom<Info>(Info{
+            .DisplayName = "fov",
+            .Editable = true,
+        });
+    entt::meta<MeshComponent>()
+        .type("MeshComponent"_hs)
+        .custom<Info>(Info{
+            .DisplayName = "MeshComponent",
+        })
+        .base<Component>()
+        .data<&MeshComponent::meshID>("meshID"_hs)
+        .custom<Info>(Info{
+            .DisplayName = "meshID",
+            .Editable = true,
+        });
+    entt::meta<MaterialComponent>()
+        .type("MaterialComponent"_hs)
+        .custom<Info>(Info{
+            .DisplayName = "MaterialComponent",
+        })
+        .base<Component>()
+        .data<&MaterialComponent::materialID>("materialID"_hs)
+        .custom<Info>(Info{
+            .DisplayName = "materialID",
+            .Editable = true,
+        });
+    entt::meta<PBRMaterial>()
+        .type("PBRMaterial"_hs)
+        .custom<Info>(Info{
+            .DisplayName = "PBRMaterial",
+        })
+        .base<Material>()
+        .data<&PBRMaterial::AlbedoTextureID>("albedo"_hs)
+        .custom<Info>(Info{
+            .DisplayName = "Albedo",
+            .Editable = true,
+        })
+        .data<&PBRMaterial::ARMTextureID>("arm"_hs)
+        .custom<Info>(Info{
+            .DisplayName = "Roughness",
+            .Editable = true,
+        })
+        .data<&PBRMaterial::NormalTextureID>("normal"_hs)
+        .custom<Info>(Info{
+            .DisplayName = "Metallic",
+            .Editable = true,
+        })
+        .data<&PBRMaterial::Parameters>("parameters"_hs)
+        .custom<Info>(Info{
+            .DisplayName = "Parameters",
+            .Editable = true,
+        });
+    entt::meta<PBRParameters>()
+        .type("PBRParameters"_hs)
+        .custom<Info>(Info{
+            .DisplayName = "PBRParameters",
+        })
+        .data<&PBRParameters::metallic>("metallic"_hs)
+        .custom<Info>(Info{
+            .DisplayName = "Metallic",
+            .Editable = true,
+        })
+        .data<&PBRParameters::roughness>("roughness"_hs)
+        .custom<Info>(Info{
+            .DisplayName = "Roughness",
+            .Editable = true,
+        })
+        .data<&PBRParameters::color>("color"_hs)
+        .custom<Info>(Info{
+            .DisplayName = "Color",
             .Editable = true,
         });
 }

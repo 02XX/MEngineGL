@@ -4,9 +4,9 @@ layout(location = 0) in vec3 inPosition;  // Location 0
 layout(location = 1) in vec3 inNormal;    // Location 1
 layout(location = 2) in vec2 inTexCoords; // Location 2
 
-layout(location = 0) uniform mat4 modelMatrix;      // 对应 glProgramUniformMatrix4fv(program, 0, ...)
-layout(location = 1) uniform mat4 viewMatrix;       // 对应 glProgramUniformMatrix4fv(program, 1, ...)
-layout(location = 2) uniform mat4 projectionMatrix; // 对应 glProgramUniformMatrix4fv(program, 2, ...)
+layout(location = 0) uniform mat4 projectionMatrix; 
+layout(location = 1) uniform mat4 viewMatrix;       
+layout(location = 2) uniform mat4 modelMatrix;    
 
 layout(location = 2) out vec3 fragNormal; // Location 2
 layout(location = 3) out vec2 fragTexCoords; // Location 3

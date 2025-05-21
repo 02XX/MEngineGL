@@ -84,6 +84,10 @@ void RenderSystem::RenderForwardPass()
         auto pipeline = mResourceManager->GetAsset<Pipeline>(pipelineID);
         auto program = pipeline->programID;
         glUseProgram(program);
+        glProgramUniformMatrix4fv(program, 0, 1, GL_FALSE,
+                                  glm::value_ptr(mMainCamera.viewMatrix)); // layout(location = 1)
+        glProgramUniformMatrix4fv(program, 1, 1, GL_FALSE,
+                                  glm::value_ptr(mMainCamera.projectionMatrix)); // layout(location = 2)
         for (auto entity : entities)
         {
             auto &transformComponent = mRegistry->get<TransformComponent>(entity);
@@ -99,11 +103,8 @@ void RenderSystem::RenderForwardPass()
                 auto pbrMaterial = std::dynamic_pointer_cast<PBRMaterial>(material);
                 // 传入变换矩阵
                 glm::mat4 modelMatrix = transformComponent.modelMatrix;
-                glProgramUniformMatrix4fv(program, 0, 1, GL_FALSE, glm::value_ptr(modelMatrix)); // layout(location =
-                glProgramUniformMatrix4fv(program, 1, 1, GL_FALSE,
-                                          glm::value_ptr(mMainCamera.viewMatrix)); // layout(location = 1)
-                glProgramUniformMatrix4fv(program, 2, 1, GL_FALSE,
-                                          glm::value_ptr(mMainCamera.projectionMatrix)); // layout(location = 2)
+                glProgramUniformMatrix4fv(program, 2, 1, GL_FALSE, glm::value_ptr(modelMatrix)); // layout(location =
+
                 // // 更新材质参数
                 // auto pbrProperties = pbrMaterial->Parameters;
                 // glProgramUniform1f(program, 0, pbrProperties.roughness); // layout(location = 0)
