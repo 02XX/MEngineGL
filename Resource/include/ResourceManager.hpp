@@ -1,6 +1,7 @@
 #pragma once
 
 #include <concepts>
+#include <entt/entity/fwd.hpp>
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -11,16 +12,21 @@
 #include "Entity/Entity.hpp"
 #include "Entity/Material.hpp"
 #include "Entity/Mesh.hpp"
+#include "Entity/Model.hpp"
 #include "Entity/PBRMaterial.hpp"
 #include "Entity/Pipeline.hpp"
 #include "Entity/Texture2D.hpp"
 #include "Logger.hpp"
 #include "Repository/MaterialRepository.hpp"
 #include "Repository/MeshRepository.hpp"
+#include "Repository/ModelRepository.hpp"
 #include "Repository/PipelineRepository.hpp"
 #include "Repository/Repository.hpp"
 #include "Repository/TextureRepository.hpp"
 #include "UUID.hpp"
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
 
 using json = nlohmann::json;
 namespace MEngine
@@ -31,11 +37,14 @@ class ResourceManager
     BasicGeometryFactory mBasicGeometryFactory;
 
   private:
-    std::shared_ptr<Repository<Material>> mMaterialRepository;
-    std::shared_ptr<Repository<Mesh>> mMeshRepository;
-    std::shared_ptr<Repository<Pipeline>> mPipelineRepository;
-    std::shared_ptr<Repository<Texture2D>> mTextureRepository;
+    std::shared_ptr<IRepository<Material>> mMaterialRepository;
+    std::shared_ptr<IRepository<Mesh>> mMeshRepository;
+    std::shared_ptr<IRepository<Pipeline>> mPipelineRepository;
+    std::shared_ptr<IRepository<Texture2D>> mTextureRepository;
+    std::shared_ptr<IRepository<Model>> mModelRepository;
     std::unordered_map<PrimitiveType, UUID> mGeometries;
+
+    std::unordered_map<std::filesystem::path, UUID> mCachedAssets;
 
     const std::unordered_map<std::type_index, std::string> mTypeToAssetExtensions = {
         {typeid(Pipeline), ".shader"},
@@ -55,11 +64,6 @@ class ResourceManager
         // {".model", typeid(Model)},         {".audio", typeid(Audio)},
         // {".scene", typeid(Scene)},
     };
-    const std::unordered_map<std::string, std::type_index> mRawExtensionToTypes = {
-        {".png", typeid(Texture2D)}, {".jpg", typeid(Texture2D)}, {".jpeg", typeid(Texture2D)},
-        {".bmp", typeid(Texture2D)}, {".tga", typeid(Texture2D)}, {".hdr", typeid(Texture2D)},
-        {".exr", typeid(Texture2D)},
-    };
 
   public:
     ResourceManager()
@@ -68,16 +72,7 @@ class ResourceManager
         mMeshRepository = std::make_shared<MeshRepository>();
         mPipelineRepository = std::make_shared<PipelineRepository>();
         mTextureRepository = std::make_shared<Texture2DRepository>();
-    }
-    bool IsSupportRaw(const std::filesystem::path &path)
-    {
-        if (!std::filesystem::exists(path))
-        {
-            throw std::runtime_error("File does not exist: " + path.string());
-        }
-        std::string extension = path.extension().string();
-        auto it = mRawExtensionToTypes.find(extension);
-        return it != mRawExtensionToTypes.end();
+        mModelRepository = std::make_shared<ModelRepository>();
     }
     bool IsAsset(const std::filesystem::path &path)
     {
@@ -95,6 +90,7 @@ class ResourceManager
         mMeshRepository->CreateDefault();
         mPipelineRepository->CreateDefault();
         mTextureRepository->CreateDefault();
+        mModelRepository->CreateDefault();
     }
     template <typename TEntity>
         requires std::derived_from<TEntity, Entity>
@@ -137,7 +133,7 @@ class ResourceManager
             return nullptr;
         }
         // 根据类型索引分发加载逻辑
-        const auto &typeIdx = typeIndex->second;
+        auto typeIdx = typeIndex->second;
         if (typeIndex != mAssetExtensionToTypes.end())
         {
             if (typeIdx == typeid(Pipeline))
@@ -167,6 +163,89 @@ class ResourceManager
             LogTrace("Unsupported file type: {}", extension);
             return nullptr;
         }
+    }
+    void LoadRawAsset(const std::filesystem::path &path)
+    {
+        if (!std::filesystem::exists(path))
+        {
+            throw std::runtime_error("File does not exist: " + path.string());
+        }
+        std::string extension = path.extension().string();
+        if (extension == ".fbx")
+        {
+            LoadFBX(path);
+        }
+    }
+    void LoadFBX(const std::filesystem::path &path)
+    {
+        if (!std::filesystem::exists(path))
+        {
+            throw std::runtime_error("File does not exist: " + path.string());
+        }
+        std::string extension = path.extension().string();
+        if (extension != ".fbx")
+        {
+            throw std::runtime_error("File is not a FBX file: " + path.string());
+        }
+        // 读取FBX文件
+        Assimp::Importer importer;
+        auto scene =
+            importer.ReadFile(path.string(), aiProcess_GenUVCoords | aiProcess_ForceGenNormals | aiProcess_Triangulate |
+                                                 aiProcess_CalcTangentSpace | aiProcess_FlipUVs);
+        if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+        {
+            throw std::runtime_error("Load fbx file failed.");
+        }
+        auto modelEntity = CreateAsset<Model>();
+
+        std::function<void(const aiNode *, const aiScene *, std::shared_ptr<Node>)> ProcessNode =
+            [&](const aiNode *node, const aiScene *scene, std::shared_ptr<Node> parent = nullptr) {
+                // 处理节点的网格
+                std::shared_ptr<Node> currentNode = std::make_shared<Node>();
+                for (unsigned int i = 0; i < node->mNumMeshes; i++)
+                {
+                    auto mesh = scene->mMeshes[node->mMeshes[i]];
+                    auto meshEntity = CreateAsset<Mesh>();
+                    auto materialEntity = CreateAsset<Material>();
+                    currentNode->meshID = meshEntity->ID;
+                    currentNode->materialID = materialEntity->ID;
+                    currentNode->parent = parent;
+                    parent->children.push_back(currentNode);
+                    // 处理网格数据
+                    for (unsigned int i = 0; i < mesh->mNumVertices; i++)
+                    {
+                        Vertex vertex;
+                        vertex.position = glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
+                        if (mesh->HasNormals())
+                        {
+                            vertex.normal = glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
+                        }
+                        if (mesh->HasTextureCoords(0))
+                        {
+                            vertex.texCoord = glm::vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
+                        }
+                        meshEntity->Vertices.push_back(vertex);
+                    }
+                    for (unsigned int i = 0; i < mesh->mNumFaces; i++)
+                    {
+                        auto face = mesh->mFaces[i];
+                        for (unsigned int j = 0; j < face.mNumIndices; j++)
+                        {
+                            meshEntity->Indices.push_back(face.mIndices[j]);
+                        }
+                    }
+                    if (mesh->mMaterialIndex >= 0)
+                    {
+                        aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
+                    }
+                    UpdateAsset(meshEntity);
+                }
+                // 递归处理子节点
+                for (unsigned int i = 0; i < node->mNumChildren; i++)
+                {
+                    ProcessNode(node->mChildren[i], scene, currentNode);
+                }
+            };
     }
     template <typename TEntity>
         requires std::derived_from<TEntity, Entity>
@@ -342,15 +421,6 @@ class ResourceManager
     {
         auto it = mAssetExtensionToTypes.find(extension);
         if (it != mAssetExtensionToTypes.end())
-        {
-            return it->second;
-        }
-        return std::type_index(typeid(void));
-    }
-    std::type_index GetRawTypeFromExtension(const std::string &extension)
-    {
-        auto it = mRawExtensionToTypes.find(extension);
-        if (it != mRawExtensionToTypes.end())
         {
             return it->second;
         }

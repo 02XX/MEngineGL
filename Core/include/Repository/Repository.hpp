@@ -4,6 +4,7 @@
 #include "Repository/IRepository.hpp"
 #include <filesystem>
 #include <typeindex>
+#include <unordered_map>
 
 namespace MEngine
 {
@@ -13,6 +14,7 @@ class Repository : public IRepository<TEntity>
 {
   protected:
     std::unordered_map<UUID, std::shared_ptr<TEntity>> mEntities;
+    std::unordered_map<std::filesystem::path, UUID> mCachedAssets;
     std::filesystem::path mAssetPath = std::filesystem::current_path() / "Assets";
 
   public:
@@ -31,6 +33,12 @@ class Repository : public IRepository<TEntity>
         {
             throw std::runtime_error("path does not exist: " + path.string());
         }
+        auto cachedAsset = mCachedAssets.find(path);
+        if (cachedAsset != mCachedAssets.end())
+        {
+            LogTrace("Find cached asset: {} in {}", cachedAsset->second.ToString(), path.string());
+            return GetAsset(cachedAsset->second);
+        }
         std::ifstream file(path);
         if (!file.is_open())
         {
@@ -44,6 +52,7 @@ class Repository : public IRepository<TEntity>
             LogWarn("Entity with ID {} already exists.", entity->ID.ToString());
         }
         mEntities[entity->ID] = entity;
+        mCachedAssets[path] = entity->ID;
         UpdateAsset(entity);
         LogInfo("Loaded asset: {} from {}", entity->ID.ToString(), path.string());
         return entity;

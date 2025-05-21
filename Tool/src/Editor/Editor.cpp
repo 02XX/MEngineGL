@@ -899,7 +899,7 @@ void Editor::LoadAssets(const std::filesystem::path &path)
                 assetPath.replace_extension(mResourceManager->GetAssetExtensionFromType(type));
                 if (!std::filesystem::exists(assetPath))
                 {
-                    mResourceManager->LoadAsset(entry.path());
+                    mResourceManager->LoadRawAsset(entry.path());
                     assetComponent.path = assetPath;
                     assetComponent.name = assetPath.filename().string();
                     auto it = typeToAssetType.find(type);

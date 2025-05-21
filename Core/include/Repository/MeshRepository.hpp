@@ -6,8 +6,7 @@ namespace MEngine
 class MeshRepository : public Repository<Mesh>
 {
   public:
-    MeshRepository()
-    {
+    MeshRepository() {
 
     };
     void CreateDefault() override

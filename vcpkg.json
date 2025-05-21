@@ -16,12 +16,13 @@
                 "opengl3-binding"
             ]
         },
+        "imguizmo",
         "magic-enum",
         "nlohmann-json",
         "refl-cpp",
         "spdlog",
         "stb",
-        "imguizmo"
+        "assimp"
     ],
     "overrides": [
         {
@@ -79,6 +80,10 @@
         {
             "name": "imguizmo",
             "version": "2024-05-29#1"
+        },
+        {
+            "name": "assimp",
+            "version": "5.4.3"
         }
     ]
 }
