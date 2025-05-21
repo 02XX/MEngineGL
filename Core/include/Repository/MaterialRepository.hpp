@@ -2,16 +2,28 @@
 #include "Entity/Material.hpp"
 #include "Entity/PBRMaterial.hpp"
 #include "Repository/Repository.hpp"
+#include "UUID.hpp"
+#include <memory>
 namespace MEngine
 {
-class PBRMaterialRepository final : public Repository<PBRMaterial>
+class MaterialRepository final : public Repository<Material>
 {
   public:
-    PBRMaterialRepository() = default;
-    void Update(std::shared_ptr<PBRMaterial> entity) override;
+    MaterialRepository()
+    {
+    }
+    void CreateDefault() override
+    {
+        std::shared_ptr<Material> material = std::make_shared<Material>();
+        material->ID = UUID();
+        material->Name = "DefaultMaterial";
+        material->PipelineID = UUID();
+        mEntities[material->ID] = material;
+        material->Update();
+    }
 };
-template <> struct RepositoryTraits<PBRMaterial>
+template <> struct RepositoryTraits<Material>
 {
-    using RepositoryType = PBRMaterialRepository;
+    using RepositoryType = MaterialRepository;
 };
 } // namespace MEngine

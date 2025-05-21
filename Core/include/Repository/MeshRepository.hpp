@@ -6,8 +6,18 @@ namespace MEngine
 class MeshRepository : public Repository<Mesh>
 {
   public:
-    MeshRepository() = default;
-    void Update(std::shared_ptr<Mesh> entity) override;
+    MeshRepository()
+    {
+
+    };
+    void CreateDefault() override
+    {
+        std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
+        mesh->ID = UUID();
+        mesh->Name = "DefaultMesh";
+        mEntities[mesh->ID] = mesh;
+        mesh->Update();
+    }
 };
 template <> struct RepositoryTraits<Mesh>
 {

@@ -3,7 +3,9 @@
 #include <filesystem>
 #include <glad/glad.h>
 #include <memory>
+#include <nlohmann/json.hpp>
 #include <string>
+using json = nlohmann::json;
 namespace MEngine
 {
 class Entity

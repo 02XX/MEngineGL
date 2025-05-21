@@ -17,8 +17,11 @@ Mesh::~Mesh()
 }
 void Mesh::Update()
 {
-    glNamedBufferStorage(VBO, static_cast<GLsizeiptr>(Vertices.size() * sizeof(Vertex)), Vertices.data(),
-                         0);
+    if (Vertices.empty() || Indices.empty())
+    {
+        return;
+    }
+    glNamedBufferStorage(VBO, static_cast<GLsizeiptr>(Vertices.size() * sizeof(Vertex)), Vertices.data(), 0);
     glVertexArrayVertexBuffer(VAO, 0, VBO, 0, sizeof(Vertex));
 
     glEnableVertexArrayAttrib(VAO, 0);

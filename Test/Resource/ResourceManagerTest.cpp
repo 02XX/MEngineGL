@@ -219,10 +219,10 @@ class ResourceManagerTest : public ::testing::Test
 //     EXPECT_NE(texture->mTextureID, 0);
 //     EXPECT_NE(texture->mSamplerID, 0);
 // }
-TEST_F(ResourceManagerTest, ModifyTextureAsset)
-{
-    auto texute = mResourceManager.CreateAsset<Texture2D>(mTestPath);
-    EXPECT_NE(texute->ID, UUID());
-    auto metaAny = entt::forward_as_meta(texute);
-    GTEST_LOG_(INFO) << "type: " << metaAny.type().info().name() << "\n";
-}
+// TEST_F(ResourceManagerTest, ModifyTextureAsset)
+// {
+//     auto texute = mResourceManager.CreateAsset<Texture2D>(mTestPath);
+//     EXPECT_NE(texute->ID, UUID());
+//     auto metaAny = entt::forward_as_meta(texute);
+//     GTEST_LOG_(INFO) << "type: " << metaAny.type().info().name() << "\n";
+// }

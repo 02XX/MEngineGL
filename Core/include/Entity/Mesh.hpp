@@ -15,8 +15,8 @@ struct Vertex
 class Mesh final : public Entity
 {
   public:
-    std::vector<Vertex> Vertices;
-    std::vector<uint32_t> Indices;
+    std::vector<Vertex> Vertices{};
+    std::vector<uint32_t> Indices{};
     uint32_t IndexCount = 0;
 
     GLuint VAO = 0;

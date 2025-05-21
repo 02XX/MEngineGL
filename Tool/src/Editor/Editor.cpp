@@ -118,20 +118,7 @@ void Editor::Init()
     RegisterMeta();
     InitWindow();
     InitOpenGL();
-    // camera
-    auto camera = mRegistry->create();
-    auto &cameraComponent = mRegistry->emplace<CameraComponent>(camera);
-    cameraComponent.isMainCamera = true;
-    cameraComponent.dirty = true;
-    cameraComponent.aspectRatio = 16.0f / 9.0f;
 
-    // cube
-    auto cube = mRegistry->create();
-    auto &transformComponent = mRegistry->emplace<TransformComponent>(cube);
-    auto &meshComponent = mRegistry->emplace<MeshComponent>(cube);
-    auto &materialComponent = mRegistry->emplace<MaterialComponent>(cube);
-    meshComponent.meshID = UUID("8cbe59c3-8a7b-48ae-ba1c-7f56b2af16d9");
-    materialComponent.materialID = UUID("074ef30b-eb2b-4a74-9256-2fde241909e3");
     // auto basicGeometryFactory = injector.create<std::shared_ptr<BasicGeometryFactory>>();
     // auto geometry = basicGeometryFactory->GetGeometry(PrimitiveType::Cube);
     // auto cube = mRegistry->create();
@@ -158,6 +145,19 @@ void Editor::Init()
     InitImGui();
     LoadUIResources();
     LoadAssets(mProjectPath);
+    mResourceManager->CreateDefault();
+    // camera
+    auto camera = mRegistry->create();
+    auto &cameraComponent = mRegistry->emplace<CameraComponent>(camera);
+    cameraComponent.isMainCamera = true;
+    cameraComponent.dirty = true;
+    cameraComponent.aspectRatio = 16.0f / 9.0f;
+
+    // cube
+    auto cube = mRegistry->create();
+    auto &transformComponent = mRegistry->emplace<TransformComponent>(cube);
+    auto &meshComponent = mRegistry->emplace<MeshComponent>(cube);
+    meshComponent.meshID = UUID("8cbe59c3-8a7b-48ae-ba1c-7f56b2af16d9");
     mIsRunning = true;
 }
 void Editor::InitWindow()
@@ -736,10 +736,12 @@ void Editor::RenderAssetPanel()
 }
 void Editor::LoadUIResources()
 {
-    auto foldTexture =
-        std::dynamic_pointer_cast<Texture2D>(mResourceManager->CreateAsset(mUIResourcesPath / "folder.png"));
-    auto fileTexture =
-        std::dynamic_pointer_cast<Texture2D>(mResourceManager->CreateAsset(mUIResourcesPath / "file.png"));
+    auto foldTexture = mResourceManager->CreateAsset<Texture2D>();
+    foldTexture->ImagePath = mUIResourcesPath / "folder.png";
+    auto fileTexture = mResourceManager->CreateAsset<Texture2D>();
+    fileTexture->ImagePath = mUIResourcesPath / "file.png";
+    mResourceManager->UpdateAsset(foldTexture);
+    mResourceManager->UpdateAsset(fileTexture);
     mAssetIcons[AssetType::Folder] = foldTexture->mTextureID;
     mAssetIcons[AssetType::File] = fileTexture->mTextureID;
     LogInfo("Loaded UI resources");
@@ -796,7 +798,7 @@ void Editor::LoadAssets(const std::filesystem::path &path)
                 assetPath.replace_extension(mResourceManager->GetAssetExtensionFromType(type));
                 if (!std::filesystem::exists(assetPath))
                 {
-                    mResourceManager->CreateAsset(entry.path());
+                    mResourceManager->LoadAsset(entry.path());
                     assetComponent.path = assetPath;
                     assetComponent.name = assetPath.filename().string();
                     auto it = typeToAssetType.find(type);

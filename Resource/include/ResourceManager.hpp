@@ -14,6 +14,11 @@
 #include "Entity/Pipeline.hpp"
 #include "Entity/Texture2D.hpp"
 #include "Logger.hpp"
+#include "Repository/MaterialRepository.hpp"
+#include "Repository/MeshRepository.hpp"
+#include "Repository/PipelineRepository.hpp"
+#include "Repository/Repository.hpp"
+#include "Repository/TextureRepository.hpp"
 #include "UUID.hpp"
 
 using json = nlohmann::json;
@@ -22,7 +27,11 @@ namespace MEngine
 class ResourceManager
 {
   private:
-    std::unordered_map<UUID, std::shared_ptr<Entity>> mEntities;
+    std::shared_ptr<Repository<Material>> mMaterialRepository;
+    std::shared_ptr<Repository<Mesh>> mMeshRepository;
+    std::shared_ptr<Repository<Pipeline>> mPipelineRepository;
+    std::shared_ptr<Repository<Texture2D>> mTextureRepository;
+
     const std::unordered_map<std::type_index, std::string> mTypeToAssetExtensions = {
         {typeid(Pipeline), ".shader"},
         {typeid(PBRMaterial), ".pbrmaterial"},
@@ -48,6 +57,13 @@ class ResourceManager
     };
 
   public:
+    ResourceManager()
+    {
+        mMaterialRepository = std::make_shared<MaterialRepository>();
+        mMeshRepository = std::make_shared<MeshRepository>();
+        mPipelineRepository = std::make_shared<PipelineRepository>();
+        mTextureRepository = std::make_shared<Texture2DRepository>();
+    }
     bool IsSupportRaw(const std::filesystem::path &path)
     {
         if (!std::filesystem::exists(path))
@@ -68,27 +84,41 @@ class ResourceManager
         auto it = mAssetExtensionToTypes.find(extension);
         return it != mAssetExtensionToTypes.end();
     }
+    void CreateDefault()
+    {
+        mMaterialRepository->CreateDefault();
+        mMeshRepository->CreateDefault();
+        mPipelineRepository->CreateDefault();
+        mTextureRepository->CreateDefault();
+    }
     template <typename TEntity>
         requires std::derived_from<TEntity, Entity>
     std::shared_ptr<TEntity> LoadAsset(const std::filesystem::path &path)
     {
-        auto entity = std::make_shared<TEntity>();
-        Deserialize<TEntity>(path, entity);
-        // 检查 ID 是否已存在
-        if (mEntities.contains(entity->ID))
+        if constexpr (std::is_same_v<TEntity, Pipeline>)
         {
-            LogWarn("Entity with ID {} already exists.", entity->ID.ToString());
+            return mPipelineRepository->LoadAsset(path);
         }
-        // 更新相应的存储库
-        entity->Update();
-        // 存储实体并返回 ID
-        mEntities[entity->ID] = entity;
-        LogInfo("Loaded asset: {}, ID {}", path.string(), entity->ID.ToString());
-        return entity;
+        else if constexpr (std::is_same_v<TEntity, Material>)
+        {
+            return mMaterialRepository->LoadAsset(path);
+        }
+        else if constexpr (std::is_same_v<TEntity, Texture2D>)
+        {
+            return mTextureRepository->LoadAsset(path);
+        }
+        else if constexpr (std::is_same_v<TEntity, Mesh>)
+        {
+            return mMeshRepository->LoadAsset(path);
+        }
+        else
+        {
+            LogError("Unsupported asset type: {}", typeid(TEntity).name());
+            return nullptr;
+        }
     }
     std::shared_ptr<Entity> LoadAsset(const std::filesystem::path &path)
     {
-        // 检查文件是否存在
         if (!std::filesystem::exists(path))
         {
             throw std::runtime_error("File does not exist: " + path.string());
@@ -135,154 +165,130 @@ class ResourceManager
     }
     template <typename TEntity>
         requires std::derived_from<TEntity, Entity>
-    std::shared_ptr<TEntity> CreateAsset(const std::filesystem::path &path, std::string name = "New Asset")
+    void SaveAsset(const UUID &id, const std::filesystem::path &path, std::string name = "New Asset")
     {
-        if (!std::filesystem::exists(path))
+        auto sourcePath = GenerateUniquePath<TEntity>(path, name);
+        if constexpr (std::is_same_v<TEntity, Pipeline>)
         {
-            LogError("Project path does not exist: {}", path.string());
-            throw std::runtime_error("path does not exist: " + path.string());
+            mPipelineRepository->SaveAsset(id, sourcePath);
         }
-        auto entity = std::make_shared<TEntity>();
-        entity->Update();
-        mEntities[entity->ID] = entity;
-        std::string ext = GetAssetExtensionFromType(typeid(TEntity));
-        std::filesystem::path sourcePath = path / (name + ext);
-        entity->SourcePath = sourcePath;
-        Serialize(sourcePath, entity);
-        return entity;
-    }
-    std::shared_ptr<Entity> CreateAsset(const std::filesystem::path &supportRawPath)
-    {
-        auto extension = supportRawPath.extension().string();
-        if (extension.empty())
+        else if constexpr (std::is_same_v<TEntity, Material>)
         {
-            LogError("{} is must a file.", supportRawPath.string());
-            return nullptr;
+            mMaterialRepository->SaveAsset(id, sourcePath);
         }
-        auto it = mRawExtensionToTypes.find(extension);
-        if (it != mRawExtensionToTypes.end())
+        else if constexpr (std::is_same_v<TEntity, Texture2D>)
         {
-            auto type = it->second;
-            if (type == typeid(Pipeline))
-            {
-                auto pipeline = CreateAsset<Pipeline>(supportRawPath.parent_path(), supportRawPath.stem().string());
-                return pipeline;
-            }
-            else if (type == typeid(PBRMaterial))
-            {
-                auto pbrMaterial =
-                    CreateAsset<PBRMaterial>(supportRawPath.parent_path(), supportRawPath.stem().string());
-                return pbrMaterial;
-            }
-            else if (type == typeid(Texture2D))
-            {
-                auto texture2D = CreateAsset<Texture2D>(supportRawPath.parent_path(), supportRawPath.stem().string());
-                texture2D->ImagePath = supportRawPath;
-                UpdateAsset(texture2D->ID, texture2D);
-                return texture2D;
-            }
-            else
-            {
-                LogWarn("Unimplemented raw type: {}", extension);
-                return nullptr;
-            }
+            mTextureRepository->SaveAsset(id, sourcePath);
+        }
+        else if constexpr (std::is_same_v<TEntity, Mesh>)
+        {
+            mMeshRepository->SaveAsset(id, sourcePath);
         }
         else
         {
-            LogWarn("Unsupported raw type: {}", extension);
+            LogError("Unsupported asset type: {}", typeid(TEntity).name());
+        }
+    }
+    template <typename TEntity>
+        requires std::derived_from<TEntity, Entity>
+    std::shared_ptr<TEntity> CreateAsset()
+    {
+        if constexpr (std::is_same_v<TEntity, Pipeline>)
+        {
+            return mPipelineRepository->Create();
+        }
+        else if constexpr (std::is_same_v<TEntity, Material>)
+        {
+            return mMaterialRepository->Create();
+        }
+        else if constexpr (std::is_same_v<TEntity, Texture2D>)
+        {
+            return mTextureRepository->Create();
+        }
+        else if constexpr (std::is_same_v<TEntity, Mesh>)
+        {
+            return mMeshRepository->Create();
+        }
+        else
+        {
+            LogError("Unsupported asset type: {}", typeid(TEntity).name());
             return nullptr;
         }
     }
-
-    template <typename TEntity>
-        requires std::derived_from<TEntity, Entity>
-    void Serialize(std::filesystem::path path, std::shared_ptr<TEntity> target)
-    {
-        std::ofstream file(path);
-        if (!file.is_open())
-        {
-            throw std::runtime_error("Failed to create file: " + path.string());
-        }
-        json j;
-        j = *target;
-        file << j.dump(4);
-        file.close();
-    }
-    template <typename TEntity>
-        requires std::derived_from<TEntity, Entity>
-    void Deserialize(std::filesystem::path path, std::shared_ptr<TEntity> target)
-    {
-        if (!std::filesystem::exists(path))
-        {
-            throw std::runtime_error("path does not exist: " + path.string());
-        }
-        std::ifstream file(path);
-        if (!file.is_open())
-        {
-            throw std::runtime_error("Failed to open file: " + path.string());
-        }
-        json j = json::parse(file);
-        j.get_to<TEntity>(*target);
-    }
-    /**
-     * @brief 获取资源
-     * @param id 资源的唯一标识
-     * @return std::shared_ptr<TEntity> 资源实体
-     */
     template <typename TEntity>
         requires std::derived_from<TEntity, Entity>
     std::shared_ptr<TEntity> GetAsset(const UUID &id)
     {
-        auto it = mEntities.find(id);
-        if (it != mEntities.end())
+        if constexpr (std::is_same_v<TEntity, Pipeline>)
         {
-            auto entity = std::dynamic_pointer_cast<TEntity>(it->second);
-            if (entity)
-            {
-                return entity;
-            }
-            else
-            {
-                LogError("Failed to cast entity to the requested type.");
-            }
+            return mPipelineRepository->GetAsset(id);
+        }
+        else if constexpr (std::is_same_v<TEntity, Material>)
+        {
+            return mMaterialRepository->GetAsset(id);
+        }
+        else if constexpr (std::is_same_v<TEntity, Texture2D>)
+        {
+            return mTextureRepository->GetAsset(id);
+        }
+        else if constexpr (std::is_same_v<TEntity, Mesh>)
+        {
+            return mMeshRepository->GetAsset(id);
         }
         else
         {
-            LogError("Entity with ID {} not found.", id.ToString());
-            throw std::runtime_error("Entity with ID " + id.ToString() + " not found.");
+            LogError("Unsupported asset type: {}", typeid(TEntity).name());
+            return nullptr;
         }
-        return nullptr;
     }
-    /**
-     * @brief 更新资源
-     * @tparam TEntity 实体类型，需继承自 Entity
-     * @param id 资源的唯一标识
-     * @param entity 资源实体
-     */
     template <typename TEntity>
         requires std::derived_from<TEntity, Entity>
-    void UpdateAsset(const UUID &id, std::shared_ptr<TEntity> entity)
+    void UpdateAsset(std::shared_ptr<TEntity> entity)
     {
-        auto it = mEntities.find(id);
-        if (it != mEntities.end())
+        if constexpr (std::is_same_v<TEntity, Pipeline>)
         {
-            // 更新entity
-            it->second = entity;
-            entity->Update();
-            Serialize<TEntity>(entity->SourcePath, entity);
+            mPipelineRepository->UpdateAsset(entity);
+        }
+        else if constexpr (std::is_same_v<TEntity, Material>)
+        {
+            mMaterialRepository->UpdateAsset(entity);
+        }
+        else if constexpr (std::is_same_v<TEntity, Texture2D>)
+        {
+            mTextureRepository->UpdateAsset(entity);
+        }
+        else if constexpr (std::is_same_v<TEntity, Mesh>)
+        {
+            mMeshRepository->UpdateAsset(entity);
+        }
+        else
+        {
+            LogError("Unsupported asset type: {}", typeid(TEntity).name());
         }
     }
     /**
      * @brief 删除资源
      * @param id 资源的唯一标识
      */
+    template <typename TEntity>
+        requires std::derived_from<TEntity, Entity>
     void DeleteAsset(const UUID &id)
     {
-        auto it = mEntities.find(id);
-        if (it != mEntities.end())
+        if constexpr (std::is_same_v<TEntity, Pipeline>)
         {
-            std::filesystem::remove(it->second->SourcePath);
-            mEntities.erase(it);
+            mPipelineRepository->DeleteAsset(id);
+        }
+        else if constexpr (std::is_same_v<TEntity, Material>)
+        {
+            mMaterialRepository->DeleteAsset(id);
+        }
+        else if constexpr (std::is_same_v<TEntity, Texture2D>)
+        {
+            mTextureRepository->DeleteAsset(id);
+        }
+        else if constexpr (std::is_same_v<TEntity, Mesh>)
+        {
+            mMeshRepository->DeleteAsset(id);
         }
     }
     /**

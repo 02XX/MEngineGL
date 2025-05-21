@@ -23,11 +23,7 @@ class PBRMaterial final : public Material
     UUID AlbedoTextureID = UUID();
     UUID NormalTextureID = UUID();
     UUID ARMTextureID = UUID(); // Ambient, Roughness, Metallic
-    // shader
-    UUID ShaderID = UUID();
 
-    // program
-    GLuint programID = 0;
 
   public:
     PBRMaterial();
