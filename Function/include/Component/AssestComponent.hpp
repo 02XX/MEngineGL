@@ -3,7 +3,6 @@
 #include <entt/entt.hpp>
 #include <filesystem>
 #include <memory>
-#include <refl.hpp>
 namespace MEngine
 {
 enum class AssetType
@@ -27,7 +26,6 @@ struct AssetsComponent : public Component
     AssetType type = AssetType::None;
 };
 } // namespace MEngine
-REFL_AUTO(type(MEngine::AssetsComponent,bases<MEngine::Component>), field(path), field(name), field(type))
 
 // template <> struct entt::storage_type<MEngine::AssetsComponent>
 // {

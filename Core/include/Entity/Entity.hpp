@@ -15,7 +15,6 @@ enum class EntityType
     File,
     Material,
     Mesh,
-    PBRMaterial,
     PhongMaterial,
     Texture2D,
     TextureCube,

@@ -4,7 +4,7 @@ find_package(glad CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
 
- find_path(REFL_CPP_INCLUDE_DIRS "refl.hpp")
+
 add_executable(UUIDTest UUIDTest.cpp)
 add_test(NAME UUIDTest COMMAND UUIDTest)
 target_link_libraries(UUIDTest PUBLIC Core GTest::gtest GTest::gtest_main)
@@ -19,4 +19,4 @@ target_link_libraries(SerializeTest PUBLIC  GTest::gtest GTest::gtest_main nlohm
 
 add_executable(ReflTest ReflTest.cpp)
 add_test(NAME ReflTest COMMAND ReflTest)
-target_link_libraries(ReflTest PUBLIC  GTest::gtest GTest::gtest_main ${REFL_CPP_INCLUDE_DIRS} EnTT::EnTT)
+target_link_libraries(ReflTest PUBLIC  GTest::gtest GTest::gtest_main EnTT::EnTT)

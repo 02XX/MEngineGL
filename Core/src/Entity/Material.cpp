@@ -8,6 +8,5 @@ Material::Material()
     Type = EntityType::Material;
 }
 Material::~Material()
-{
-}
+= default;
 } // namespace MEngine

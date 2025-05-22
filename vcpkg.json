@@ -19,7 +19,6 @@
         "imguizmo",
         "magic-enum",
         "nlohmann-json",
-        "refl-cpp",
         "spdlog",
         "stb",
         "assimp"
@@ -72,10 +71,6 @@
         {
             "name": "imgui",
             "version": "1.91.8#4"
-        },
-        {
-            "name": "refl-cpp",
-            "version": "0.12.4"
         },
         {
             "name": "imguizmo",

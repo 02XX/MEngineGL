@@ -22,7 +22,7 @@ class Pipeline final : public Entity
 
   public:
     Pipeline();
-    ~Pipeline();
+    ~Pipeline() override;
     GLuint LoadShader(GLuint shaderID, const std::filesystem::path &shaderPath);
     void Update() override;
 };

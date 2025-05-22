@@ -14,8 +14,8 @@ class PipelineRepository final : public Repository<Pipeline>
         std::shared_ptr<Pipeline> pipeline = std::make_shared<Pipeline>();
         pipeline->ID = UUID();
         pipeline->Name = "DefaultPipeline";
-        pipeline->VertexShaderPath = mAssetPath / "shaders" / "forward.vert";
-        pipeline->FragmentShaderPath = mAssetPath / "shaders" / "forward.frag";
+        pipeline->VertexShaderPath = mAssetPath / "shaders" / "default.vert";
+        pipeline->FragmentShaderPath = mAssetPath / "shaders" / "default.frag";
         mEntities[pipeline->ID] = pipeline;
         pipeline->Update();
     }

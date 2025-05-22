@@ -111,7 +111,7 @@ void RenderSystem::UpdateSource()
             // glBindTextureUnit(0, diffuseTexture->mTextureID);
             // glBindSampler(0, diffuseTexture->mSamplerID);
         }
-        else if (material->MaterialType == MaterialType::Default)
+        else if (material->MaterialType == MaterialType::Standard)
         {
         }
         else

@@ -619,7 +619,6 @@ void Editor::RenderHierarchyPanel()
             case EntityType::File:
             case EntityType::Material:
             case EntityType::Mesh:
-            case EntityType::PBRMaterial:
             case EntityType::PhongMaterial:
             case EntityType::Texture2D:
             case EntityType::TextureCube:
@@ -897,9 +896,9 @@ void Editor::RenderAssetPanel()
         {
             if (ImGui::MenuItem("PBR"))
             {
-                auto pbrMaterial = mResourceManager->CreateAsset<Texture2D>();
-                auto path = mResourceManager->GenerateUniquePath<Texture2D>(mProjectPath, "New Material");
-                mResourceManager->SaveAsset<Texture2D>(pbrMaterial->ID, path);
+                auto pbrMaterial = mResourceManager->CreateAsset<PBRMaterial>();
+                auto path = mResourceManager->GenerateUniquePath<PBRMaterial>(mProjectPath, "New Material");
+                mResourceManager->SaveAsset<PBRMaterial>(pbrMaterial->ID, path);
             }
             ImGui::EndMenu();
         }

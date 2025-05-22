@@ -273,11 +273,6 @@ static void RegisterMeta()
         .custom<Info>(Info{
             .DisplayName = "Roughness",
             .Editable = true,
-        })
-        .data<&PBRParameters::color>("color"_hs)
-        .custom<Info>(Info{
-            .DisplayName = "Color",
-            .Editable = true,
         });
     entt::meta<Folder>()
         .type("Folder"_hs)

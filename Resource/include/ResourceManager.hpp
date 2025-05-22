@@ -20,7 +20,7 @@
 #include "Entity/Texture2D.hpp"
 #include "Logger.hpp"
 #include "Repository/FolderRepository.hpp"
-#include "Repository/MaterialRepository.hpp"
+#include "Repository/StandardMaterialRepository.hpp"
 #include "Repository/MeshRepository.hpp"
 #include "Repository/ModelRepository.hpp"
 #include "Repository/PipelineRepository.hpp"
@@ -45,7 +45,8 @@ class ResourceManager
     std::filesystem::path mProjectPath{};
 
   private:
-    std::shared_ptr<IRepository<Material>> mMaterialRepository;
+    std::shared_ptr<IRepository<StandardMaterial>> mStandardMaterialRepository;
+    std::shared_ptr<IRepository<PBRMaterial>> mPBRMaterialRepository;
     std::shared_ptr<IRepository<Mesh>> mMeshRepository;
     std::shared_ptr<IRepository<Pipeline>> mPipelineRepository;
     std::shared_ptr<IRepository<Texture2D>> mTextureRepository;
@@ -86,13 +87,13 @@ class ResourceManager
     };
 
   public:
-    void SetProjectPath(std::filesystem::path projectPath)
+    void SetProjectPath(const std::filesystem::path& projectPath)
     {
         mProjectPath = projectPath;
     }
     ResourceManager()
     {
-        mMaterialRepository = std::make_shared<MaterialRepository>();
+        mStandardMaterialRepository = std::make_shared<StandardMaterialRepository>();
         mMeshRepository = std::make_shared<MeshRepository>();
         mPipelineRepository = std::make_shared<PipelineRepository>();
         mTextureRepository = std::make_shared<Texture2DRepository>();
@@ -109,13 +110,14 @@ class ResourceManager
         auto it = mAssetExtensionToTypes.find(extension);
         return it != mAssetExtensionToTypes.end();
     }
-    void CreateDefault()
+    void CreateDefault() const
     {
-        mMaterialRepository->CreateDefault();
+        mStandardMaterialRepository->CreateDefault();
         mMeshRepository->CreateDefault();
         mPipelineRepository->CreateDefault();
         mTextureRepository->CreateDefault();
         mModelRepository->CreateDefault();
+        mPBRMaterialRepository->CreateDefault();
     }
     template <typename TEntity>
         requires std::derived_from<TEntity, Entity>
@@ -123,7 +125,7 @@ class ResourceManager
     {
         auto entity = GetRepository<TEntity>()->LoadAsset(path);
         mCachedAssets[path] = entity;
-        return std::dynamic_pointer_cast<TEntity>(entity);
+        return entity;
     }
     std::shared_ptr<Entity> LoadAsset(const std::filesystem::path &path)
     {
@@ -396,14 +398,14 @@ template <> struct ResourceManager::RepositoryTraits<PBRMaterial>
 {
     static auto &repository(ResourceManager &rm)
     {
-        return rm.mMaterialRepository;
+        return rm.mPBRMaterialRepository;
     }
 };
-template <> struct MEngine::ResourceManager::RepositoryTraits<Material>
+template <> struct MEngine::ResourceManager::RepositoryTraits<StandardMaterial>
 {
     static auto &repository(ResourceManager &rm)
     {
-        return rm.mMaterialRepository;
+        return rm.mStandardMaterialRepository;
     }
 };
 template <> struct ResourceManager::RepositoryTraits<Texture2D>

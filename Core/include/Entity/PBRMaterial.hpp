@@ -9,7 +9,6 @@ struct PBRParameters
 {
     float metallic = 0.0f;
     float roughness = 0.5f;
-    glm::vec4 color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 };
 class PBRMaterial final : public Material
 {
@@ -27,7 +26,7 @@ class PBRMaterial final : public Material
 
   public:
     PBRMaterial();
-    ~PBRMaterial();
+    ~PBRMaterial() override;
     void Update() override;
 };
 } // namespace MEngine
@@ -40,22 +39,14 @@ template <> struct adl_serializer<MEngine::PBRParameters>
     {
         j["metallic"] = p.metallic;
         j["roughness"] = p.roughness;
-        j["color"] = {p.color.r, p.color.g, p.color.b, p.color.a};
+
     }
 
     static void from_json(const json &j, MEngine::PBRParameters &p)
     {
         p.metallic = j.at("metallic").get<float>();
         p.roughness = j.at("roughness").get<float>();
-        auto color = j.at("color").get<std::vector<float>>();
-        if (color.size() == 4)
-        {
-            p.color = glm::vec4(color[0], color[1], color[2], color[3]);
-        }
-        else
-        {
-            throw std::runtime_error("Invalid color format");
-        }
+
     }
 };
 
