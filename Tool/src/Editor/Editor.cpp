@@ -515,6 +515,8 @@ void Editor::RenderHierarchyPanel()
                 auto &transformComponent = mRegistry->emplace<TransformComponent>(entity);
                 auto &meshComponent = mRegistry->emplace<MeshComponent>(entity);
                 auto &materialComponent = mRegistry->emplace<MaterialComponent>(entity);
+                materialComponent.type = MaterialType::PBR;
+                materialComponent.materialID = mResourceManager->GetBasicPipeline(PipelineType::ForwardPBR)->ID;
                 auto cube = mResourceManager->GetBasicGeometry(PrimitiveType::Cube);
                 meshComponent.modelID = cube->ID;
                 transformComponent.name = "Cube";
@@ -756,6 +758,11 @@ void Editor::RenderInspectorPanel()
             auto &materialComponent = mRegistry->get<MaterialComponent>(mSelectedEntity);
             InspectorUI(materialComponent);
         }
+        if (mRegistry->any_of<LightComponent>(mSelectedEntity))
+        {
+            auto &lightComponent = mRegistry->get<LightComponent>(mSelectedEntity);
+            InspectorUI(lightComponent);
+        }
     }
     if (mSelectedAsset != nullptr)
     {
@@ -801,6 +808,13 @@ void Editor::RenderInspectorPanel()
                     if (ImGui::MenuItem("Material"))
                     {
                         auto &materialComponent = mRegistry->emplace<MaterialComponent>(mSelectedEntity);
+                    }
+                }
+                if (!mRegistry->any_of<LightComponent>(mSelectedEntity))
+                {
+                    if (ImGui::MenuItem("Light"))
+                    {
+                        auto &lightComponent = mRegistry->emplace<LightComponent>(mSelectedEntity);
                     }
                 }
                 ImGui::EndMenu();

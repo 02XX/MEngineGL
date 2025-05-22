@@ -32,6 +32,9 @@
 #include <assimp/scene.h>
 #include <vector>
 
+#include "PipelineFactory.h"
+#include "Repository/PBRMaterialRepository.hpp"
+
 using json = nlohmann::json;
 namespace MEngine
 {
@@ -43,6 +46,7 @@ class ResourceManager
   private:
     BasicGeometryFactory mBasicGeometryFactory;
     std::filesystem::path mProjectPath{};
+    std::unique_ptr<PipelineFactory> mPipelineFactory;
 
   private:
     std::shared_ptr<IRepository<StandardMaterial>> mStandardMaterialRepository;
@@ -53,6 +57,7 @@ class ResourceManager
     std::shared_ptr<IRepository<Model>> mModelRepository;
     std::shared_ptr<IRepository<Folder>> mFolderRepository;
     std::unordered_map<PrimitiveType, UUID> mGeometries;
+    std::unordered_map<PipelineType, std::shared_ptr<Material>> mMaterials;
 
     std::unordered_map<std::filesystem::path, std::shared_ptr<Entity>> mCachedAssets;
 
@@ -94,11 +99,14 @@ class ResourceManager
     ResourceManager()
     {
         mStandardMaterialRepository = std::make_shared<StandardMaterialRepository>();
+        mPBRMaterialRepository = std::make_shared<PBRMaterialRepository>();
         mMeshRepository = std::make_shared<MeshRepository>();
         mPipelineRepository = std::make_shared<PipelineRepository>();
         mTextureRepository = std::make_shared<Texture2DRepository>();
         mModelRepository = std::make_shared<ModelRepository>();
         mFolderRepository = std::make_shared<FolderRepository>();
+
+        mPipelineFactory = std::make_unique<PipelineFactory>(mPipelineRepository);
     }
     bool IsAsset(const std::filesystem::path &path)
     {
@@ -118,6 +126,7 @@ class ResourceManager
         mTextureRepository->CreateDefault();
         mModelRepository->CreateDefault();
         mPBRMaterialRepository->CreateDefault();
+        mPipelineFactory->Create();
     }
     template <typename TEntity>
         requires std::derived_from<TEntity, Entity>
@@ -307,6 +316,7 @@ class ResourceManager
             entity->SourcePath = GenerateUniquePath<TEntity>(path, name);
             entity->Name = name;
             repository->SaveAsset(id, path);
+            mCachedAssets[entity->SourcePath] = entity;
         }
     }
     template <typename TEntity>
@@ -367,6 +377,31 @@ class ResourceManager
             mGeometries[type] = model->ID;
             return model;
         }
+    }
+    std::shared_ptr<Material> GetBasicPipeline(PipelineType type)
+    {
+        if (auto it = mMaterials.find(type); it != mMaterials.end())
+        {
+            return it->second;
+        }
+        else
+        {
+            std::shared_ptr<Material> material;
+            auto pipelineID = mPipelineFactory->GetPipeline(type);
+            switch (type)
+            {
+            case PipelineType::ForwardPBR:
+                {
+                    auto pbr = CreateAsset<PBRMaterial>();
+                    pbr->PipelineID = pipelineID;
+                    UpdateAsset<PBRMaterial>(pbr);
+                    material = pbr;
+                    break;
+                }
+            }
+        return material;
+        }
+
     }
     std::vector<std::shared_ptr<Entity>> GetAssetsFromDirectory(const std::filesystem::path &path)
     {

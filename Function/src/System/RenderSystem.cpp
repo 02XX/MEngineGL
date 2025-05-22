@@ -2,6 +2,7 @@
 #include "Component/TransformComponent.hpp"
 #include "Entity/Entity.hpp"
 #include "Logger.hpp"
+#include "Component/LightComponent.hpp"
 
 namespace MEngine
 {
@@ -14,10 +15,16 @@ RenderSystem::~RenderSystem()
     glDeleteTextures(1, &ColorAttachment);
     glDeleteTextures(1, &DepthAttachment);
     glDeleteFramebuffers(1, &FBO);
+    glDeleteBuffers(1,&LightUBO);
 }
 void RenderSystem::Init()
 {
+    glCreateBuffers(1, &LightUBO);
+    glNamedBufferStorage(LightUBO, sizeof(Light) * 8, nullptr, GL_DYNAMIC_STORAGE_BIT);
     CreateFrameBuffer();
+    GLint maxUBOBindings;
+    glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS, &maxUBOBindings);
+    LogInfo("Max UBO Bindings Supported: {}", maxUBOBindings);
 }
 void RenderSystem::Update(float deltaTime)
 {
@@ -32,9 +39,11 @@ void RenderSystem::Update(float deltaTime)
     UpdateSource();
     RenderForwardPass();
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 }
 void RenderSystem::Shutdown()
 {
+
 }
 void RenderSystem::CreateFrameBuffer(int width, int height)
 {
@@ -90,33 +99,17 @@ void RenderSystem::UpdateSource()
         auto &materialComponent = materialView.get<MaterialComponent>(entity);
 
         auto materialID = materialComponent.materialID;
-        auto material = mResourceManager->GetAsset<Material>(materialID);
-        if (material->MaterialType == MaterialType::PBR)
+        switch (materialComponent.type)
         {
-            // auto pbrMaterial = std::dynamic_pointer_cast<PBRMaterial>(material);
-            // auto albedoTexture = mResourceManager->GetAsset<Texture2D>(pbrMaterial->AlbedoTextureID);
-            // auto normalTexture = mResourceManager->GetAsset<Texture2D>(pbrMaterial->NormalTextureID);
-            // auto armTexture = mResourceManager->GetAsset<Texture2D>(pbrMaterial->ARMTextureID);
-            // glBindTextureUnit(0, albedoTexture->mTextureID);
-            // glBindSampler(0, albedoTexture->mSamplerID);
-            // glBindTextureUnit(1, normalTexture->mTextureID);
-            // glBindSampler(1, normalTexture->mSamplerID);
-            // glBindTextureUnit(2, armTexture->mTextureID);
-            // glBindSampler(2, armTexture->mSamplerID);
-        }
-        else if (material->MaterialType == MaterialType::Phong)
-        {
-            // auto phongMaterial = std::dynamic_pointer_cast<PhongMaterial>(material);
-            // auto diffuseTexture = mResourceManager->GetAsset<Texture2D>(phongMaterial->DiffuseTextureID);
-            // glBindTextureUnit(0, diffuseTexture->mTextureID);
-            // glBindSampler(0, diffuseTexture->mSamplerID);
-        }
-        else if (material->MaterialType == MaterialType::Standard)
-        {
-        }
-        else
-        {
-            LogError("Unknown material type: {}", magic_enum::enum_name(material->MaterialType));
+        case MaterialType::Standard:
+            break;
+        case MaterialType::PBR:
+            break;
+        case MaterialType::Phong:
+            break;
+        default:
+            LogError("Unknown material type");
+
         }
         materialComponent.dirty = false;
     }
@@ -130,7 +123,18 @@ void RenderSystem::RenderQueue()
     {
         auto &materialComponent = mRegistry->get<MaterialComponent>(entity);
         auto materialID = materialComponent.materialID;
-        auto material = mResourceManager->GetAsset<Material>(materialID);
+        std::shared_ptr<Material> material;
+        switch (materialComponent.type)
+        {
+        case MaterialType::Standard:
+            material = mResourceManager->GetAsset<StandardMaterial>(materialID);
+            break;
+        case MaterialType::PBR:
+            material = mResourceManager->GetAsset<PBRMaterial>(materialID);
+            break;
+        case MaterialType::Phong:
+            break;
+        }
         mRenderQueue[material->PipelineID].push_back(entity);
     }
 }
@@ -139,6 +143,39 @@ void RenderSystem::RenderDeferredPass()
 }
 void RenderSystem::RenderForwardPass()
 {
+    auto lightView = mRegistry->view<LightComponent,TransformComponent>();
+    int count = 0;
+    std::vector<Light> lights;
+    for (auto entity : lightView)
+    {
+        Light light;
+        if (count > 8) return;
+        auto &lightComponent = lightView.get<LightComponent>(entity);
+        auto &lightTransformComponent = lightView.get<TransformComponent>(entity);
+        light.color = lightComponent.Color;
+        light.position = lightTransformComponent.worldPosition;
+        switch (lightComponent.LightType)
+        {
+        case LightType::Directional:
+            {
+                light.type = 0;
+                light.direction = lightTransformComponent.worldRotation * glm::vec3(0,0,-1);
+                break;
+            }
+        case LightType::Point:
+            {
+                light.type = 1;
+                light.radius = 10;
+                break;
+            }
+        case LightType::Spot:
+            {
+                break;
+            }
+        }
+        count++;
+        lights.push_back(light);
+    }
     for (auto [pipelineID, entities] : mRenderQueue)
     {
         auto pipeline = mResourceManager->GetAsset<Pipeline>(pipelineID);
@@ -148,6 +185,9 @@ void RenderSystem::RenderForwardPass()
                                   glm::value_ptr(mMainCamera.viewMatrix)); // layout(location = 1)
         glProgramUniformMatrix4fv(program, 1, 1, GL_FALSE,
                                   glm::value_ptr(mMainCamera.projectionMatrix)); // layout(location = 2)
+
+        // glProgramUniform3f(program,3,1,GL_FALSE,glm::value_ptr(lights[0].color));
+
         for (auto entity : entities)
         {
             auto &transformComponent = mRegistry->get<TransformComponent>(entity);

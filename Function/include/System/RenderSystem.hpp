@@ -23,7 +23,16 @@ class RenderSystem final : public System
     GLuint FBO = 0;
     GLuint ColorAttachment;
     GLuint DepthAttachment;
-
+    struct Light
+    {
+      glm::vec3 position;
+      glm::vec3 direction;
+      glm::vec3 color;
+      float intensity;
+      float radius;
+      int type;
+    };
+    GLuint LightUBO;
   public:
     RenderSystem(std::shared_ptr<entt::registry> registry, std::shared_ptr<ResourceManager> resourceManager);
     ~RenderSystem();

@@ -13,6 +13,8 @@
 #include <entt/entt.hpp>
 #include <entt/meta/factory.hpp>
 
+#include "LightComponent.hpp"
+
 using namespace entt::literals;
 namespace MEngine
 {
@@ -285,5 +287,19 @@ static void RegisterMeta()
             .DisplayName = "FolderPath",
             .Editable = true,
         });
+    entt::meta<LightComponent>()
+    .type("LightComponent"_hs)
+    .custom<Info>(Info{
+    .DisplayName = "LightComponent"})
+    .base<Component>()
+    .data<&LightComponent::LightType>("LightType"_hs)
+    .custom<Info>(Info{
+    .DisplayName = "LightType",.Editable = true})
+    .data<&LightComponent::Color>("Color"_hs)
+    .custom<Info>(Info{.DisplayName = "Color",.Editable = true})
+    .data<&LightComponent::Intensity>("Intensity"_hs)
+    .custom<Info>(Info{.DisplayName = "Intensity",.Editable = true})
+    .data<&LightComponent::Radius>("Radius"_hs)
+    .custom<Info>(Info{.DisplayName = "Radius",.Editable = true});
 }
 } // namespace MEngine

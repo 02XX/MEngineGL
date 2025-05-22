@@ -4,5 +4,5 @@ find_package(EnTT CONFIG REQUIRED)
 
 add_library(Function ${RESOURCE})
 target_include_directories(Function PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(Function PUBLIC Resource)
+target_link_libraries(Function PUBLIC Resource Common)
 target_link_libraries(Function PRIVATE EnTT::EnTT)

@@ -257,6 +257,30 @@ class Editor
                         ImGui::EndCombo();
                     }
                 }
+                // else if (fieldType == entt::resolve<Material>())
+                // {
+                //     ImGui::Text("%s: ", fieldDisplayName);
+                //     ImGui::NextColumn();
+                //     auto value = fieldValue.cast<AssetType>();
+                //     auto current = magic_enum::enum_name(value);
+                //     if (ImGui::BeginCombo(label.c_str(), current.data()))
+                //     {
+                //         for (auto [enumValue, enumName] : magic_enum::enum_entries<AssetType>())
+                //         {
+                //             bool is_selected = (enumValue == value);
+                //             if (ImGui::Selectable(enumName.data(), is_selected))
+                //             {
+                //                 field.set(object, enumValue);
+                //                 modified = true;
+                //             }
+                //             if (is_selected)
+                //             {
+                //                 ImGui::SetItemDefaultFocus();
+                //             }
+                //         }
+                //         ImGui::EndCombo();
+                //     }
+                // }
                 else if (fieldType == entt::resolve<UUID>())
                 {
                     ImGui::Text("%s: ", fieldDisplayName);

@@ -8,7 +8,7 @@ namespace MEngine
 class StandardMaterialRepository final : public Repository<StandardMaterial>
 {
   public:
-    StandardMaterialRepository();
+    StandardMaterialRepository() = default;
     void CreateDefault() override
     {
         auto standardMaterial = std::make_shared<StandardMaterial>();
