@@ -4,6 +4,7 @@
 #include "Entity/Entity.hpp"
 #include "Entity/Mesh.hpp"
 #include "Entity/Model.hpp"
+#include "Entity/PBRMaterial.hpp"
 #include "Logger.hpp"
 #include "System/TransformSystem.hpp"
 #include "UUID.hpp"
@@ -888,6 +889,22 @@ void Editor::RenderAssetPanel()
         ImGui::NextColumn(); // 移动到下一列
     }
     ImGui::Columns(1); // 恢复单列模式
+
+    if (ImGui::BeginPopupContextWindow("AssetContextMenu", ImGuiPopupFlags_MouseButtonRight))
+    {
+
+        if (ImGui::BeginMenu("Create Material"))
+        {
+            if (ImGui::MenuItem("PBR"))
+            {
+                auto pbrMaterial = mResourceManager->CreateAsset<Texture2D>();
+                auto path = mResourceManager->GenerateUniquePath<Texture2D>(mProjectPath, "New Material");
+                mResourceManager->SaveAsset<Texture2D>(pbrMaterial->ID, path);
+            }
+            ImGui::EndMenu();
+        }
+        ImGui::EndPopup();
+    }
     ImGui::End();
 }
 void Editor::LoadUIResources()

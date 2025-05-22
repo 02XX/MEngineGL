@@ -294,6 +294,25 @@ class ResourceManager
         auto repository = GetRepository<TEntity>();
         repository->DeleteAsset(id);
     }
+    template <typename TEntity>
+        requires std::derived_from<TEntity, Entity>
+    void SaveAsset(const UUID &id, const std::filesystem::path &path, std::string name = "New Asset")
+    {
+        auto repository = GetRepository<TEntity>();
+        auto entity = repository->GetAsset(id);
+        if (entity)
+        {
+            entity->SourcePath = GenerateUniquePath<TEntity>(path, name);
+            entity->Name = name;
+            repository->SaveAsset(id, path);
+        }
+    }
+    template <typename TEntity>
+        requires std::derived_from<TEntity, Entity>
+    void SaveAsset(std::shared_ptr<TEntity> entity, const std::filesystem::path &path, std::string name = "New Asset")
+    {
+        SaveAsset<TEntity>(entity->ID, path, name);
+    }
     /**
      * @brief 生成唯一的文件路径
      * @tparam TEntity 实体类型

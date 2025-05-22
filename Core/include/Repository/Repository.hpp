@@ -24,6 +24,7 @@ class Repository : public IRepository<TEntity>
     virtual std::shared_ptr<TEntity> Create() override
     {
         auto entity = std::make_shared<TEntity>();
+        entity->ID = UUIDGenerator()();
         mEntities[entity->ID] = entity;
         return entity;
     }
