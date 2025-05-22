@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <concepts>
 #include <entt/entity/fwd.hpp>
 #include <filesystem>
@@ -31,7 +32,6 @@
 #include <assimp/scene.h>
 #include <vector>
 
-
 using json = nlohmann::json;
 namespace MEngine
 {
@@ -60,7 +60,8 @@ class ResourceManager
         {typeid(PBRMaterial), ".pbrmaterial"},
         {typeid(Texture2D), ".tex2d"},
         {typeid(Mesh), ".mesh"},
-        {typeid(Model), ".model"}
+        {typeid(Model), ".model"},
+        {typeid(Folder), ".folder"}
         // {typeid(Material), ".material"}, {typeid(Animation), ".animation"}, {typeid(Model), ".model"},
         // {typeid(Audio), ".audio"},       {typeid(Scene), ".scene"},
     };
@@ -69,7 +70,8 @@ class ResourceManager
         {".pbrmaterial", typeid(PBRMaterial)},
         {".tex2d", typeid(Texture2D)},
         {".mesh", typeid(Mesh)},
-        {".model", typeid(Model)}
+        {".model", typeid(Model)},
+        {".folder", typeid(Folder)}
         // {".texture", typeid(Texture)},     {".mesh", typeid(Mesh)},
         // {".material", typeid(Material)},   {".animation", typeid(Animation)},
         // {".model", typeid(Model)},         {".audio", typeid(Audio)},
@@ -129,10 +131,6 @@ class ResourceManager
         {
             throw std::runtime_error("File does not exist: " + path.string());
         }
-        if (std::filesystem::is_directory(path))
-        {
-            return LoadAsset<Folder>(path);
-        }
         std::string extension = path.extension().string();
         // 检查扩展名是否支持
         auto typeIndex = mAssetExtensionToTypes.find(extension);
@@ -165,6 +163,10 @@ class ResourceManager
             {
                 return LoadAsset<Model>(path);
             }
+            else if (typeIdx == typeid(Folder))
+            {
+                return LoadAsset<Folder>(path);
+            }
             else
             {
                 LogWarn("Not implement file type {}", mTypeToAssetExtensions.at(typeIndex->second));
@@ -184,45 +186,68 @@ class ResourceManager
             throw std::runtime_error("File does not exist: " + path.string());
         }
         std::shared_ptr<Entity> entity;
-        std::string extension = path.extension().string();
-        auto typeIndex = mRawExtensionToType.find(extension);
-        auto assetPath = path;
-        if (typeIndex != mRawExtensionToType.end())
+        std::filesystem::path assetPath = path;
+        if (std::filesystem::is_directory(path))
         {
-            auto typeIdx = typeIndex->second;
-            auto type = mTypeToAssetExtensions.find(typeIdx);
-            assetPath.replace_extension(type->second);
+            assetPath += ".folder";
             if (std::filesystem::exists(assetPath))
             {
                 LogTrace("File already exists: {}", assetPath.string());
                 return;
             }
-            if (typeIdx == typeid(Model))
-            {
-                auto model = CreateAsset<Model>();
-                model->ModelPath = path;
-                UpdateAsset(model);
-                entity = model;
-            }
-            else if (typeIdx == typeid(Texture2D))
-            {
-                auto texture = CreateAsset<Texture2D>();
-                texture->ImagePath = path;
-                UpdateAsset(texture);
-                entity = texture;
-            }
-            else
-            {
-                LogWarn("Not implement file type {}", extension);
-            }
-            entity->SourcePath = GenerateUniquePath<Model>(mProjectPath, path.stem().string());
-            entity->Name = path.stem().string();
-            mCachedAssets[assetPath] = entity;
+            auto folder = CreateAsset<Folder>();
+            folder->SourcePath = assetPath;
+            folder->FolderPath = path;
+            folder->Type = EntityType::Folder;
+            folder->Name = path.stem().string();
+            UpdateAsset(folder);
+            entity = folder;
         }
         else
         {
-            LogWarn("Not Support file type {}", extension);
+            std::string extension = path.extension().string();
+            auto typeIndex = mRawExtensionToType.find(extension);
+            if (typeIndex != mRawExtensionToType.end())
+            {
+                auto typeIdx = typeIndex->second;
+                auto type = mTypeToAssetExtensions.find(typeIdx);
+                assetPath.replace_extension(type->second);
+                if (std::filesystem::exists(assetPath))
+                {
+                    LogTrace("File already exists: {}", assetPath.string());
+                    return;
+                }
+                if (typeIdx == typeid(Model))
+                {
+                    auto model = CreateAsset<Model>();
+                    model->SourcePath = assetPath;
+                    model->Name = path.stem().string();
+                    model->ModelPath = path;
+                    model->Type = EntityType::Model;
+                    UpdateAsset(model);
+                    entity = model;
+                }
+                else if (typeIdx == typeid(Texture2D))
+                {
+                    auto texture = CreateAsset<Texture2D>();
+                    texture->SourcePath = assetPath;
+                    texture->Name = path.stem().string();
+                    texture->ImagePath = path;
+                    texture->Type = EntityType::Texture2D;
+                    UpdateAsset(texture);
+                    entity = texture;
+                }
+                else
+                {
+                    LogWarn("Not implement file type {}", extension);
+                }
+            }
+            else
+            {
+                LogWarn("Not Support file type {}", extension);
+            }
         }
+        mCachedAssets[assetPath] = entity;
     }
     std::shared_ptr<Entity> GetAsset(const std::filesystem::path &path)
     {

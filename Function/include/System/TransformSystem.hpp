@@ -5,6 +5,7 @@
 #include "Math.hpp"
 #include "System/System.hpp"
 #include <entt/entt.hpp>
+#include <glm/ext/matrix_float4x4.hpp>
 #include <memory>
 
 namespace MEngine
@@ -24,6 +25,11 @@ class TransformSystem final : public System
     static void Translate(TransformComponent &transform, const glm::vec3 &delta);
     static void Rotate(TransformComponent &transform, float angle, const glm::vec3 &axis);
     static void Scale(TransformComponent &transform, const glm::vec3 &scale);
+    static void SetWorldPosition(TransformComponent &transform, const glm::vec3 &position);
+    static void SetWorldRotation(TransformComponent &transform, const glm::quat &rotation);
+    static void SetWorldScale(TransformComponent &transform, const glm::vec3 &scale);
+    static void SetModelMatrix(TransformComponent &transform, const glm::mat4 &modelMatrix,
+                               const glm::mat4 &parentMatrix = glm::mat4(1.0f));
 
   private:
     void CalculateMatrix(entt::entity entity);

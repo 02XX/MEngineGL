@@ -35,7 +35,7 @@ class Repository : public IRepository<TEntity>
             throw std::runtime_error("path does not exist: " + path.string());
         }
         entity->SourcePath = path;
-        entity->Name = path.filename().string();
+        entity->Name = path.stem().string();
         auto cachedAsset = mCachedAssets.find(path);
         if (cachedAsset != mCachedAssets.end())
         {

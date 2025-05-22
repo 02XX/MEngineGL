@@ -136,6 +136,7 @@ class Editor
     void RenderHierarchyPanel();
     void RenderHierarchyItem(entt::entity entity);
     void RenderInspectorPanel();
+    void DeleteEntity(entt::entity entity);
     void RenderAssetPanel();
     void LoadUIResources();
     void GetEntityFromModel(const UUID &modelID, std::shared_ptr<entt::registry> registry);

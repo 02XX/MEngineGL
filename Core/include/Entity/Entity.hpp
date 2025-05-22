@@ -50,6 +50,7 @@ template <> struct adl_serializer<MEngine::Entity>
         j["id"] = uuid.ToString();
         j["path"] = entity.SourcePath.string();
         j["name"] = entity.Name;
+        j["type"] = magic_enum::enum_name(entity.Type);
     }
 
     static void from_json(const json &j, MEngine::Entity &entity)
@@ -57,6 +58,16 @@ template <> struct adl_serializer<MEngine::Entity>
         entity.ID = MEngine::UUID(j["id"].get<std::string>());
         entity.SourcePath = j["path"].get<std::string>();
         entity.Name = j["name"].get<std::string>();
+        auto typeStr = j["type"].get<std::string>();
+        auto type = magic_enum::enum_cast<MEngine::EntityType>(typeStr);
+        if (type.has_value())
+        {
+            entity.Type = type.value();
+        }
+        else
+        {
+            throw std::runtime_error("Invalid entity type: " + typeStr);
+        }
     }
 };
 } // namespace nlohmann

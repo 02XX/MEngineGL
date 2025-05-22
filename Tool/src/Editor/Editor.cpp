@@ -1,14 +1,17 @@
 #include "Editor/Editor.hpp"
 #include "BasicGeometryFactory.hpp"
 #include "Component/TransformComponent.hpp"
+#include "Entity/Entity.hpp"
 #include "Entity/Mesh.hpp"
 #include "Entity/Model.hpp"
 #include "Logger.hpp"
+#include "System/TransformSystem.hpp"
 #include "UUID.hpp"
 #include <boost/di.hpp>
 #include <entt/entity/entity.hpp>
 #include <entt/entity/fwd.hpp>
 #include <functional>
+#include <glm/ext/matrix_float4x4.hpp>
 #include <imgui.h>
 #include <memory>
 namespace MEngine
@@ -137,9 +140,8 @@ void Editor::Init()
     auto &transformComponent = mRegistry->emplace<TransformComponent>(camera);
     cameraComponent.isEditorCamera = true;
     cameraComponent.aspectRatio = 16.0f / 9.0f;
-    transformComponent.localPosition = glm::vec3(0.0f, 0.0f, 5.0f);
+    transformComponent.localPosition = glm::vec3(0.0f, 0.0f, 100.0f);
     transformComponent.name = "EditorCamera";
-    GetEntityFromModel(UUID("c770c339-6a47-4201-aafe-c9208443baee"), mRegistry);
     mIsRunning = true;
 }
 void Editor::InitWindow()
@@ -469,6 +471,31 @@ void Editor::RenderViewportPanel()
     }
     ImGui::End();
 }
+void Editor::DeleteEntity(entt::entity entity)
+{
+    if (mRegistry->valid(entity))
+    {
+        auto &transform = mRegistry->get<TransformComponent>(entity);
+        // 删除子节点
+        auto children = transform.children;
+        for (auto child : children)
+        {
+            if (mRegistry->valid(child))
+            {
+                DeleteEntity(child);
+            }
+        }
+        if (transform.parent != entt::null)
+        {
+            auto &parentTransform = mRegistry->get<TransformComponent>(transform.parent);
+            parentTransform.children.erase(
+                std::remove(parentTransform.children.begin(), parentTransform.children.end(), entity),
+                parentTransform.children.end());
+        }
+        // 删除当前节点
+        mRegistry->destroy(entity);
+    }
+}
 void Editor::RenderHierarchyPanel()
 {
     ImGui::Begin("Hierarchy", nullptr, ImGuiWindowFlags_None);
@@ -527,24 +554,7 @@ void Editor::RenderHierarchyPanel()
         {
             if (ImGui::MenuItem("Delete"))
             {
-                auto &transform = mRegistry->get<TransformComponent>(mSelectedEntity);
-                // 删除子节点
-                for (auto child : transform.children)
-                {
-                    if (mRegistry->valid(child))
-                    {
-                        mRegistry->destroy(child);
-                    }
-                }
-                if (transform.parent != entt::null)
-                {
-                    auto &parentTransform = mRegistry->get<TransformComponent>(transform.parent);
-                    parentTransform.children.erase(
-                        std::remove(parentTransform.children.begin(), parentTransform.children.end(), mSelectedEntity),
-                        parentTransform.children.end());
-                }
-                // 删除当前节点
-                mRegistry->destroy(mSelectedEntity);
+                DeleteEntity(mSelectedEntity);
                 mSelectedEntity = entt::null;
             }
         }
@@ -597,6 +607,32 @@ void Editor::RenderHierarchyPanel()
                 draggedTransform.parent = entt::null;
             }
         }
+        if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("ASSET_ITEM"))
+        {
+            IM_ASSERT(payload->DataSize == sizeof(mSelectedAsset));
+            auto asset = *(const std::shared_ptr<Entity> *)payload->Data;
+            switch (asset->Type)
+            {
+            case EntityType::None:
+            case EntityType::Folder:
+            case EntityType::File:
+            case EntityType::Material:
+            case EntityType::Mesh:
+            case EntityType::PBRMaterial:
+            case EntityType::PhongMaterial:
+            case EntityType::Texture2D:
+            case EntityType::TextureCube:
+            case EntityType::Model: {
+                GetEntityFromModel(asset->ID, mRegistry);
+                break;
+            }
+            case EntityType::Animation:
+            case EntityType::Shader:
+            case EntityType::Audio:
+            case EntityType::Pipeline:
+                break;
+            }
+        }
         ImGui::EndDragDropTarget();
     }
     ImGui::PopStyleColor(3);
@@ -629,10 +665,12 @@ void Editor::RenderHierarchyItem(entt::entity entity)
     if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
     {
         mSelectedEntity = entity;
+        mSelectedAsset = nullptr;
     }
     if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
     {
         mSelectedEntity = entity;
+        mSelectedAsset = nullptr;
     }
     if (ImGui::BeginDragDropSource())
     {
@@ -803,6 +841,7 @@ void Editor::RenderAssetPanel()
                               ImVec2(mAssetIconSize + 10, mAssetIconSize + 20)))
         {
             mSelectedAsset = asset;
+            mSelectedEntity = entt::null;
             if (ImGui::IsMouseDoubleClicked(0))
             {
                 if (asset->Type == EntityType::Folder)
@@ -814,8 +853,12 @@ void Editor::RenderAssetPanel()
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup))
         {
             mHoveredAsset = asset;
+            mHoveredEntity = entt::null;
             if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+            {
                 mSelectedAsset = asset;
+                mSelectedEntity = entt::null;
+            }
             if (ImGui::IsMouseDragging(0))
             {
                 if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
@@ -825,7 +868,7 @@ void Editor::RenderAssetPanel()
                     // 显示拖拽预览（图标）
                     ImGui::Image(textureID, ImVec2(0, 1), ImVec2(1, 0));
                     // 可选：添加文字说明
-                    ImGui::Text("拖动 %s", asset->Name.c_str());
+                    ImGui::Text("Drag %s", asset->Name.c_str());
                     ImGui::EndDragDropSource();
                 }
             }
@@ -868,25 +911,18 @@ void Editor::LoadAssets(const std::filesystem::path &path)
     auto directory = std::filesystem::directory_iterator(path);
     for (auto &entry : directory)
     {
+
         if (entry.is_directory())
         {
-            auto folder = mResourceManager->LoadAsset<Folder>(entry.path());
-            folder->FolderPath = entry.path();
             LoadAssets(entry.path());
         }
-        else if (entry.is_regular_file())
+        if (mResourceManager->IsAsset(entry.path()))
         {
-            auto extension = entry.path().extension().string();
-            std::type_index type = typeid(void);
-            if (mResourceManager->IsAsset(entry.path()))
-            {
-                type = mResourceManager->GetAssetTypeFromExtension(extension);
-                auto asset = mResourceManager->LoadAsset(entry.path());
-            }
-            else
-            {
-                mResourceManager->LoadRawAsset(entry.path());
-            }
+            auto asset = mResourceManager->LoadAsset(entry.path());
+        }
+        else
+        {
+            mResourceManager->LoadRawAsset(entry.path());
         }
     }
 }
@@ -900,7 +936,7 @@ void Editor::GetEntityFromModel(const UUID &modelID, std::shared_ptr<entt::regis
         auto &currentNodeTransformComponent = registry->emplace<TransformComponent>(currentNode);
         currentNodeTransformComponent.name = node->Name;
         auto transform = node->Transform;
-        currentNodeTransformComponent.modelMatrix = transform;
+        TransformSystem::SetModelMatrix(currentNodeTransformComponent, transform);
         // TODO: 添加根据modelmatrix计算localposition,localrotation,localscale
         for (auto index : node->Meshes)
         {
@@ -920,6 +956,9 @@ void Editor::GetEntityFromModel(const UUID &modelID, std::shared_ptr<entt::regis
             auto &childTransformComponent = registry->get<TransformComponent>(childEntity);
             childTransformComponent.parent = currentNode;
             currentNodeTransformComponent.children.push_back(childEntity);
+            auto childTransform = child->Transform;
+            TransformSystem::SetModelMatrix(childTransformComponent, childTransform,
+                                            currentNodeTransformComponent.modelMatrix);
         }
         return currentNode;
     };
