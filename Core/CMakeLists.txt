@@ -7,11 +7,7 @@ find_package(nlohmann_json CONFIG REQUIRED)
 find_package(Stb REQUIRED)
 find_package(assimp CONFIG REQUIRED)
 
-add_library(Core ${RESOURCE}
-        include/Asset/Texture.hpp
-        include/Asset/CustomMaterial.hpp
-        include/Asset/Prefab.hpp
-        include/Asset/Scene.hpp)
+add_library(Core ${RESOURCE})
 target_include_directories(Core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 target_link_libraries(Core PUBLIC glad::glad)

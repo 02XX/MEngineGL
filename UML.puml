@@ -1,17 +1,18 @@
 @startuml
 
+namespace MEngine.Core {
 class Asset
 {
     +name: String
     +isDirty: bool
     +MarkDirty()
 }
-AssetMeta --> AssetType
+
 class Folder
 {
     +path: Path
 }
-Folder -|> Asset
+
 enum WrapMode
 {
     Repeat
@@ -85,14 +86,7 @@ class Texture3D
 {
     '待实现
 }
-Texture -|> Asset
-Texture --> WrapMode
-Texture --> FilterMode
-Texture2D -|> Texture
-Texture2D --> Format
-Texture2D --> EXRFlags
-Texture2DArray -|> Texture
-Texture3D -|> Texture
+
 enum PipelineType
 {
     ForwardOpaquePBR
@@ -145,12 +139,7 @@ class CustomMaterial
     +customUniforms: Map<Int, Any>
     +customTextures: Map<GLenum, UUID>
 }
-Material -|> Asset
-PBRMaterial -|> Material
-PhongMaterial -|> Material
-CustomMaterial -|> Material
-Pipeline -|> Asset
-Pipeline --> PipelineType
+
 struct Vertex
 {
     +position: Vector3
@@ -206,7 +195,25 @@ Prefab -|> Asset
 Prefab --> Node
 Prefab --> Mesh
 Prefab --> Material
+Folder -|> Asset
+Texture -|> Asset
+Texture --> WrapMode
+Texture --> FilterMode
+Texture2D -|> Texture
+Texture2D --> Format
+Texture2D --> EXRFlags
+Texture2DArray -|> Texture
+Texture3D -|> Texture
+Material -|> Asset
+PBRMaterial -|> Material
+PhongMaterial -|> Material
+CustomMaterial -|> Material
+Pipeline -|> Asset
+Pipeline --> PipelineType
+
+}
 '=======================================================
+namespace MEngine.Editor {
 enum AssetType
 {
     Folder
@@ -227,19 +234,18 @@ class AssetDatabase <<static>>
     -UUID2Meta: Map<UUID, AssetMeta>
     -path2UUID: Map<Path, UUID>
     -UUID2Asset: Map<UUID, Asset>
-    +Scan(path: Path): Void
-    +LoadMeta(path: Path): Void
-    'load asset from meta, traverse UUID2Meta
-    +LoadAsset(meta: AssetMeta): Asset
-    'load asset from path, traverse path2UUID then LoadAsset(meta: AssetMeta)
-    +LoadAsset(path: Path): Asset
-    +GetAsset(uuid: UUID): Asset
-    +GetAsset(path: Path): Asset
-    +GetAsset<T>(uuid: UUID): T
-    +GetAsset<T>(path: Path): T
-    +UpdateAsset(uuid: UUID): Void
-    +UpdateAsset(path: Path): Void
-    +SaveAsset(uuid: UUID, path: Path): Void
+    -assetFolder: List<Path>
+    +RegisterAssetFolder(path: Path): Void
+    +UnregisterAssetFolder(path: Path): Void
+    +CreateFolder(parentFolder: Path, newFolderName: String): Void
+    +MoveAsset(srcPath: Path, dstPath: Path): Void
+    +RenameAsset(path: Path, newName: String): Void
+    +DeleteAsset(path: Path): Void
+    +ImportAsset(path: Path): Void
+    +LoadAssetAtPath<T>(path: Path) : T
+    +CopyAsset(srcPath: Path, dstPath: Path): Void
+    '创建native的资源
+    +CreateAsset(asset:Asset, path: Path): Void
 }
 class AssetImporter
 {
@@ -276,7 +282,10 @@ class AssetManager
     +UpdateDirtyAssets(): Void
 }
 AssetManager --* AssetDatabase
+AssetMeta --> AssetType
+}
 '==============================Component=========================
+namespace MEngine.Function {
 struct Component
 {
     +componentName: String
@@ -438,4 +447,5 @@ struct NetworkComponent
     'TODO
 }
 NetworkComponent -|> Component
+}
 @enduml

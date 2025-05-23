@@ -1,6 +1,7 @@
 #pragma once
 #include "Component/Component.hpp"
-#include "Math.hpp"
+#include <glm/mat4x4.hpp>
+#include <glm/vec3.hpp>
 
 namespace MEngine
 {
@@ -17,7 +18,7 @@ struct CameraComponent : public Component
 
     bool isMainCamera = false;
     bool isEditorCamera = false;
-    glm::mat4 viewMatrix = glm::identity<glm::mat4>();
-    glm::mat4 projectionMatrix = glm::identity<glm::mat4>();
+    glm::mat4 viewMatrix = glm::mat4(1.0f);
+    glm::mat4 projectionMatrix = glm::mat4(1.0f);
 };
 } // namespace MEngine

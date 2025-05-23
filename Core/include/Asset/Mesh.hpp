@@ -1,7 +1,10 @@
 #pragma once
 #include "Asset/Asset.hpp"
-#include "Math.hpp"
+#include <glad/glad.h>
+#include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
 #include <vector>
+
 namespace MEngine
 {
 struct Vertex
@@ -9,15 +12,16 @@ struct Vertex
     glm::vec3 position;
     glm::vec3 normal;
     glm::vec2 texCoord;
-     glm::vec3 tangent;
-     glm::vec3 bitangent;
+    glm::vec3 tangent;
+    glm::vec3 bitangent;
 };
 class Mesh final : public Asset
 {
   public:
     std::vector<Vertex> Vertices{};
     std::vector<uint32_t> Indices{};
-private:
+
+  private:
     GLuint VAO = 0;
     GLuint VBO = 0;
     GLuint EBO = 0;

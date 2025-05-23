@@ -1,118 +1,63 @@
 
 #include "AssetDatabase.hpp"
-#include "Asset/Asset.hpp"
 
 namespace MEngine
 {
-void AssetDatabase::Scan(std::filesystem::path assetDir)
+namespace Editor
 {
-    auto entries = std::filesystem::directory_iterator(assetDir);
-    for (auto &entry : entries)
-    {
-        if (entry.is_directory())
-        {
-            Scan(entry.path());
-        }
-        auto extension = entry.path().extension();
-        if (extension == ".meta")
-        {
-            auto meta = LoadMeta(entry.path());
-            LoadAsset(meta);
-        }
-        else
-        {
-            // 根据资源的后缀名判断资源类型
-            // 根据类型构建对应默认的Importer
-            // 根据Importer的SaveAndReimport方法保存资源，生成meta文件
-            if (extension == ".png" || extension == ".jpg" || extension == ".jpeg")
-            {
-                // 纹理
-                // TextureImporter textureImporter;
-            }
-            else if (extension == ".fbx" || extension == ".obj")
-            {
-                // 模型
-                // ModelImporter modelImporter;
-            }
-            else if (extension == ".prefab")
-            {
-                // 预制体
-            }
-            else if (extension == ".mat")
-            {
-                // 材质
-            }
-            else
-            {
-                // 其他类型
-            }
-        }
-    }
-}
-void AssetDatabase::Update()
+std::unordered_map<UUID, AssetMeta> AssetDatabase::UUID2Meta{};
+std::unordered_map<std::filesystem::path, UUID> AssetDatabase::Path2UUID{};
+void AssetDatabase::ImportAsset(const std::filesystem::path &path)
 {
-    // 遍历UUID2Asset，更新标记为dirty的资源，并更新meta文件和资源文件
-    for (auto &[id, asset] : UUID2Asset)
+    auto extension = path.extension();
+    if (extension == ".meta")
     {
-        if (asset->isDirty)
+        LogWarn("Please do not import .meta file");
+        return;
+    }
+    auto metaPath = path;
+    metaPath += ".meta";
+    if (std::filesystem::exists(metaPath))
+    {
+        LogTrace("Dserialize from existing meta file");
+        std::ifstream metaFile(metaPath);
+        if (!metaFile.is_open())
         {
-            // 1.根据asset的类型，进行分发
-            // 2.如果未初始化图形资源，进行初始化
-            // 3.保存资源和meta文件
-            // 4.重新导入资源importer
-            // 5.清除dirty标记
+            LogError("Failed to open meta file: {}", metaPath.string());
+            return;
         }
-    }
-}
-AssetMeta &AssetDatabase::AssetDatabase::LoadMeta(std::filesystem::path metaPath)
-{
-    if (!std::filesystem::exists(metaPath))
-    {
-        throw AssetMetaNotFoundException("Asset meta file not found: " + metaPath.string());
-    }
-    // 反序列化
-    json j;
-    std::ifstream file(metaPath);
-    if (file.is_open())
-    {
-        j = json::parse(file);
-        file.close();
+        json j;
+        metaFile >> j;
+        metaFile.close();
         auto meta = j.get<AssetMeta>();
         UUID2Meta[meta.ID] = meta;
-        Path2UUID[meta.assetPath] = meta.ID;
+        Path2UUID[path] = meta.ID;
+        return;
     }
-    else
+    if (extension == ".png" || extension == ".jpg" || extension == ".jpeg")
     {
-        throw AssetMetaNotFoundException("Failed to open asset meta file: " + metaPath.string());
+        // 构建meta
+        AssetMeta meta;
+        meta.ID = UUIDGenerator()();
+        meta.type = AssetType::Texture;
+        // 构建默认importer
+        meta.importer = std::make_shared<TextureImporter>();
+        meta.importer->assetPath = path;
+        meta.importer->name = path.stem().string();
+        json j;
+        j = meta;
+        std::ofstream metaFile(metaPath);
+        metaFile << j.dump(4);
+        if (!metaFile.is_open())
+        {
+            LogError("Failed to open meta file: {}", metaPath.string());
+            return;
+        }
+        metaFile.close();
     }
 }
-std::shared_ptr<Asset> AssetDatabase::LoadAsset(const AssetMeta &meta)
-{
-    auto assetPath = meta.assetPath;
-    if (!std::filesystem::exists(assetPath))
-    {
-        throw AssetNotFoundException("Asset file not found: " + assetPath.string());
-    }
-}
-std::shared_ptr<Asset> AssetDatabase::LoadAsset(const std::filesystem::path &assetPath)
+void AssetDatabase::CreateAsset(std::shared_ptr<const Asset> asset, const std::filesystem::path &path)
 {
 }
-std::shared_ptr<Asset> AssetDatabase::LoadAsset(const UUID &id)
-{
-}
-std::shared_ptr<Asset> AssetDatabase::GetAsset(const std::filesystem::path &assetPath)
-{
-}
-std::shared_ptr<Asset> AssetDatabase::GetAsset(const UUID &id)
-{
-}
-void AssetDatabase::UpdateAsset(const std::filesystem::path &assetPath)
-{
-}
-void AssetDatabase::UpdateAsset(const UUID &id)
-{
-}
-void AssetDatabase::SaveAsset(const UUID &id, const std::filesystem::path &savePath)
-{
-}
+} // namespace Editor
 } // namespace MEngine

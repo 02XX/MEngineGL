@@ -1,6 +1,6 @@
 #pragma once
 #include "Component/Component.hpp"
-#include <entt/entt.hpp>
+#include <entt/fwd.hpp>
 #include <filesystem>
 #include <memory>
 namespace MEngine

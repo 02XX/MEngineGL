@@ -1,11 +1,7 @@
 #pragma once
 #include "Asset/Asset.hpp"
-#include "Logger.hpp"
 #include <filesystem>
-#include <fstream>
-#include <memory>
-#include <sstream>
-
+#include <glad/glad.h>
 namespace MEngine
 {
 enum class PipelineType
@@ -18,15 +14,15 @@ enum class PipelineType
 };
 class Pipeline final : public Asset
 {
-public:
+  public:
     std::filesystem::path VertexShaderPath{};
     std::filesystem::path FragmentShaderPath{};
     std::filesystem::path GeometryShaderPath{};
     bool blendingEnabled = false;
     GLenum blendSrc = GL_SRC_ALPHA;
     GLenum blendDest = GL_ONE_MINUS_SRC_ALPHA;
-    //TODO: More Pipeline Settings
-private:
+    // TODO: More Pipeline Settings
+  private:
     GLuint vertexShader = 0;
     GLuint fragmentShader = 0;
     GLuint geometryShader = 0;
