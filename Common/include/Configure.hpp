@@ -1,8 +1,7 @@
 #pragma once
 #include "IConfigure.hpp"
-#include "ILogger.hpp"
-#include <fstream>
-#include <iostream>
+#include <filesystem>
+#include <nlohmann/json.hpp>
 namespace MEngine
 {
 class Configure final : public IConfigure

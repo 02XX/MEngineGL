@@ -1,6 +1,5 @@
 #pragma once
-#include <filesystem>
-#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 using Json = nlohmann::json;
 namespace MEngine

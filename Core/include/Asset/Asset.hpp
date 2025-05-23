@@ -9,7 +9,7 @@ class Asset
   private:
   public:
     bool isDirty = false;
-
+    unsigned int RefCount = 0;
     std::string Name = "Asset";
     inline void MarkDirty()
     {

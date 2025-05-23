@@ -32,13 +32,9 @@ template <> struct adl_serializer<MEngine::Editor::AssetImporter>
 {
     static void to_json(json &j, const MEngine::Editor::AssetImporter &importer)
     {
-        j["name"] = importer.name;
-        j["assetPath"] = importer.assetPath.string();
     }
     static void from_json(const json &j, MEngine::Editor::AssetImporter &importer)
     {
-        importer.name = j.at("name").get<std::string>();
-        importer.assetPath = j.at("assetPath").get<std::string>();
     }
 };
 } // namespace nlohmann

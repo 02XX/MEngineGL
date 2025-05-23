@@ -14,6 +14,9 @@ struct PBRParameters
 };
 class PBRMaterial final : public Material
 {
+  private:
+    GLuint UBO;
+
   public:
     // PBR properties
     PBRParameters Parameters;
@@ -22,8 +25,7 @@ class PBRMaterial final : public Material
     UUID NormalTextureID = UUID();
     UUID ARMTextureID = UUID(); // Ambient, Roughness, Metallic
   public:
-    PBRMaterial();
-    ~PBRMaterial() override;
+    ~PBRMaterial() override = default;
 };
 } // namespace MEngine
 

@@ -5,7 +5,6 @@
 #include <entt/meta/resolve.hpp>
 #include <gtest/gtest.h>
 #include <memory>
-#include <refl.hpp>
 #include <string>
 #include <tuple>
 
@@ -64,31 +63,11 @@ unique	唯一列表生成类	创建仅包含源列表非重复元素的新列表
 const_string	编译时字符串类	表示编译期字符串
 type_list	类型列表类	表示编译期类型列表（通过可变模板参数提供）*/
 using namespace entt::literals;
-struct Editable : refl::attr::usage::field
-{
-    bool isEditable = true;
-    constexpr Editable(bool isEditable = true) noexcept : isEditable(isEditable)
-    {
-    }
-};
 struct MyCustomData
 {
     const char *name;
     int value;
 };
-
-struct Serializable : refl::attr::usage::member
-{
-};
-struct Table : refl::attr::usage::type
-{
-    int type = 1;
-
-    constexpr Table(int type) noexcept : type(type)
-    {
-    }
-};
-REFL_AUTO(type(Editable));
 struct Student
 {
   private:

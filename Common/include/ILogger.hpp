@@ -2,7 +2,7 @@
 #include <magic_enum/magic_enum.hpp>
 #include <nlohmann/json.hpp>
 #include <source_location>
-#include <spdlog/spdlog.h>
+#include <spdlog/fmt/fmt.h>
 #include <string>
 
 namespace MEngine

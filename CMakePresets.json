@@ -21,8 +21,10 @@
             "binaryDir": "${sourceDir}/build",
             "cacheVariables": {
                 "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-                "CMAKE_C_COMPILER": "clang",
-                "CMAKE_CXX_COMPILER": "clang++",
+                "CMAKE_C_COMPILER": "ccache",
+                "CMAKE_C_COMPILER_ARG1": "clang",
+                "CMAKE_CXX_COMPILER": "ccache",
+                "CMAKE_CXX_COMPILER_ARG1": "clang++",
                 "VCPKG_TARGET_TRIPLET": "x64-mingw-static",
                 "VCPKG_HOST_TRIPLET": "x64-mingw-static",
                 "VCPKG_MANIFEST_MODE": "ON",

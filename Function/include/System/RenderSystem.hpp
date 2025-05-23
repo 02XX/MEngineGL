@@ -4,7 +4,6 @@
 #include "Component/MaterialComponent.hpp"
 #include "Component/MeshComponent.hpp"
 #include "Component/TransformComponent.hpp"
-#include "Entity/Entity.hpp"
 #include "ResourceManager.hpp"
 #include "System/System.hpp"
 #include <memory>

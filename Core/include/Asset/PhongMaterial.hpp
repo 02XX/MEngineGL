@@ -13,12 +13,15 @@ struct PhongParameters
 };
 class PhongMaterial final : public Material
 {
+  private:
+    GLuint UBO;
+
   public:
     PhongParameters Parameters;
     UUID DiffuseTextureID = UUID();
     UUID NormalTextureID = UUID();
     UUID EmissiveTextureID = UUID();
-    PhongMaterial();
+    ~PhongMaterial() override = default;
 };
 
 } // namespace MEngine

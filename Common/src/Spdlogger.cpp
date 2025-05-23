@@ -1,7 +1,10 @@
 #include "Spdlogger.hpp"
+#include "Configure.hpp"
 #include "ILogger.hpp"
+#include <iostream>
 #include <magic_enum/magic_enum.hpp>
 #include <string>
+
 
 namespace MEngine
 {

@@ -6,6 +6,7 @@ namespace MEngine
 {
 enum class PipelineType
 {
+    None,
     ForwardOpaquePBR,
     ForwardOpaquePhong,
     TransparentPBR,
@@ -14,6 +15,9 @@ enum class PipelineType
 };
 class Pipeline final : public Asset
 {
+  private:
+    GLuint UBO;
+
   public:
     std::filesystem::path VertexShaderPath{};
     std::filesystem::path FragmentShaderPath{};
@@ -29,8 +33,7 @@ class Pipeline final : public Asset
     GLuint program = 0;
 
   public:
-    Pipeline();
-    ~Pipeline() override;
+    ~Pipeline() override = default;
 };
 } // namespace MEngine
 

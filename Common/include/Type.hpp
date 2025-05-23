@@ -1,5 +1,4 @@
 #pragma once
-#include "Logger.hpp"
 #include <concepts>
 #include <functional>
 #include <string>
@@ -41,16 +40,6 @@ template <typename T> class Property
         : mGetter(std::forward<TGetter>(getter)), mSetter(std::forward<TSetter>(setter))
     {
         Set(std::move(value));
-    }
-    template <typename TGetter = decltype(DefaultGetter<T>)>
-        requires GetterFunc<T, TGetter>
-    Property(TGetter &&getter) : mValue(T{}), mGetter(std::forward<TGetter>(getter)), mSetter(DefaultSetter<T>)
-    {
-    }
-    template <typename TSetter = decltype(DefaultSetter<T>)>
-        requires SetterFunc<T, TSetter>
-    Property(TSetter &&setter) : mValue(T{}), mGetter(DefaultGetter<T>), mSetter(std::forward<TSetter>(setter))
-    {
     }
     template <typename TGetter = decltype(DefaultGetter<T>), typename TSetter = decltype(DefaultSetter<T>)>
         requires GetterFunc<T, TGetter> && SetterFunc<T, TSetter>
@@ -250,7 +239,6 @@ using ULong = Property<unsigned long>;
 using Float = Property<float>;
 using Bool = Property<bool>;
 using String = Property<std::string>;
-using Path = Property<std::filesystem::path>;
 using Char = Property<char>;
 using UInt = Property<unsigned int>;
 using UChar = Property<unsigned char>;

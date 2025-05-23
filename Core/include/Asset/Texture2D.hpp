@@ -4,179 +4,44 @@ namespace MEngine
 {
 enum class Format
 {
-  R8,
-  R8G8,
-  R16G16B16,
-  R16G16B16A16,
+    R8,
+    R8G8,
+    R16G16B16,
+    R16G16B16A16,
 };
 class Texture2D final : public Texture
 {
   public:
     Format Format = Format::R16G16B16A16;
+
   public:
     Texture2D();
     ~Texture2D();
 };
 
 } // namespace MEngine
-namespace magic_enum
-{
-namespace customize
-{
-template <> struct enum_range<MEngine::FilterType>
-{
-    static constexpr int min = static_cast<int>(MEngine::FilterType::Nearest);
-    static constexpr int max = static_cast<int>(MEngine::FilterType::LinearMipmapLinear);
-    static_assert(max > min, "enum_range requires max > min");
-};
-template <> struct enum_range<MEngine::WrapModeType>
-{
-    static constexpr int min = static_cast<int>(MEngine::WrapModeType::Repeat);
-    static constexpr int max = static_cast<int>(MEngine::WrapModeType::ClampToBorder);
-    static_assert(max > min, "enum_range requires max > min");
-};
-template <> struct enum_range<MEngine::CompareModeType>
-{
-    static constexpr int min = static_cast<int>(MEngine::CompareModeType::None);
-    static constexpr int max = static_cast<int>(MEngine::CompareModeType::CompareRefToTexture);
-    static_assert(max > min, "enum_range requires max > min");
-};
-template <> struct enum_range<MEngine::CompareFuncType>
-{
-    static constexpr int min = static_cast<int>(MEngine::CompareFuncType::Never);
-    static constexpr int max = static_cast<int>(MEngine::CompareFuncType::Always);
-    static_assert(max > min, "enum_range requires max > min");
-};
-template <> struct enum_range<MEngine::TextureFormatType>
-{
-    static constexpr int min = static_cast<int>(MEngine::TextureFormatType::RGB);
-    static constexpr int max = static_cast<int>(MEngine::TextureFormatType::DepthStencil);
-    static_assert(max > min, "enum_range requires max > min");
-};
-} // namespace customize
-} // namespace magic_enum
 namespace nlohmann
 {
 template <> struct adl_serializer<MEngine::Texture2D>
 {
     static void to_json(json &j, const MEngine::Texture2D &texture)
     {
-        j = static_cast<MEngine::Entity>(texture);
-        j["image_path"] = texture.ImagePath.string();
-        j["width"] = texture.Width;
-        j["height"] = texture.Height;
-        j["test"] = texture.test;
-        j["importer"]["mip_levels"] = texture.Importer.mipLevels;
-        j["importer"]["min_filter"] = magic_enum::enum_name(texture.Importer.minFilter);
-        j["importer"]["mag_filter"] = magic_enum::enum_name(texture.Importer.magFilter);
-        j["importer"]["wrap_s"] = magic_enum::enum_name(texture.Importer.wrapS);
-        j["importer"]["wrap_t"] = magic_enum::enum_name(texture.Importer.wrapT);
-        j["importer"]["wrap_r"] = magic_enum::enum_name(texture.Importer.wrapR);
-        j["importer"]["compare_mode"] = magic_enum::enum_name(texture.Importer.compareMode);
-        j["importer"]["compare_func"] = magic_enum::enum_name(texture.Importer.compareFunc);
-        j["importer"]["lod_min"] = texture.Importer.lodMin;
-        j["importer"]["lod_max"] = texture.Importer.lodMax;
-        j["importer"]["lod_bias"] = texture.Importer.lodBias;
-        j["importer"]["max_anisotropy"] = texture.Importer.maxAnisotropy;
-        j["importer"]["border_color"] = {texture.Importer.borderColor[0], texture.Importer.borderColor[1],
-                                         texture.Importer.borderColor[2], texture.Importer.borderColor[3]};
+        j = static_cast<MEngine::Texture>(texture);
+        j["Format"] = magic_enum::enum_name(texture.Format);
     }
     static void from_json(const json &j, MEngine::Texture2D &texture)
     {
-        static_cast<MEngine::Entity &>(texture) = j;
-        texture.ImagePath = j.at("image_path").get<std::string>();
-        texture.Width = j.at("width").get<uint32_t>();
-        texture.Height = j.at("height").get<uint32_t>();
-        MEngine::Importer importer;
-        importer.mipLevels = j.at("importer").at("mip_levels").get<GLsizei>();
-        std::string minFilter = j.at("importer").at("min_filter").get<std::string>();
-        auto minFilterEnum = magic_enum::enum_cast<MEngine::FilterType>(minFilter);
-        if (minFilterEnum.has_value())
+        static_cast<MEngine::Texture &>(texture) = j;
+        auto format = j["Format"].get<std::string>();
+        auto enumValue = magic_enum::enum_cast<MEngine::Format>(format);
+        if (enumValue.has_value())
         {
-            importer.minFilter = minFilterEnum.value();
+            texture.Format = enumValue.value();
         }
         else
         {
-            throw std::runtime_error("Invalid min_filter: " + minFilter);
+            throw std::runtime_error("Invalid format value");
         }
-        std::string magFilter = j.at("importer").at("mag_filter").get<std::string>();
-        auto magFilterEnum = magic_enum::enum_cast<MEngine::FilterType>(magFilter);
-        if (magFilterEnum.has_value())
-        {
-            importer.magFilter = magFilterEnum.value();
-        }
-        else
-        {
-            throw std::runtime_error("Invalid mag_filter: " + magFilter);
-        }
-        std::string wrapS = j.at("importer").at("wrap_s").get<std::string>();
-        auto wrapSEnum = magic_enum::enum_cast<MEngine::WrapModeType>(wrapS);
-        if (wrapSEnum.has_value())
-        {
-            importer.wrapS = wrapSEnum.value();
-        }
-        else
-        {
-            throw std::runtime_error("Invalid wrap_s: " + wrapS);
-        }
-        std::string wrapT = j.at("importer").at("wrap_t").get<std::string>();
-        auto wrapTEnum = magic_enum::enum_cast<MEngine::WrapModeType>(wrapT);
-        if (wrapTEnum.has_value())
-        {
-            importer.wrapT = wrapTEnum.value();
-        }
-        else
-        {
-            throw std::runtime_error("Invalid wrap_t: " + wrapT);
-        }
-        std::string wrapR = j.at("importer").at("wrap_r").get<std::string>();
-        auto wrapREnum = magic_enum::enum_cast<MEngine::WrapModeType>(wrapR);
-        if (wrapREnum.has_value())
-        {
-            importer.wrapR = wrapREnum.value();
-        }
-        else
-        {
-            throw std::runtime_error("Invalid wrap_r: " + wrapR);
-        }
-        std::string compareMode = j.at("importer").at("compare_mode").get<std::string>();
-        auto compareModeEnum = magic_enum::enum_cast<MEngine::CompareModeType>(compareMode);
-        if (compareModeEnum.has_value())
-        {
-            importer.compareMode = compareModeEnum.value();
-        }
-        else
-        {
-            throw std::runtime_error("Invalid compare_mode: " + compareMode);
-        }
-        std::string compareFunc = j.at("importer").at("compare_func").get<std::string>();
-        auto compareFuncEnum = magic_enum::enum_cast<MEngine::CompareFuncType>(compareFunc);
-        if (compareFuncEnum.has_value())
-        {
-            importer.compareFunc = compareFuncEnum.value();
-        }
-        else
-        {
-            throw std::runtime_error("Invalid compare_func: " + compareFunc);
-        }
-        importer.lodMin = j.at("importer").at("lod_min").get<float>();
-        importer.lodMax = j.at("importer").at("lod_max").get<float>();
-        importer.lodBias = j.at("importer").at("lod_bias").get<float>();
-        importer.maxAnisotropy = j.at("importer").at("max_anisotropy").get<float>();
-        auto borderColor = j.at("importer").at("border_color").get<std::vector<float>>();
-        if (borderColor.size() == 4)
-        {
-            importer.borderColor[0] = borderColor[0];
-            importer.borderColor[1] = borderColor[1];
-            importer.borderColor[2] = borderColor[2];
-            importer.borderColor[3] = borderColor[3];
-        }
-        else
-        {
-            throw std::runtime_error("Invalid border_color format");
-        }
-        texture.Importer = importer;
-        texture.test = j.at("test").get<int>();
     }
 };
 } // namespace nlohmann

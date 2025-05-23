@@ -4,12 +4,29 @@
 
 #pragma once
 
-namespace MEngine {
-namespace Editor {
+#include "AssetImporter.hpp"
+namespace MEngine
+{
+namespace Editor
+{
 
-class PrefabImporter {
-
+class PrefabImporter : public AssetImporter
+{
 };
 
-} // Editor
-} // MEngine
+} // namespace Editor
+} // namespace MEngine
+namespace nlohmann
+{
+template <> struct adl_serializer<MEngine::Editor::PrefabImporter>
+{
+    static void to_json(json &j, const MEngine::Editor::PrefabImporter &importer)
+    {
+        j = static_cast<MEngine::Editor::AssetImporter>(importer);
+    }
+    static void from_json(const json &j, MEngine::Editor::PrefabImporter &importer)
+    {
+        static_cast<MEngine::Editor::AssetImporter &>(importer) = j;
+    }
+};
+} // namespace nlohmann

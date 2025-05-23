@@ -1,7 +1,5 @@
 #pragma once
-#include "IConfigure.hpp"
 #include "ILogger.hpp"
-#include "Spdlogger.hpp"
 #include <memory>
 
 namespace MEngine
@@ -34,4 +32,3 @@ class Logger final
 #define LogFatal(fmt, ...)                                                                                             \
     MEngine::Logger::GetInstance().GetLogger()->Fatal(std::source_location::current(), fmt, ##__VA_ARGS__)
 } // namespace MEngine
-

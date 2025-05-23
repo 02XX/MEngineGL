@@ -1,6 +1,7 @@
 #pragma once
 #include "Type.hpp"
 #include <iomanip>
+#include <nlohmann/json.hpp>
 #include <random>
 #include <sstream>
 #include <string>

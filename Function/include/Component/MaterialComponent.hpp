@@ -1,16 +1,15 @@
 #pragma once
 
+#include "Asset/Material.hpp"
 #include "Component/Component.hpp"
 #include "UUID.hpp"
 #include <memory>
-
-#include "Entity/Material.hpp"
 
 namespace MEngine
 {
 struct MaterialComponent : public Component
 {
-    MaterialType type;
+    PipelineType type;
     UUID materialID;
 };
 } // namespace MEngine

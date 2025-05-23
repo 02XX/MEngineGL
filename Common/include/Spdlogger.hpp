@@ -1,9 +1,6 @@
 #pragma once
-#include "Configure.hpp"
 #include "IConfigure.hpp"
 #include "ILogger.hpp"
-#include <filesystem>
-#include <iostream>
 #include <memory>
 #include <spdlog/pattern_formatter.h>
 #include <spdlog/sinks/rotating_file_sink.h>
