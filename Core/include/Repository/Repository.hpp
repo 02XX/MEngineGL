@@ -59,7 +59,7 @@ class Repository : public IRepository<TEntity>
         entity->SourcePath = path;
         if (mEntities.contains(entity->ID))
         {
-            LogWarn("Entity with ID {} already exists.", entity->ID.ToString());
+            LogWarn("Asset with ID {} already exists.", entity->ID.ToString());
         }
         mEntities[entity->ID] = entity;
         mCachedAssets[path] = entity->ID;
@@ -91,7 +91,7 @@ class Repository : public IRepository<TEntity>
         }
         else
         {
-            LogError("Entity with ID {} not found.", id.ToString());
+            LogError("Asset with ID {} not found.", id.ToString());
             return nullptr;
         }
     }
@@ -100,7 +100,7 @@ class Repository : public IRepository<TEntity>
         auto it = mEntities.find(entity->ID);
         if (it == mEntities.end())
         {
-            LogError("Entity with ID {} not found.", entity->ID.ToString());
+            LogError("Asset with ID {} not found.", entity->ID.ToString());
             return;
         }
         entity->Update();

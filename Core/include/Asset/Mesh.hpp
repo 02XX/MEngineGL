@@ -1,5 +1,5 @@
 #pragma once
-#include "Entity/Entity.hpp"
+#include "Asset/Asset.hpp"
 #include "Math.hpp"
 #include <vector>
 namespace MEngine
@@ -9,15 +9,15 @@ struct Vertex
     glm::vec3 position;
     glm::vec3 normal;
     glm::vec2 texCoord;
-    // glm::vec3 tangent;
-    // glm::vec3 bitangent;
+     glm::vec3 tangent;
+     glm::vec3 bitangent;
 };
-class Mesh final : public Entity
+class Mesh final : public Asset
 {
   public:
     std::vector<Vertex> Vertices{};
     std::vector<uint32_t> Indices{};
-
+private:
     GLuint VAO = 0;
     GLuint VBO = 0;
     GLuint EBO = 0;
@@ -25,7 +25,6 @@ class Mesh final : public Entity
   public:
     Mesh();
     ~Mesh();
-    void Update() override;
 };
 } // namespace MEngine
 
@@ -53,13 +52,13 @@ template <> struct adl_serializer<MEngine::Mesh>
 {
     static void to_json(json &j, const MEngine::Mesh &mesh)
     {
-        j = static_cast<MEngine::Entity>(mesh);
+        j = static_cast<MEngine::Asset>(mesh);
         j["Vertices"] = mesh.Vertices;
         j["Indices"] = mesh.Indices;
     }
     static void from_json(const json &j, MEngine::Mesh &mesh)
     {
-        static_cast<MEngine::Entity &>(mesh) = j;
+        static_cast<MEngine::Asset &>(mesh) = j;
         mesh.Vertices = j.at("Vertices").get<std::vector<MEngine::Vertex>>();
         mesh.Indices = j.at("Indices").get<std::vector<uint32_t>>();
     }

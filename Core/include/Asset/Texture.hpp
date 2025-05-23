@@ -1,5 +1,5 @@
 #pragma once
-#include "Entity/Entity.hpp"
+#include "Asset/Asset.hpp"
 #include "ImageUtil.hpp"
 #include "Logger.hpp"
 #include <filesystem>
@@ -47,33 +47,30 @@ enum class TextureFormatType : GLenum
     DepthComponent = GL_DEPTH_COMPONENT,
     DepthStencil = GL_DEPTH_STENCIL
 };
-struct Importer
-{
-    GLsizei mipLevels = 1;
-    FilterType minFilter = FilterType::Linear;
-    FilterType magFilter = FilterType::Linear;
-    WrapModeType wrapS = WrapModeType::Repeat;
-    WrapModeType wrapT = WrapModeType::Repeat;
-    WrapModeType wrapR = WrapModeType::Repeat;
-    CompareModeType compareMode = CompareModeType::None;
-    CompareFuncType compareFunc = CompareFuncType::Lequal;
-    float lodMin = -1000.0f;
-    float lodMax = 1000.0f;
-    float lodBias = 0.0f;
-    float maxAnisotropy = 1.0f;
-    float borderColor[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-};
-class Texture2D final : public Entity
+
+class Texture  : public Asset
 {
   public:
-    std::filesystem::path ImagePath;
+    int MipmapLevels = 1;
+    float MipmapBias = 0.0f;
+    FilterType MinFilter = FilterType::Linear;
+    FilterType MagFilter = FilterType::Linear;
+    WrapModeType WrapU = WrapModeType::Repeat;
+    WrapModeType WrapV = WrapModeType::Repeat;
+    WrapModeType WrapW = WrapModeType::Repeat;
+    CompareModeType compareMode = CompareModeType::None;
+    CompareFuncType compareFunc = CompareFuncType::Lequal;
+    float LodMin = -1000.0f;
+    float LodMax = 1000.0f;
+    float LodBias = 0.0f;
+    int AnsioLevel = 0;
+    float BorderColor[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+
     int Width = 0;
     int Height = 0;
     int Channels = 0;
-    Importer Importer;
 
-    TextureFormatType mInternalFormat = TextureFormatType::RGBA8;
-    int test = 0;
+public:
     GLuint mSamplerID = 0;
     GLuint mTextureID = 0;
 
@@ -147,7 +144,7 @@ template <> struct adl_serializer<MEngine::Texture2D>
 {
     static void to_json(json &j, const MEngine::Texture2D &texture)
     {
-        j = static_cast<MEngine::Entity>(texture);
+        j = static_cast<MEngine::Asset>(texture);
         j["image_path"] = texture.ImagePath.string();
         j["width"] = texture.Width;
         j["height"] = texture.Height;
@@ -169,7 +166,7 @@ template <> struct adl_serializer<MEngine::Texture2D>
     }
     static void from_json(const json &j, MEngine::Texture2D &texture)
     {
-        static_cast<MEngine::Entity &>(texture) = j;
+        static_cast<MEngine::Asset &>(texture) = j;
         texture.ImagePath = j.at("image_path").get<std::string>();
         texture.Width = j.at("width").get<uint32_t>();
         texture.Height = j.at("height").get<uint32_t>();

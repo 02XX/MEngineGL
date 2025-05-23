@@ -8,42 +8,27 @@
 using json = nlohmann::json;
 namespace MEngine
 {
-enum class EntityType
+class Asset
 {
-    None,
-    Folder,
-    File,
-    Material,
-    Mesh,
-    PhongMaterial,
-    Texture2D,
-    TextureCube,
-    Model,
-    Animation,
-    Shader,
-    Audio,
-    Pipeline
-};
-class Entity
-{
+  private:
   public:
-    EntityType Type = EntityType::None;
-    UUID ID = UUIDGenerator()();
-    std::filesystem::path SourcePath = std::filesystem::path();
-    std::string Name = "Unknown";
+    bool isDirty = false;
 
-  public:
-    Entity() = default;
-    virtual ~Entity() = default;
-    virtual void Update() {};
+    std::string Name = "Asset";
+    inline void MarkDirty()
+    {
+        isDirty = true;
+    }
+    Asset() = default;
+    virtual ~Asset() = default;
 };
 } // namespace MEngine
 
 namespace nlohmann
 {
-template <> struct adl_serializer<MEngine::Entity>
+template <> struct adl_serializer<MEngine::Asset>
 {
-    static void to_json(json &j, const MEngine::Entity &entity)
+    static void to_json(json &j, const MEngine::Asset &entity)
     {
         auto uuid = entity.ID;
         j["id"] = uuid.ToString();
@@ -52,13 +37,13 @@ template <> struct adl_serializer<MEngine::Entity>
         j["type"] = magic_enum::enum_name(entity.Type);
     }
 
-    static void from_json(const json &j, MEngine::Entity &entity)
+    static void from_json(const json &j, MEngine::Asset &entity)
     {
         entity.ID = MEngine::UUID(j["id"].get<std::string>());
         entity.SourcePath = j["path"].get<std::string>();
         entity.Name = j["name"].get<std::string>();
         auto typeStr = j["type"].get<std::string>();
-        auto type = magic_enum::enum_cast<MEngine::EntityType>(typeStr);
+        auto type = magic_enum::enum_cast<MEngine::AssetType>(typeStr);
         if (type.has_value())
         {
             entity.Type = type.value();

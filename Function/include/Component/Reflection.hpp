@@ -27,9 +27,9 @@ struct Info
 static void RegisterMeta()
 {
     entt::meta<Entity>()
-        .type("Entity"_hs)
+        .type("Asset"_hs)
         .custom<Info>(Info{
-            .DisplayName = "Entity",
+            .DisplayName = "Asset",
             .Serializable = false,
         })
         .data<&Entity::ID>("ID"_hs)

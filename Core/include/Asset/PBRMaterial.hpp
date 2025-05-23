@@ -1,5 +1,5 @@
 #pragma once
-#include "Entity/Material.hpp"
+#include "Asset/Material.hpp"
 #include "Material.hpp"
 #include "Math.hpp"
 #include "Type.hpp"
@@ -7,27 +7,25 @@ namespace MEngine
 {
 struct PBRParameters
 {
+    glm::vec3 albedo = glm::vec3(1.0f);
+    glm::vec3 emissive = glm::vec3(0.0f);
     float metallic = 0.0f;
     float roughness = 0.5f;
+    float ao = 0.0f;
+    float emissiveIntensity = 0.0f;
 };
 class PBRMaterial final : public Material
 {
   public:
     // PBR properties
     PBRParameters Parameters;
-    // uniforms
-    GLuint UBO;
-
     // textures
     UUID AlbedoTextureID = UUID();
     UUID NormalTextureID = UUID();
     UUID ARMTextureID = UUID(); // Ambient, Roughness, Metallic
-
-
   public:
     PBRMaterial();
     ~PBRMaterial() override;
-    void Update() override;
 };
 } // namespace MEngine
 

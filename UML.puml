@@ -7,7 +7,11 @@ class Asset
     +MarkDirty()
 }
 AssetMeta --> AssetType
-'==================Texture============
+class Folder
+{
+    +path: Path
+}
+Folder -|> Asset
 enum WrapMode
 {
     Repeat
@@ -223,13 +227,16 @@ class AssetDatabase <<static>>
     -UUID2Meta: Map<UUID, AssetMeta>
     -path2UUID: Map<Path, UUID>
     -UUID2Asset: Map<UUID, Asset>
+    +Scan(path: Path): Void
     +LoadMeta(path: Path): Void
     'load asset from meta, traverse UUID2Meta
-    +LoadAsset(meta: AssetMeta)
+    +LoadAsset(meta: AssetMeta): Asset
     'load asset from path, traverse path2UUID then LoadAsset(meta: AssetMeta)
     +LoadAsset(path: Path): Asset
     +GetAsset(uuid: UUID): Asset
     +GetAsset(path: Path): Asset
+    +GetAsset<T>(uuid: UUID): T
+    +GetAsset<T>(path: Path): T
     +UpdateAsset(uuid: UUID): Void
     +UpdateAsset(path: Path): Void
     +SaveAsset(uuid: UUID, path: Path): Void

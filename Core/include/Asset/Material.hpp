@@ -1,31 +1,28 @@
 #pragma once
-#include "Entity/Entity.hpp"
+#include "Asset/Asset.hpp"
 #include "Material.hpp"
 #include <glm/vec4.hpp>
 #include "UUID.hpp"
+#include "Asset/Pipeline.hpp"
 #include <magic_enum/magic_enum.hpp>
 
 namespace MEngine
 {
-enum class MaterialType
+//抽象类
+class Material : public Asset
 {
-    Standard,
-    PBR,
-    Phong
-};
-class Material : public Entity
-{
+  private:
+    //索引即为binding号
+    std::vector<GLuint> UBOs;
   public:
-    MaterialType MaterialType{MaterialType::Standard};
-    glm::vec4 color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    //索引即为bingding号
+    std::vector<UUID> textures;
+    PipelineType PipelineType{PipelineType::ForwardOpaquePBR};
     UUID PipelineID{};
 
   public:
     Material();
-    ~Material() override;
-    void Update() override
-    {
-    }
+    ~Material() override = 0;
 };
 } // namespace MEngine
 
@@ -36,14 +33,14 @@ template <> struct adl_serializer<MEngine::Material>
 {
     static void to_json(json &j, const MEngine::Material &material)
     {
-        j = static_cast<MEngine::Entity>(material);
+        j = static_cast<MEngine::Asset>(material);
         j["materialType"] = magic_enum::enum_name(material.MaterialType);
         j["pipelineID"] = material.PipelineID.ToString();
         j["color"] = {material.color.r, material.color.g, material.color.b, material.color.a};
     }
     static void from_json(const json &j, MEngine::Material &material)
     {
-        static_cast<MEngine::Entity &>(material) = j;
+        static_cast<MEngine::Asset &>(material) = j;
         std::string materialType = j.at("materialType").get<std::string>();
         auto enumType = magic_enum::enum_cast<MEngine::MaterialType>(materialType);
         if (enumType.has_value())

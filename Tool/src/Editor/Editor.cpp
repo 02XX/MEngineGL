@@ -726,7 +726,7 @@ void Editor::RenderInspectorPanel()
     ImGui::Begin("Inspector", nullptr, ImGuiWindowFlags_None);
     if (mSelectedEntity != entt::null)
     {
-        auto entityLabel = std::format("Entity {}", static_cast<uint32_t>(mSelectedEntity));
+        auto entityLabel = std::format("Asset {}", static_cast<uint32_t>(mSelectedEntity));
         ImGui::Text("%s", entityLabel.c_str());
         if (mRegistry->any_of<AssetsComponent>(mSelectedEntity))
         {

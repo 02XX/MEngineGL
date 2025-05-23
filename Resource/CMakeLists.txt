@@ -2,7 +2,9 @@ file(GLOB_RECURSE RESOURCE  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 set_source_files_properties(${SOURCE_FILES} PROPERTIES CMAKE_CONFIGURE_DEPENDS ON)
 find_package(assimp CONFIG REQUIRED)
 
-add_library(Resource ${RESOURCE})
+add_library(Resource ${RESOURCE}
+        include/AssetDatabase.cpp
+        include/AssetDatabase.hpp)
 target_include_directories(Resource PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(Resource PUBLIC Core)
 target_link_libraries(Resource PRIVATE assimp::assimp)
