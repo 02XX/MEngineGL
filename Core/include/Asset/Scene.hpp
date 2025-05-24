@@ -16,6 +16,7 @@ class Scene final : public Asset
 };
 } // namespace Core
 } // namespace MEngine
+
 namespace nlohmann
 {
 template <> struct adl_serializer<MEngine::Core::Scene>

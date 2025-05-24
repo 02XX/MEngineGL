@@ -21,16 +21,19 @@
 #include <memory>
 #include <typeindex>
 #include <unordered_map>
+#include <utility>
 #include <vector>
-
+using namespace MEngine::Core;
 namespace MEngine
 {
+
 namespace Editor
 {
 struct AssetMeta
 {
     UUID ID;
     bool IsFolder = false;
+    AssetType Type = AssetType::None;
     std::shared_ptr<AssetImporter> importer;
 };
 class AssetDatabase
@@ -42,6 +45,7 @@ class AssetDatabase
     static std::vector<std::filesystem::path> AssetPaths;
 
   public:
+    static AssetType DetermineAssetType(const std::string &extension);
     static void RegisterAssetDirectory(const std::filesystem::path &dir);
     static void UnregisterAssetDirectory(const std::filesystem::path &dir);
     static void CreateFolder(const std::filesystem::path &parentFolder, const std::string &newFolderName);
@@ -90,6 +94,7 @@ class AssetDatabase
     }
     static void Refresh();
     static std::filesystem::path GenerateUniqueAssetPath(std::filesystem::path path);
+    static std::shared_ptr<AssetMeta> GetAssetMeta(const std::filesystem::path &path);
     /**
      * @brief 加载资源，如果资源已经加载过，则直接返回。注意：请仅在需要时加载资源，例如在编辑器中预览资源或在层级中时。
      *
@@ -131,15 +136,6 @@ class AssetDatabase
         {
             throw std::runtime_error("Asset not imported: " + path.string());
         }
-    }
-    inline static std::vector<std::shared_ptr<AssetMeta>> GetAllAssets()
-    {
-        std::vector<std::shared_ptr<AssetMeta>> assets;
-        for (auto &pair : UUID2Meta)
-        {
-            assets.push_back(pair.second);
-        }
-        return assets;
     }
 };
 } // namespace Editor

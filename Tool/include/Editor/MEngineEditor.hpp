@@ -1,5 +1,7 @@
 #pragma once
+#include "Asset/Pipeline.hpp"
 #include "AssetDatabase.hpp"
+#include "Component/AssestComponent.hpp"
 #include "Component/Reflection.hpp"
 #include "System/RenderSystem.hpp"
 #include "UUID.hpp"
@@ -89,7 +91,7 @@ class MEngineEditor
     entt::entity mHoveredEntity = entt::null;
     std::filesystem::path mCurrentPath = mProjectPath;
     uint32_t mAssetIconSize = 64;
-    std::unordered_map<std::type_index, ImTextureID> mAssetIcons;
+    std::unordered_map<AssetType, GLuint> mAssetIcons;
     float mGizmoWidth = 10.f;
     float mGizmoHeight = 10.f;
     ImGuizmo::OPERATION mGuizmoOperation = ImGuizmo::TRANSLATE;
@@ -98,10 +100,18 @@ class MEngineEditor
     std::shared_ptr<AssetMeta> mSelectedAsset;
     std::shared_ptr<AssetMeta> mHoveredAsset;
 
+  private:
+    // thread
+    std::thread mAssetDatabaseThread;
+
   public:
     MEngineEditor();
     ~MEngineEditor();
 
+    bool IsRunning() const
+    {
+        return mIsRunning;
+    }
     void Init();
     void InitWindow();
     void InitOpenGL();
@@ -110,6 +120,7 @@ class MEngineEditor
     void Update(float deltaTime);
     void Shutdown();
 
+    GLuint CreateTextureFromFile(const std::filesystem::path &path);
     void EditorUI();
     void EditorCamera();
     void RenderToolbarPanel();

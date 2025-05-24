@@ -88,10 +88,6 @@ static void RegisterMeta()
         .data<&AssetsComponent::name>("name"_hs)
         .custom<Info>(Info{
             .DisplayName = "name",
-        })
-        .data<&AssetsComponent::type>("type"_hs)
-        .custom<Info>(Info{
-            .DisplayName = "Asset Type",
         });
     entt::meta<TextureComponent>()
         .type("TextureComponent"_hs)

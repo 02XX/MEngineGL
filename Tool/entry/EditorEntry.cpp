@@ -1,3 +1,4 @@
+#include "AssetDatabase.hpp"
 #include "Editor/MEngineEditor.hpp"
 
 int main()

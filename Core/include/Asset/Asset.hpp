@@ -6,6 +6,20 @@ namespace MEngine
 {
 namespace Core
 {
+enum class AssetType
+{
+    None,
+    Folder,
+    Texture,
+    Material,
+    Mesh,
+    Model,
+    Animation,
+    Audio,
+    Shader,
+    Prefab,
+    Script
+};
 class Asset
 {
   private:
@@ -21,6 +35,7 @@ class Asset
 };
 } // namespace Core
 } // namespace MEngine
+
 namespace nlohmann
 {
 template <> struct adl_serializer<MEngine::Core::Asset>

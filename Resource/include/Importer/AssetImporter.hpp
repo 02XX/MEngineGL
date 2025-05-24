@@ -1,5 +1,6 @@
 
 #pragma once
+#include <magic_enum/magic_enum.hpp>
 #include <nlohmann/json.hpp>
 #include <vector>
 
@@ -8,6 +9,7 @@ namespace MEngine
 namespace Editor
 {
 class AssetDatabase;
+
 class AssetImporter
 {
   protected:
@@ -16,6 +18,7 @@ class AssetImporter
   public:
     std::string name;
     std::filesystem::path assetPath;
+
 
   public:
     AssetImporter() = default;

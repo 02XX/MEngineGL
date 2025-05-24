@@ -75,6 +75,7 @@ void AssetDatabase::ImportAsset(const std::filesystem::path &path)
         j.get_to(*meta);
         meta->importer->assetPath = path;
         meta->importer->name = path.stem().string();
+        meta->Type = DetermineAssetType(extension);
         UUID2Meta[meta->ID] = meta;
         Path2UUID[path] = meta->ID;
         return;
@@ -95,8 +96,11 @@ void AssetDatabase::ImportAsset(const std::filesystem::path &path)
     else
     {
         meta->importer = std::make_shared<AssetImporter>();
+        meta->Type = AssetType::None;
         if (extension.empty())
+        {
             meta->IsFolder = true;
+        }
     }
     meta->importer->assetPath = path;
     meta->importer->name = path.stem().string();
@@ -151,6 +155,56 @@ void AssetDatabase::Refresh()
             }
         }
     }
+}
+std::shared_ptr<AssetMeta> AssetDatabase::GetAssetMeta(const std::filesystem::path &path)
+{
+    if (auto it = Path2UUID.find(path); it != Path2UUID.end())
+    {
+        auto meta = UUID2Meta[it->second];
+        return meta;
+    }
+    else
+    {
+        LogError("Asset not found: {}", path.string());
+        return nullptr;
+    }
+}
+AssetType AssetDatabase::DetermineAssetType(const std::string &extension)
+{
+    if (extension.empty())
+    {
+        return AssetType::Folder;
+    }
+    if (extension == ".png" || extension == ".jpg" || extension == ".jpeg")
+    {
+        return AssetType::Texture;
+    }
+    if (extension == ".mat")
+    {
+        return AssetType::Material;
+    }
+    if (extension == ".shader" || extension == ".hlsl" || extension == ".glsl" || extension == ".vert" ||
+        extension == ".frag" || extension == ".comp")
+    {
+        return AssetType::Shader;
+    }
+    if (extension == ".prefab")
+    {
+        return AssetType::Prefab;
+    }
+    if (extension == ".fbx" || extension == ".obj")
+    {
+        return AssetType::Model;
+    }
+    if (extension == ".wav" || extension == ".mp3" || extension == ".ogg")
+    {
+        return AssetType::Audio;
+    }
+    if (extension == ".anim")
+    {
+        return AssetType::Animation;
+    }
+    return AssetType::None;
 }
 } // namespace Editor
 } // namespace MEngine

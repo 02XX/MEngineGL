@@ -17,10 +17,9 @@ class Texture2D final : public Texture
     Format Format = Format::R16G16B16A16;
 
   public:
-    Texture2D() = default;
-    ~Texture2D() override = default;
+    Texture2D();
+    ~Texture2D();
 };
-
 } // namespace Core
 } // namespace MEngine
 namespace nlohmann

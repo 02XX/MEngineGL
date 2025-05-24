@@ -1,10 +1,13 @@
 #include "Editor/MEngineEditor.hpp"
 #include "Asset/Asset.hpp"
 #include "Asset/Folder.hpp"
+#include "Asset/Material.hpp"
 #include "Asset/Mesh.hpp"
 #include "Asset/Model.hpp"
 #include "Asset/PBRMaterial.hpp"
+#include "Asset/Pipeline.hpp"
 #include "AssetDatabase.hpp"
+#include "Component/AssestComponent.hpp"
 #include "Component/TransformComponent.hpp"
 #include "Configure.hpp"
 #include "Logger.hpp"
@@ -16,7 +19,7 @@
 #include <glm/ext/matrix_float4x4.hpp>
 #include <imgui.h>
 #include <memory>
-
+#include <thread>
 namespace MEngine
 {
 using namespace Editor;
@@ -132,6 +135,8 @@ void MEngineEditor::Init()
     InitSystems();
     InitImGui();
     LoadUIResources();
+    AssetDatabase::RegisterAssetDirectory(mProjectPath);
+
     // camera
     auto camera = mRegistry->create();
     auto &cameraComponent = mRegistry->emplace<CameraComponent>(camera);
@@ -141,6 +146,14 @@ void MEngineEditor::Init()
     transformComponent.localPosition = glm::vec3(0.0f, 0.0f, 100.0f);
     transformComponent.name = "EditorCamera";
     mIsRunning = true;
+    mAssetDatabaseThread = std::thread([this]() {
+        while (mIsRunning)
+        {
+            MEngine::Editor::AssetDatabase::Refresh();
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+        LogInfo("Stop scanning asset directory");
+    });
 }
 void MEngineEditor::InitWindow()
 {
@@ -267,7 +280,12 @@ void MEngineEditor::Shutdown()
     {
         system->Shutdown();
     }
+    for (auto [type, assetIcon] : mAssetIcons)
+    {
+        glDeleteTextures(1, &assetIcon);
+    }
     mIsRunning = false;
+    mAssetDatabaseThread.join();
 }
 
 //=======================Editor UI=========================
@@ -837,35 +855,46 @@ void MEngineEditor::RenderAssetPanel()
     auto view = mRegistry->view<AssetsComponent>();
     int columns = std::max(1, static_cast<int>(ImGui::GetContentRegionAvail().x / (mAssetIconSize + 10)));
     ImGui::Columns(columns, "AssetColumns", false); // false = 不显示边框
-    auto currentPathAssets = AssetDatabase::GetAllAssets();
-    for (auto asset : currentPathAssets)
+    auto currentDirectory = std::filesystem::directory_iterator(mCurrentPath);
+    for (auto &entry : currentDirectory)
     {
+        // 如果以.meta结尾，则跳过
+        if (entry.is_regular_file() && entry.path().extension() == ".meta")
+        {
+            continue;
+        }
+        auto meta = AssetDatabase::GetAssetMeta(entry.path());
+        if (meta == nullptr)
+        {
+            continue;
+        }
         ImTextureID textureID = 0;
-        // if (mAssetIcons.find(asset->Type) != mAssetIcons.end())
-        // {
-        //     textureID = mAssetIcons[asset->Type];
-        // }
-        if (ImGui::Selectable("##btn", mSelectedAsset == asset,
+        if (mAssetIcons.find(meta->Type) != mAssetIcons.end())
+        {
+            textureID = static_cast<ImTextureID>(mAssetIcons[meta->Type]);
+        }
+        auto label = std::format("##{}", meta->ID.ToString());
+        if (ImGui::Selectable(label.c_str(), mSelectedAsset == meta,
                               ImGuiSelectableFlags_AllowItemOverlap | ImGuiSelectableFlags_AllowDoubleClick,
                               ImVec2(mAssetIconSize + 10, mAssetIconSize + 20)))
         {
-            mSelectedAsset = asset;
+            mSelectedAsset = meta;
             mSelectedEntity = entt::null;
             if (ImGui::IsMouseDoubleClicked(0))
             {
-                if (typeid(*asset) == typeid(Folder))
+                if (meta->IsFolder)
                 {
-                    mCurrentPath = asset->importer->assetPath;
+                    mCurrentPath = meta->importer->assetPath;
                 }
             }
         }
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup))
         {
-            mHoveredAsset = asset;
+            mHoveredAsset = meta;
             mHoveredEntity = entt::null;
             if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
             {
-                mSelectedAsset = asset;
+                mSelectedAsset = meta;
                 mHoveredEntity = entt::null;
             }
             if (ImGui::IsMouseDragging(0))
@@ -873,11 +902,11 @@ void MEngineEditor::RenderAssetPanel()
                 if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
                 {
                     // 设置拖拽数据
-                    ImGui::SetDragDropPayload("ASSET_ITEM", &asset, sizeof(asset));
+                    ImGui::SetDragDropPayload("ASSET_ITEM", &meta, sizeof(AssetMeta));
                     // 显示拖拽预览（图标）
                     ImGui::Image(textureID, ImVec2(0, 1), ImVec2(1, 0));
                     // 可选：添加文字说明
-                    ImGui::Text("Drag %s", asset->ID.ToString().c_str());
+                    ImGui::Text("Drag %s", meta->ID.ToString().c_str());
                     ImGui::EndDragDropSource();
                 }
             }
@@ -892,9 +921,10 @@ void MEngineEditor::RenderAssetPanel()
         ImVec2 textPos =
             ImVec2(ContainerMinPos.x + (ContainerSize.x - mAssetIconSize) / 2, ContainerMinPos.y + mAssetIconSize);
         ImGui::SetCursorScreenPos(textPos);
-        ImGui::Text("%s", asset->importer->assetPath.stem().string().c_str());
+        ImGui::Text("%s", meta->importer->assetPath.stem().string().c_str());
         ImGui::NextColumn(); // 移动到下一列
     }
+
     ImGui::Columns(1); // 恢复单列模式
 
     if (ImGui::BeginPopupContextWindow("AssetContextMenu", ImGuiPopupFlags_MouseButtonRight))
@@ -916,15 +946,27 @@ void MEngineEditor::RenderAssetPanel()
 }
 void MEngineEditor::LoadUIResources()
 {
-    // auto foldTexture = mResourceManager->CreateAsset<Texture2D>();
-    // foldTexture->ImagePath = mUIResourcesPath / "folder.png";
-    // auto fileTexture = mResourceManager->CreateAsset<Texture2D>();
-    // fileTexture->ImagePath = mUIResourcesPath / "file.png";
-    // mResourceManager->UpdateAsset(foldTexture);
-    // mResourceManager->UpdateAsset(fileTexture);
-    // mAssetIcons[AssetType::Folder] = foldTexture->mTextureID;
-    // mAssetIcons[AssetType::File] = fileTexture->mTextureID;
-    // LogInfo("Loaded UI resources");
+    auto folderUIPath = mUIResourcesPath / "folder.png";
+    auto fileUIPath = mUIResourcesPath / "file.png";
+    auto textureUIPath = mUIResourcesPath / "texture.png";
+    auto modelUIPath = mUIResourcesPath / "model.png";
+    auto shaderUIPath = mUIResourcesPath / "shader.png";
+    auto audioUIPath = mUIResourcesPath / "audio.png";
+    auto materialUIPath = mUIResourcesPath / "material.png";
+    auto animationUIPath = mUIResourcesPath / "animation.png";
+    auto scriptUIPath = mUIResourcesPath / "script.png";
+    auto prefabUIPath = mUIResourcesPath / "prefab.png";
+    mAssetIcons[AssetType::Folder] = CreateTextureFromFile(folderUIPath);
+    mAssetIcons[AssetType::None] = CreateTextureFromFile(fileUIPath);
+    mAssetIcons[AssetType::Texture] = CreateTextureFromFile(textureUIPath);
+    mAssetIcons[AssetType::Model] = CreateTextureFromFile(modelUIPath);
+    mAssetIcons[AssetType::Shader] = CreateTextureFromFile(shaderUIPath);
+    mAssetIcons[AssetType::Audio] = CreateTextureFromFile(audioUIPath);
+    mAssetIcons[AssetType::Material] = CreateTextureFromFile(materialUIPath);
+    mAssetIcons[AssetType::Animation] = CreateTextureFromFile(animationUIPath);
+    mAssetIcons[AssetType::Script] = CreateTextureFromFile(scriptUIPath);
+    mAssetIcons[AssetType::Prefab] = CreateTextureFromFile(prefabUIPath);
+    LogInfo("Loaded UI resources");
 }
 void MEngineEditor::GetAssetFromModel(const UUID &modelID, std::shared_ptr<entt::registry> registry)
 {
@@ -963,5 +1005,36 @@ void MEngineEditor::GetAssetFromModel(const UUID &modelID, std::shared_ptr<entt:
     //     return currentNode;
     // };
     // traverseNode(RootNode);
+}
+GLuint MEngineEditor::CreateTextureFromFile(const std::filesystem::path &path)
+{
+    GLuint textureID;
+    glCreateTextures(GL_TEXTURE_2D, 1, &textureID);
+
+    // 设置纹理参数
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    // 使用 stb_image 加载图像
+    int width, height, channels;
+    stbi_set_flip_vertically_on_load(true);
+    unsigned char *data = stbi_load(path.string().c_str(), &width, &height, &channels, 4); // 强制 RGBA
+    if (data)
+    {
+        glTextureStorage2D(textureID, 1, GL_RGBA8, width, height);
+        glTextureSubImage2D(textureID, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        stbi_image_free(data);
+        LogTrace("Loaded texture from file: {}", path.string().c_str());
+    }
+    else
+    {
+        // 错误处理
+        glDeleteTextures(1, &textureID);
+        return 0;
+    }
+
+    return textureID;
 }
 } // namespace MEngine
