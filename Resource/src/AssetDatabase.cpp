@@ -104,6 +104,7 @@ void AssetDatabase::ImportAsset(const std::filesystem::path &path)
     }
     meta->importer->assetPath = path;
     meta->importer->name = path.stem().string();
+    meta->Type = DetermineAssetType(extension);
     json j;
     j = *meta;
     std::ofstream metaFile(metaPath);
@@ -114,6 +115,8 @@ void AssetDatabase::ImportAsset(const std::filesystem::path &path)
         return;
     }
     metaFile.close();
+    UUID2Meta[meta->ID] = meta;
+    Path2UUID[path] = meta->ID;
 }
 std::filesystem::path AssetDatabase::GenerateUniqueAssetPath(std::filesystem::path path)
 {
@@ -122,14 +125,17 @@ std::filesystem::path AssetDatabase::GenerateUniqueAssetPath(std::filesystem::pa
         return path;
     }
     const auto stem = path.stem();
-    const auto extension = path.extension();
+    std::string extension = "";
+    if (!std::filesystem::is_directory(path))
+    {
+        extension = path.extension().string();
+    }
     auto parentPath = path.parent_path();
-
     int counter = 1;
     std::filesystem::path newPath;
     do
     {
-        newPath = parentPath / (stem.string() + " (" + std::to_string(counter) + ")" + extension.string());
+        newPath = parentPath / (stem.string() + " (" + std::to_string(counter) + ")" + extension);
         ++counter;
     } while (std::filesystem::exists(newPath));
     return newPath;
@@ -165,7 +171,7 @@ std::shared_ptr<AssetMeta> AssetDatabase::GetAssetMeta(const std::filesystem::pa
     }
     else
     {
-        LogError("Asset not found: {}", path.string());
+
         return nullptr;
     }
 }

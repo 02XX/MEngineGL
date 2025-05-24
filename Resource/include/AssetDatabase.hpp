@@ -1,6 +1,7 @@
 #pragma once
 #include "Asset/Asset.hpp"
 #include "Asset/CustomMaterial.hpp"
+#include "Asset/Folder.hpp"
 #include "Asset/Material.hpp"
 #include "Asset/PBRMaterial.hpp"
 #include "Asset/PhongMaterial.hpp"
@@ -68,28 +69,44 @@ class AssetDatabase
     template <std::derived_from<Asset> TAsset>
     static void CreateAsset(std::shared_ptr<const TAsset> asset, const std::filesystem::path &path)
     {
-        const auto &ti = typeid(TAsset);
-        auto extension = path.extension();
-        auto assetPath = path;
-        if (auto it = Asset2Extension.find(ti); it != Asset2Extension.end())
+
+        if constexpr (std::is_same_v<TAsset, Folder>)
         {
-            if (extension != it->second)
+            if (std::filesystem::create_directory(GenerateUniqueAssetPath(path)))
             {
-                assetPath.replace_extension(it->second);
-                LogWarn("Asset extension mismatch: {} != {}, changed to {}", extension.string(), it->second,
-                        assetPath.string());
+                ImportAsset(path);
             }
-            auto extension = it->second;
-            json j;
-            j = *asset;
-            std::ofstream assetFile(GenerateUniqueAssetPath(assetPath));
-            assetFile << j.dump(4);
-            assetFile.close();
-            ImportAsset(assetPath);
+            else
+            {
+                LogError("Failed to create folder: {}", path.string());
+                return;
+            }
         }
         else
         {
-            LogError("Asset type not supported to create: {}", ti.name());
+            auto extension = path.extension();
+            auto assetPath = path;
+            auto ti = std::type_index(typeid(*asset));
+            if (auto it = Asset2Extension.find(ti); it != Asset2Extension.end())
+            {
+                if (extension != it->second)
+                {
+                    assetPath.replace_extension(it->second);
+                    LogWarn("Asset extension mismatch: {} != {}, changed to {}", extension.string(), it->second,
+                            assetPath.string());
+                }
+                auto extension = it->second;
+                json j;
+                j = *asset;
+                std::ofstream assetFile(GenerateUniqueAssetPath(assetPath));
+                assetFile << j.dump(4);
+                assetFile.close();
+                ImportAsset(assetPath);
+            }
+            else
+            {
+                LogError("Asset type not supported to create: {}", ti.name());
+            }
         }
     }
     static void Refresh();

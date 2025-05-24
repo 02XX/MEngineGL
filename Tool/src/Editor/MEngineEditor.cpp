@@ -15,6 +15,7 @@
 #include "System/RenderSystem.hpp"
 #include "System/TransformSystem.hpp"
 #include "UUID.hpp"
+#include <algorithm>
 #include <boost/di.hpp>
 #include <glm/ext/matrix_float4x4.hpp>
 #include <imgui.h>
@@ -150,7 +151,7 @@ void MEngineEditor::Init()
         while (mIsRunning)
         {
             MEngine::Editor::AssetDatabase::Refresh();
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
         LogInfo("Stop scanning asset directory");
     });
@@ -855,8 +856,16 @@ void MEngineEditor::RenderAssetPanel()
     auto view = mRegistry->view<AssetsComponent>();
     int columns = std::max(1, static_cast<int>(ImGui::GetContentRegionAvail().x / (mAssetIconSize + 10)));
     ImGui::Columns(columns, "AssetColumns", false); // false = 不显示边框
-    auto currentDirectory = std::filesystem::directory_iterator(mCurrentPath);
-    for (auto &entry : currentDirectory)
+    std::vector<std::filesystem::directory_entry> entries;
+    for (const auto &entry : std::filesystem::directory_iterator(mCurrentPath))
+    {
+        entries.push_back(entry);
+    }
+    std::sort(entries.begin(), entries.end(),
+              [](const std::filesystem::directory_entry &a, const std::filesystem::directory_entry &b) {
+                  return a.is_directory() && !b.is_directory(); // a是目录且b不是时，a排在前面
+              });
+    for (auto &entry : entries)
     {
         // 如果以.meta结尾，则跳过
         if (entry.is_regular_file() && entry.path().extension() == ".meta")
@@ -930,14 +939,28 @@ void MEngineEditor::RenderAssetPanel()
     if (ImGui::BeginPopupContextWindow("AssetContextMenu", ImGuiPopupFlags_MouseButtonRight))
     {
 
+        if (ImGui::MenuItem("Create Folder"))
+        {
+            auto folder = std::make_shared<Folder>();
+            AssetDatabase::CreateAsset<Folder>(folder, mCurrentPath / "New Folder");
+        }
         if (ImGui::BeginMenu("Create Material"))
         {
-            // if (ImGui::MenuItem("PBR"))
-            // {
-            //     auto pbrMaterial = mResourceManager->CreateAsset<PBRMaterial>();
-            //     auto path = mResourceManager->GenerateUniquePath<PBRMaterial>(mProjectPath, "New Material");
-            //     mResourceManager->SaveAsset<PBRMaterial>(pbrMaterial->ID, path);
-            // }
+            if (ImGui::MenuItem("PBR"))
+            {
+                auto pbrMaterial = std::make_shared<PBRMaterial>();
+                AssetDatabase::CreateAsset<PBRMaterial>(pbrMaterial, mCurrentPath / "PBRMaterial.mat");
+            }
+            if (ImGui::MenuItem("Phong"))
+            {
+                auto phongMaterial = std::make_shared<PhongMaterial>();
+                AssetDatabase::CreateAsset<PhongMaterial>(phongMaterial, mCurrentPath / "PhongMaterial.mat");
+            }
+            if (ImGui::MenuItem("Custom"))
+            {
+                auto customMaterial = std::make_shared<CustomMaterial>();
+                AssetDatabase::CreateAsset<CustomMaterial>(customMaterial, mCurrentPath / "CustomMaterial.mat");
+            }
             ImGui::EndMenu();
         }
         ImGui::EndPopup();
