@@ -1,7 +1,6 @@
 #pragma once
 #include "Component/Component.hpp"
 #include "UUID.hpp"
-#include <entt/entt.hpp>
 #include <filesystem>
 #include <memory>
 

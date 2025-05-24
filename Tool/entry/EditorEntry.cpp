@@ -1,8 +1,8 @@
-#include "Editor/Editor.hpp"
+#include "Editor/MEngineEditor.hpp"
 
 int main()
 {
-    MEngine::Editor editor;
+    MEngine::MEngineEditor editor;
     editor.Init();
     editor.Update(0.016f); // 60 FPS
     editor.Shutdown();

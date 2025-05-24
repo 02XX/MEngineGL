@@ -1,6 +1,6 @@
 #pragma once
 #include "System/ISystem.hpp"
-#include <entt/entity/fwd.hpp>
+#include <entt/fwd.hpp>
 #include <memory>
 namespace MEngine
 {

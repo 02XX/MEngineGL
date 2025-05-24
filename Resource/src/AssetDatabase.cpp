@@ -5,6 +5,7 @@
 #include "Asset/PBRMaterial.hpp"
 #include "Asset/PhongMaterial.hpp"
 #include "Asset/Pipeline.hpp"
+#include "Importer/AssetImporter.hpp"
 #include "Importer/NativeFormatImporter.hpp"
 #include "Logger.hpp"
 #include <fstream>
@@ -14,7 +15,7 @@ namespace MEngine
 {
 namespace Editor
 {
-std::unordered_map<UUID, AssetMeta> AssetDatabase::UUID2Meta{};
+std::unordered_map<UUID, std::shared_ptr<AssetMeta>> AssetDatabase::UUID2Meta{};
 std::unordered_map<std::filesystem::path, UUID> AssetDatabase::Path2UUID{};
 std::vector<std::filesystem::path> AssetDatabase::AssetPaths{};
 std::unordered_map<std::type_index, std::string> AssetDatabase::Asset2Extension{
@@ -41,7 +42,16 @@ void AssetDatabase::UnregisterAssetDirectory(const std::filesystem::path &dir)
 }
 void AssetDatabase::ImportAsset(const std::filesystem::path &path)
 {
-    auto extension = path.extension();
+    if (!std::filesystem::exists(path))
+    {
+        LogError("Asset path does not exist: {}", path.string());
+        return;
+    }
+    std::string extension = "";
+    if (!std::filesystem::is_directory(path))
+    {
+        extension = path.extension().string();
+    }
     if (extension == ".meta")
     {
         LogWarn("Please do not import .meta file");
@@ -49,6 +59,7 @@ void AssetDatabase::ImportAsset(const std::filesystem::path &path)
     }
     auto metaPath = path;
     metaPath += ".meta";
+    auto meta = std::make_shared<AssetMeta>();
     if (std::filesystem::exists(metaPath))
     {
         LogTrace("Dserialize from existing meta file");
@@ -61,31 +72,36 @@ void AssetDatabase::ImportAsset(const std::filesystem::path &path)
         json j;
         metaFile >> j;
         metaFile.close();
-        auto meta = j.get<AssetMeta>();
-        meta.importer->assetPath = path;
-        meta.importer->name = path.stem().string();
-        UUID2Meta[meta.ID] = meta;
-        Path2UUID[path] = meta.ID;
+        j.get_to(*meta);
+        meta->importer->assetPath = path;
+        meta->importer->name = path.stem().string();
+        UUID2Meta[meta->ID] = meta;
+        Path2UUID[path] = meta->ID;
         return;
     }
     // 构建meta
-    AssetMeta meta;
-    meta.ID = UUIDGenerator()();
-    meta.IsFolder = false;
+    meta->ID = UUIDGenerator()();
+    meta->IsFolder = false;
     if (extension == ".png" || extension == ".jpg" || extension == ".jpeg")
     {
         // 构建默认importer
-        meta.importer = std::make_shared<TextureImporter>();
+        meta->importer = std::make_shared<TextureImporter>();
     }
     // for native asset
-    if (extension == ".mat" || extension == ".shader" || extension == ".prefab")
+    else if (extension == ".mat" || extension == ".shader" || extension == ".prefab")
     {
-        meta.importer = std::make_shared<NativeFormatImporter>();
+        meta->importer = std::make_shared<NativeFormatImporter>();
     }
-    meta.importer->assetPath = path;
-    meta.importer->name = path.stem().string();
+    else
+    {
+        meta->importer = std::make_shared<AssetImporter>();
+        if (extension.empty())
+            meta->IsFolder = true;
+    }
+    meta->importer->assetPath = path;
+    meta->importer->name = path.stem().string();
     json j;
-    j = meta;
+    j = *meta;
     std::ofstream metaFile(metaPath);
     metaFile << j.dump(4);
     if (!metaFile.is_open())
@@ -122,16 +138,16 @@ void AssetDatabase::Refresh()
         {
             if (entry.is_regular_file())
             {
-                auto path = entry.path();
-                auto extension = path.extension();
+                auto extension = entry.path().extension().string();
                 if (extension == ".meta")
                 {
                     continue;
                 }
-                if (Path2UUID.find(path) == Path2UUID.end())
-                {
-                    ImportAsset(path);
-                }
+            }
+            auto path = entry.path();
+            if (Path2UUID.find(path) == Path2UUID.end())
+            {
+                ImportAsset(path);
             }
         }
     }

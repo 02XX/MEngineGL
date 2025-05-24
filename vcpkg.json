@@ -1,5 +1,6 @@
 {
     "dependencies": [
+        "assimp",
         "bext-di",
         "entt",
         "fmt",
@@ -20,8 +21,7 @@
         "magic-enum",
         "nlohmann-json",
         "spdlog",
-        "stb",
-        "assimp"
+        "stb"
     ],
     "overrides": [
         {

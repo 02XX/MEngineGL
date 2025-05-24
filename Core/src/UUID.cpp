@@ -2,6 +2,8 @@
 
 namespace MEngine
 {
+namespace Core
+{
 UUID UUIDGenerator::operator()()
 {
 
@@ -14,4 +16,5 @@ UUID UUIDGenerator::operator()()
     uuid.low = (uuid.low & 0x3FFFFFFFFFFFFFFF) | (0x8000000000000000);
     return uuid;
 }
+} // namespace Core
 } // namespace MEngine

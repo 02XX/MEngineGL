@@ -1,4 +1,8 @@
 #pragma once
+#include "Asset/Asset.hpp"
+#include "Asset/Folder.hpp"
+#include "Asset/PBRMaterial.hpp"
+#include "Asset/Texture2D.hpp"
 #include "Component/AssestComponent.hpp"
 #include "Component/CameraComponent.hpp"
 #include "Component/Component.hpp"
@@ -6,10 +10,6 @@
 #include "Component/MeshComponent.hpp"
 #include "Component/TextureComponent.hpp"
 #include "Component/TransformComponent.hpp"
-#include "Entity/Entity.hpp"
-#include "Entity/Folder.hpp"
-#include "Entity/PBRMaterial.hpp"
-#include "Entity/Texture2D.hpp"
 #include <entt/entt.hpp>
 #include <entt/meta/factory.hpp>
 
@@ -26,79 +26,44 @@ struct Info
 };
 static void RegisterMeta()
 {
-    entt::meta<Entity>()
+    entt::meta<Asset>()
         .type("Asset"_hs)
         .custom<Info>(Info{
             .DisplayName = "Asset",
             .Serializable = false,
         })
-        .data<&Entity::ID>("ID"_hs)
-        .custom<Info>(Info{.DisplayName = "ID", .Serializable = false})
-        .data<&Entity::SourcePath>("SourcePath"_hs)
-        .custom<Info>(Info{.DisplayName = "SourcePath", .Serializable = true})
-        .data<&Entity::Name>("Name"_hs)
+        .data<&Asset::Name>("Name"_hs)
         .custom<Info>(Info{.DisplayName = "Name", .Editable = false});
-    entt::meta<Texture2D>()
-        .type("Texture2D"_hs)
-        .base<Entity>()
-        .custom<Info>(Info{
-            .DisplayName = "Texture2D",
-        })
-        .data<&Texture2D::Width>("Width"_hs)
-        .custom<Info>(Info{
-            .DisplayName = "Width",
-        })
-        .data<&Texture2D::Height>("Height"_hs)
-        .custom<Info>(Info{
-            .DisplayName = "Height",
-        })
-        .data<&Texture2D::Channels>("Channels"_hs)
-        .custom<Info>(Info{
-            .DisplayName = "Channels",
-        })
-        .data<&Texture2D::mSamplerID>("mSamplerID"_hs)
-        .custom<Info>(Info{
-            .DisplayName = "mSamplerID",
-        })
-        .data<&Texture2D::test>("test"_hs)
-        .custom<Info>(Info{.DisplayName = "test", .Editable = true})
-        .data<&Texture2D::mTextureID>("mTextureID"_hs)
-        .custom<Info>(Info{
-            .DisplayName = "mTextureID",
-        });
+    // entt::meta<Texture2D>()
+    //     .type("Texture2D"_hs)
+    //     .base<Asset>()
+    //     .custom<Info>(Info{
+    //         .DisplayName = "Texture2D",
+    //     })
+    //     .data<&Texture2D::Width>("Width"_hs)
+    //     .custom<Info>(Info{
+    //         .DisplayName = "Width",
+    //     })
+    //     .data<&Texture2D::Height>("Height"_hs)
+    //     .custom<Info>(Info{
+    //         .DisplayName = "Height",
+    //     })
+    //     .data<&Texture2D::Channels>("Channels"_hs)
+    //     .custom<Info>(Info{
+    //         .DisplayName = "Channels",
+    //     })
+    //     .data<&Texture2D::mSamplerID>("mSamplerID"_hs)
+    //     .custom<Info>(Info{
+    //         .DisplayName = "mSamplerID",
+    //     })
+    //     .data<&Texture2D::mTextureID>("mTextureID"_hs)
+    //     .custom<Info>(Info{
+    //         .DisplayName = "mTextureID",
+    //     });
     // .data<&Texture2D::Importer>("Importer"_hs)
     // .custom<Info>(Info{
     //     .DisplayName = "Importer",
     // });
-    entt::meta<Importer>()
-        .type("Importer"_hs)
-        .custom<Info>(Info{
-            .DisplayName = "Importer",
-        })
-        .data<&Importer::mipLevels>("mip_levels"_hs)
-        .custom<Info>(Info{
-            .DisplayName = "mip_levels",
-        })
-        .data<&Importer::minFilter>("min_filter"_hs)
-        .custom<Info>(Info{
-            .DisplayName = "min_filter",
-        })
-        .data<&Importer::magFilter>("mag_filter"_hs)
-        .custom<Info>(Info{
-            .DisplayName = "mag_filter",
-        })
-        .data<&Importer::wrapS>("wrap_s"_hs)
-        .custom<Info>(Info{
-            .DisplayName = "wrap_s",
-        })
-        .data<&Importer::wrapT>("wrap_t"_hs)
-        .custom<Info>(Info{
-            .DisplayName = "wrap_t",
-        })
-        .data<&Importer::wrapR>("wrap_r"_hs)
-        .custom<Info>(Info{
-            .DisplayName = "wrap_r",
-        });
     entt::meta<Component>()
         .type("Component"_hs)
         .custom<Info>(Info{
@@ -224,17 +189,17 @@ static void RegisterMeta()
             .DisplayName = "meshIndex",
             .Editable = true,
         });
-    entt::meta<MaterialComponent>()
-        .type("MaterialComponent"_hs)
-        .custom<Info>(Info{
-            .DisplayName = "MaterialComponent",
-        })
-        .base<Component>()
-        .data<&MaterialComponent::materialID>("materialID"_hs)
-        .custom<Info>(Info{
-            .DisplayName = "materialID",
-            .Editable = true,
-        });
+    // entt::meta<MaterialComponent>()
+    //     .type("MaterialComponent"_hs)
+    //     .custom<Info>(Info{
+    //         .DisplayName = "MaterialComponent",
+    //     })
+    //     .base<Component>()
+    //     .data<&MaterialComponent::materialID>("materialID"_hs)
+    //     .custom<Info>(Info{
+    //         .DisplayName = "materialID",
+    //         .Editable = true,
+    //     });
     entt::meta<PBRMaterial>()
         .type("PBRMaterial"_hs)
         .custom<Info>(Info{
@@ -281,25 +246,23 @@ static void RegisterMeta()
         .custom<Info>(Info{
             .DisplayName = "Folder",
         })
-        .base<Entity>()
+        .base<Asset>()
         .data<&Folder::FolderPath>("FolderPath"_hs)
         .custom<Info>(Info{
             .DisplayName = "FolderPath",
             .Editable = true,
         });
     entt::meta<LightComponent>()
-    .type("LightComponent"_hs)
-    .custom<Info>(Info{
-    .DisplayName = "LightComponent"})
-    .base<Component>()
-    .data<&LightComponent::LightType>("LightType"_hs)
-    .custom<Info>(Info{
-    .DisplayName = "LightType",.Editable = true})
-    .data<&LightComponent::Color>("Color"_hs)
-    .custom<Info>(Info{.DisplayName = "Color",.Editable = true})
-    .data<&LightComponent::Intensity>("Intensity"_hs)
-    .custom<Info>(Info{.DisplayName = "Intensity",.Editable = true})
-    .data<&LightComponent::Radius>("Radius"_hs)
-    .custom<Info>(Info{.DisplayName = "Radius",.Editable = true});
+        .type("LightComponent"_hs)
+        .custom<Info>(Info{.DisplayName = "LightComponent"})
+        .base<Component>()
+        .data<&LightComponent::LightType>("LightType"_hs)
+        .custom<Info>(Info{.DisplayName = "LightType", .Editable = true})
+        .data<&LightComponent::Color>("Color"_hs)
+        .custom<Info>(Info{.DisplayName = "Color", .Editable = true})
+        .data<&LightComponent::Intensity>("Intensity"_hs)
+        .custom<Info>(Info{.DisplayName = "Intensity", .Editable = true})
+        .data<&LightComponent::Radius>("Radius"_hs)
+        .custom<Info>(Info{.DisplayName = "Radius", .Editable = true});
 }
 } // namespace MEngine

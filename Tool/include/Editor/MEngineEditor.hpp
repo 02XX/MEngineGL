@@ -1,27 +1,11 @@
 #pragma once
-#include "BasicGeometryFactory.hpp"
-#include "Component/AssestComponent.hpp"
-#include "Component/CameraComponent.hpp"
-#include "Component/Component.hpp"
+#include "AssetDatabase.hpp"
 #include "Component/Reflection.hpp"
-#include "Component/TextureComponent.hpp"
-#include "Entity/Entity.hpp"
-#include "Entity/Folder.hpp"
-#include "Entity/Texture2D.hpp"
-#include "IConfigure.hpp"
-#include "Logger.hpp"
-#include "Repository/Repository.hpp"
-#include "ResourceManager.hpp"
-#include "SceneManager.hpp"
-#include "System/CameraSystem.hpp"
 #include "System/RenderSystem.hpp"
-#include "System/TransformSystem.hpp"
 #include "UUID.hpp"
 #include <GLFW/glfw3.h>
 #include <algorithm>
-#include <concepts>
 #include <cstdint>
-#include <entt/entity/fwd.hpp>
 #include <entt/entt.hpp>
 #include <entt/meta/meta.hpp>
 #include <filesystem>
@@ -34,8 +18,7 @@
 #include <magic_enum/magic_enum.hpp>
 #include <memory>
 #include <string>
-#include <type_traits>
-#include <typeinfo>
+#include <typeindex>
 #include <unordered_map>
 #include <vector>
 
@@ -43,6 +26,7 @@
 
 namespace MEngine
 {
+using namespace Editor;
 struct WindowConfig
 {
     int32_t width = 1280;
@@ -68,14 +52,12 @@ struct Resolution
         return width == other.width && height == other.height;
     }
 };
-class Editor
+class MEngineEditor
 {
   private:
     std::shared_ptr<entt::registry> mRegistry;
     std::vector<std::shared_ptr<ISystem>> mSystems;
     std::shared_ptr<RenderSystem> mRenderSystem;
-    std::shared_ptr<ResourceManager> mResourceManager;
-    std::shared_ptr<BasicGeometryFactory> mBasicGeometryFactory;
 
   private:
     GLFWwindow *mWindow;
@@ -107,18 +89,18 @@ class Editor
     entt::entity mHoveredEntity = entt::null;
     std::filesystem::path mCurrentPath = mProjectPath;
     uint32_t mAssetIconSize = 64;
-    std::unordered_map<EntityType, ImTextureID> mAssetIcons;
+    std::unordered_map<std::type_index, ImTextureID> mAssetIcons;
     float mGizmoWidth = 10.f;
     float mGizmoHeight = 10.f;
     ImGuizmo::OPERATION mGuizmoOperation = ImGuizmo::TRANSLATE;
     ImGuizmo::MODE mGuizmoMode = ImGuizmo::LOCAL;
     entt::entity mEditorCamera;
-    std::shared_ptr<Entity> mSelectedAsset;
-    std::shared_ptr<Entity> mHoveredAsset;
+    std::shared_ptr<AssetMeta> mSelectedAsset;
+    std::shared_ptr<AssetMeta> mHoveredAsset;
 
   public:
-    Editor();
-    ~Editor();
+    MEngineEditor();
+    ~MEngineEditor();
 
     void Init();
     void InitWindow();
@@ -135,10 +117,10 @@ class Editor
     void RenderHierarchyPanel();
     void RenderHierarchyItem(entt::entity entity);
     void RenderInspectorPanel();
-    void DeleteEntity(entt::entity entity);
+    void DeleteAsset(entt::entity entity);
     void RenderAssetPanel();
     void LoadUIResources();
-    void GetEntityFromModel(const UUID &modelID, std::shared_ptr<entt::registry> registry);
+    void GetAssetFromModel(const UUID &modelID, std::shared_ptr<entt::registry> registry);
     void CreateAssetsForRaw(const std::filesystem::path &path);
     void LoadAssets(const std::filesystem::path &path);
     template <typename T> void InspectorUI(T &object)
@@ -350,10 +332,10 @@ class Editor
                         modified = true;
                     }
                 }
-                else if (fieldType == entt::resolve<Importer>())
-                {
-                    InspectorObject(object, entt::resolve<Importer>());
-                }
+                // else if (fieldType == entt::resolve<Importer>())
+                // {
+                //     InspectorObject(object, entt::resolve<Importer>());
+                // }
                 else
                 {
                     // LogDebug("{}: {}, editable: {}", fieldName, typeid(ValueType).name(), isEditable);

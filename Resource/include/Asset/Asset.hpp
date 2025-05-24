@@ -21,6 +21,7 @@ class Asset
 };
 } // namespace Core
 } // namespace MEngine
+
 namespace nlohmann
 {
 template <> struct adl_serializer<MEngine::Core::Asset>

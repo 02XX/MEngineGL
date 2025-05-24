@@ -75,8 +75,7 @@ class Texture : public Asset
     GLuint mTextureID = 0;
 
   public:
-    Texture() = default;
-    ~Texture() override = default;
+    virtual ~Texture() = default;
     inline bool IsAnisotropicFilteringSupported() const
     {
         if (!glGetStringi || !glGetIntegerv)
@@ -99,7 +98,6 @@ class Texture : public Asset
         return maxAniso > 1.0f;
     }
 };
-
 } // namespace Core
 } // namespace MEngine
 namespace magic_enum

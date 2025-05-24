@@ -25,9 +25,9 @@ class PhongMaterial final : public Material
     UUID EmissiveTextureID = UUID();
     ~PhongMaterial() override = default;
 };
-
 } // namespace Core
 } // namespace MEngine
+
 namespace nlohmann
 {
 template <> struct adl_serializer<MEngine::Core::PhongParameters>

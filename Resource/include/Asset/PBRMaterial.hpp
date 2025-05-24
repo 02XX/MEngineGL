@@ -1,8 +1,6 @@
 #pragma once
 #include "Asset/Material.hpp"
-#include "UUID.hpp"
 #include <glm/vec3.hpp>
-
 namespace MEngine
 {
 namespace Core
@@ -33,6 +31,7 @@ class PBRMaterial final : public Material
 };
 } // namespace Core
 } // namespace MEngine
+
 namespace nlohmann
 {
 template <> struct adl_serializer<MEngine::Core::PBRParameters>

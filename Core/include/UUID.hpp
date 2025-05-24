@@ -8,9 +8,11 @@
 
 namespace MEngine
 {
+namespace Core
+{
 class UUID final
 {
-    friend struct std::hash<MEngine::UUID>;
+    friend struct std::hash<MEngine::Core::UUID>;
     friend class UUIDGenerator;
 
   private:
@@ -112,12 +114,13 @@ class UUIDGenerator final
     UUID operator()();
 };
 using UID = Property<UUID>;
+} // namespace Core
 } // namespace MEngine
 namespace std
 {
-template <> struct hash<MEngine::UUID>
+template <> struct hash<MEngine::Core::UUID>
 {
-    size_t operator()(const MEngine::UUID &id) const
+    size_t operator()(const MEngine::Core::UUID &id) const
     {
         // FNV-1a hash function
         size_t hash = 2166136261u;
@@ -137,15 +140,15 @@ template <> struct hash<MEngine::UUID>
 
 namespace nlohmann
 {
-template <> struct adl_serializer<MEngine::UUID>
+template <> struct adl_serializer<MEngine::Core::UUID>
 {
-    static void to_json(json &j, const MEngine::UUID &uuid)
+    static void to_json(json &j, const MEngine::Core::UUID &uuid)
     {
         j = uuid.ToString();
     }
-    static void from_json(const json &j, MEngine::UUID &uuid)
+    static void from_json(const json &j, MEngine::Core::UUID &uuid)
     {
-        uuid = MEngine::UUID(j.get<std::string>());
+        uuid = MEngine::Core::UUID(j.get<std::string>());
     }
 };
 } // namespace nlohmann

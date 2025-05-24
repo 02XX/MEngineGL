@@ -1,8 +1,7 @@
 #pragma once
-#include "ResourceManager.hpp"
 #include "Scene.hpp"
 #include "UUID.hpp"
-#include <entt/entt.hpp>
+#include <entt/fwd.hpp>
 #include <filesystem>
 #include <memory>
 #include <unordered_map>

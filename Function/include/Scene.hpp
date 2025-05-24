@@ -1,10 +1,9 @@
 #pragma once
-
-#include "Entity/Entity.hpp"
-#include <entt/entt.hpp>
+#include "Asset/Asset.hpp"
+#include <entt/fwd.hpp>
 namespace MEngine
 {
-class Scene : public Entity
+class Scene : public Asset
 {
   private:
     std::shared_ptr<entt::registry> mRegistry;

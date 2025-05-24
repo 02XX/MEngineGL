@@ -1,12 +1,6 @@
-//
-// Created by 02 on 25-5-22.
-//
-
 #pragma once
 #include <glm/vec3.hpp>
-
 #include "Component.hpp"
-#include"Math.hpp"
 namespace MEngine
 {
     enum class LightType

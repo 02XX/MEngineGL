@@ -17,7 +17,7 @@ TEST(AssetDatabaseTest, ImportAsset_Png_GenerateMeta)
 }
 TEST(AssetDatabaseTest, CreateAsset_Material_Create)
 {
-    auto material = std::make_shared<MEngine::PBRMaterial>();
+    auto material = std::make_shared<MEngine::Core::PBRMaterial>();
     material->AlbedoTextureID = UUIDGenerator()();
     material->NormalTextureID = UUIDGenerator()();
     material->ARMTextureID = UUIDGenerator()();

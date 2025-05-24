@@ -1,4 +1,8 @@
 #include "System/CameraSystem.hpp"
+#include "Component/CameraComponent.hpp"
+#include "Component/TransformComponent.hpp"
+#include <entt/entt.hpp>
+#include <glm/glm.hpp>
 
 namespace MEngine
 {

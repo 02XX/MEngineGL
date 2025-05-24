@@ -4,7 +4,6 @@
 #include "Component/MaterialComponent.hpp"
 #include "Component/MeshComponent.hpp"
 #include "Component/TransformComponent.hpp"
-#include "ResourceManager.hpp"
 #include "System/System.hpp"
 #include <memory>
 #include <unordered_map>
@@ -24,16 +23,17 @@ class RenderSystem final : public System
     GLuint DepthAttachment;
     struct Light
     {
-      glm::vec3 position;
-      glm::vec3 direction;
-      glm::vec3 color;
-      float intensity;
-      float radius;
-      int type;
+        glm::vec3 position;
+        glm::vec3 direction;
+        glm::vec3 color;
+        float intensity;
+        float radius;
+        int type;
     };
     GLuint LightUBO;
+
   public:
-    RenderSystem(std::shared_ptr<entt::registry> registry, std::shared_ptr<ResourceManager> resourceManager);
+    RenderSystem(std::shared_ptr<entt::registry> registry);
     ~RenderSystem();
 
     void Init() override;

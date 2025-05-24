@@ -2,7 +2,7 @@
 #pragma once
 #include "Asset/Texture.hpp"
 #include "Importer/AssetImporter.hpp"
-
+using namespace MEngine::Core;
 namespace MEngine
 {
 namespace Editor
@@ -61,7 +61,7 @@ template <> struct adl_serializer<MEngine::Editor::TextureImporter>
         importer.MipmapLevels = j.at("MipmapLevels").get<int>();
         importer.MipmapBias = j.at("MipmapBias").get<float>();
         auto minFilter = j.at("MinFilter").get<std::string>();
-        auto filterEnumValue = magic_enum::enum_cast<MEngine::FilterType>(minFilter);
+        auto filterEnumValue = magic_enum::enum_cast<MEngine::Core::FilterType>(minFilter);
         if (filterEnumValue.has_value())
         {
             importer.MinFilter = filterEnumValue.value();
@@ -71,7 +71,7 @@ template <> struct adl_serializer<MEngine::Editor::TextureImporter>
             throw std::runtime_error("Invalid MinFilter value");
         }
         auto magFilter = j.at("MagFilter").get<std::string>();
-        auto magEnumValue = magic_enum::enum_cast<MEngine::FilterType>(magFilter);
+        auto magEnumValue = magic_enum::enum_cast<MEngine::Core::FilterType>(magFilter);
         if (magEnumValue.has_value())
         {
             importer.MagFilter = magEnumValue.value();
@@ -81,7 +81,7 @@ template <> struct adl_serializer<MEngine::Editor::TextureImporter>
             throw std::runtime_error("Invalid MagFilter value");
         }
         auto wrapU = j.at("WrapU").get<std::string>();
-        auto wrapEnumValue = magic_enum::enum_cast<MEngine::WrapModeType>(wrapU);
+        auto wrapEnumValue = magic_enum::enum_cast<MEngine::Core::WrapModeType>(wrapU);
         if (wrapEnumValue.has_value())
         {
             importer.WrapU = wrapEnumValue.value();
@@ -91,7 +91,7 @@ template <> struct adl_serializer<MEngine::Editor::TextureImporter>
             throw std::runtime_error("Invalid WrapU value");
         }
         auto wrapV = j.at("WrapV").get<std::string>();
-        wrapEnumValue = magic_enum::enum_cast<MEngine::WrapModeType>(wrapV);
+        wrapEnumValue = magic_enum::enum_cast<MEngine::Core::WrapModeType>(wrapV);
         if (wrapEnumValue.has_value())
         {
             importer.WrapV = wrapEnumValue.value();
@@ -101,7 +101,7 @@ template <> struct adl_serializer<MEngine::Editor::TextureImporter>
             throw std::runtime_error("Invalid WrapV value");
         }
         auto wrapW = j.at("WrapW").get<std::string>();
-        wrapEnumValue = magic_enum::enum_cast<MEngine::WrapModeType>(wrapW);
+        wrapEnumValue = magic_enum::enum_cast<MEngine::Core::WrapModeType>(wrapW);
         if (wrapEnumValue.has_value())
         {
             importer.WrapW = wrapEnumValue.value();
@@ -111,7 +111,7 @@ template <> struct adl_serializer<MEngine::Editor::TextureImporter>
             throw std::runtime_error("Invalid WrapW value");
         }
         auto compareMode = j.at("compareMode").get<std::string>();
-        auto compareEnumValue = magic_enum::enum_cast<MEngine::CompareModeType>(compareMode);
+        auto compareEnumValue = magic_enum::enum_cast<MEngine::Core::CompareModeType>(compareMode);
         if (compareEnumValue.has_value())
         {
             importer.compareMode = compareEnumValue.value();
@@ -121,7 +121,7 @@ template <> struct adl_serializer<MEngine::Editor::TextureImporter>
             throw std::runtime_error("Invalid compareMode value");
         }
         auto compareFunc = j.at("compareFunc").get<std::string>();
-        auto funcEnumValue = magic_enum::enum_cast<MEngine::CompareFuncType>(compareFunc);
+        auto funcEnumValue = magic_enum::enum_cast<MEngine::Core::CompareFuncType>(compareFunc);
         if (funcEnumValue.has_value())
         {
             importer.compareFunc = funcEnumValue.value();

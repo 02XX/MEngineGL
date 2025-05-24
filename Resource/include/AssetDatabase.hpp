@@ -36,7 +36,7 @@ struct AssetMeta
 class AssetDatabase
 {
   private:
-    static std::unordered_map<UUID, AssetMeta> UUID2Meta;
+    static std::unordered_map<UUID, std::shared_ptr<AssetMeta>> UUID2Meta;
     static std::unordered_map<std::filesystem::path, UUID> Path2UUID;
     static std::unordered_map<std::type_index, std::string> Asset2Extension;
     static std::vector<std::filesystem::path> AssetPaths;
@@ -131,6 +131,15 @@ class AssetDatabase
         {
             throw std::runtime_error("Asset not imported: " + path.string());
         }
+    }
+    inline static std::vector<std::shared_ptr<AssetMeta>> GetAllAssets()
+    {
+        std::vector<std::shared_ptr<AssetMeta>> assets;
+        for (auto &pair : UUID2Meta)
+        {
+            assets.push_back(pair.second);
+        }
+        return assets;
     }
 };
 } // namespace Editor
