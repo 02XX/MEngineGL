@@ -10,7 +10,6 @@ namespace Core
 class Folder : public Asset
 {
   public:
-    std::filesystem::path FolderPath{};
     Folder() = default;
 };
 } // namespace Core
@@ -22,13 +21,13 @@ template <> struct adl_serializer<MEngine::Core::Folder>
     static void to_json(json &j, const MEngine::Core::Folder &folder)
     {
         j = static_cast<MEngine::Core::Asset>(folder);
-        j["FolderPath"] = folder.FolderPath.string();
+        // j["FolderPath"] = folder.FolderPath.string();
     }
 
     static void from_json(const json &j, MEngine::Core::Folder &folder)
     {
         static_cast<MEngine::Core::Asset &>(folder) = j;
-        folder.FolderPath = j.at("FolderPath").get<std::string>();
+        // folder.FolderPath = j.at("FolderPath").get<std::string>();
     }
 };
 } // namespace nlohmann

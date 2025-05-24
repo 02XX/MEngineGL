@@ -1,6 +1,7 @@
 #pragma once
 #include "Asset/Asset.hpp"
 #include "Asset/Folder.hpp"
+#include "Asset/Material.hpp"
 #include "Asset/PBRMaterial.hpp"
 #include "Asset/Texture2D.hpp"
 #include "Component/AssestComponent.hpp"
@@ -33,37 +34,42 @@ static void RegisterMeta()
             .Serializable = false,
         })
         .data<&Asset::Name>("Name"_hs)
-        .custom<Info>(Info{.DisplayName = "Name", .Editable = false});
-    // entt::meta<Texture2D>()
-    //     .type("Texture2D"_hs)
-    //     .base<Asset>()
-    //     .custom<Info>(Info{
-    //         .DisplayName = "Texture2D",
-    //     })
-    //     .data<&Texture2D::Width>("Width"_hs)
-    //     .custom<Info>(Info{
-    //         .DisplayName = "Width",
-    //     })
-    //     .data<&Texture2D::Height>("Height"_hs)
-    //     .custom<Info>(Info{
-    //         .DisplayName = "Height",
-    //     })
-    //     .data<&Texture2D::Channels>("Channels"_hs)
-    //     .custom<Info>(Info{
-    //         .DisplayName = "Channels",
-    //     })
-    //     .data<&Texture2D::mSamplerID>("mSamplerID"_hs)
-    //     .custom<Info>(Info{
-    //         .DisplayName = "mSamplerID",
-    //     })
-    //     .data<&Texture2D::mTextureID>("mTextureID"_hs)
-    //     .custom<Info>(Info{
-    //         .DisplayName = "mTextureID",
-    //     });
-    // .data<&Texture2D::Importer>("Importer"_hs)
-    // .custom<Info>(Info{
-    //     .DisplayName = "Importer",
-    // });
+        .custom<Info>(Info{.DisplayName = "Name", .Editable = false})
+        .data<&Asset::isDirty>("IsDirty"_hs)
+        .custom<Info>(Info{.DisplayName = "IsDirty", .Editable = false});
+    entt::meta<Folder>()
+        .type("Folder"_hs)
+        .base<Asset>()
+        .custom<Info>(Info{
+            .DisplayName = "Folder",
+        });
+    entt::meta<Texture>()
+        .type("Texture"_hs)
+        .base<Asset>()
+        .custom<Info>(Info{
+            .DisplayName = "Texture",
+        })
+        .data<&Texture::Width>("Width"_hs)
+        .custom<Info>(Info{
+            .DisplayName = "Width",
+        })
+        .data<&Texture::Height>("Height"_hs)
+        .custom<Info>(Info{
+            .DisplayName = "Height",
+        })
+        .data<&Texture::Channels>("Channels"_hs)
+        .custom<Info>(Info{
+            .DisplayName = "Channels",
+        })
+        .data<&Texture::mSamplerID>("mSamplerID"_hs)
+        .custom<Info>(Info{
+            .DisplayName = "mSamplerID",
+        })
+        .data<&Texture::mTextureID>("mTextureID"_hs)
+        .custom<Info>(Info{
+            .DisplayName = "mTextureID",
+        });
+
     entt::meta<Component>()
         .type("Component"_hs)
         .custom<Info>(Info{
@@ -75,28 +81,7 @@ static void RegisterMeta()
             .DisplayName = "dirty",
             .Serializable = false,
         });
-    entt::meta<AssetsComponent>()
-        .type("AssetsComponent"_hs)
-        .custom<Info>(Info{
-            .DisplayName = "AssetsComponent",
-        })
-        .base<Component>()
-        .data<&AssetsComponent::path>("path"_hs)
-        .custom<Info>(Info{
-            .DisplayName = "path",
-        })
-        .data<&AssetsComponent::name>("name"_hs)
-        .custom<Info>(Info{
-            .DisplayName = "name",
-        });
-    entt::meta<TextureComponent>()
-        .type("TextureComponent"_hs)
-        .custom<Info>(Info{
-            .DisplayName = "TextureComponent",
-        })
-        .base<Component>()
-        .data<&TextureComponent::textureID>("texture"_hs)
-        .custom<Info>(Info{.DisplayName = "Texture ID", .Editable = true});
+
     entt::meta<TransformComponent>()
         .type("TransformComponent"_hs)
         .custom<Info>(Info{
@@ -196,6 +181,11 @@ static void RegisterMeta()
     //         .DisplayName = "materialID",
     //         .Editable = true,
     //     });
+    entt::meta<Material>()
+        .type("Material"_hs)
+        .custom<Info>(Info{
+            .DisplayName = "Material",
+        });
     entt::meta<PBRMaterial>()
         .type("PBRMaterial"_hs)
         .custom<Info>(Info{
@@ -242,12 +232,7 @@ static void RegisterMeta()
         .custom<Info>(Info{
             .DisplayName = "Folder",
         })
-        .base<Asset>()
-        .data<&Folder::FolderPath>("FolderPath"_hs)
-        .custom<Info>(Info{
-            .DisplayName = "FolderPath",
-            .Editable = true,
-        });
+        .base<Asset>();
     entt::meta<LightComponent>()
         .type("LightComponent"_hs)
         .custom<Info>(Info{.DisplayName = "LightComponent"})

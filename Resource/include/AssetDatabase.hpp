@@ -126,23 +126,33 @@ class AssetDatabase
         {
             auto meta = UUID2Meta[it->second];
             // 根据meta的导入设置创建资源
-            if constexpr (std::is_same_v<TAsset, Texture2D>)
+            if constexpr (std::is_same_v<TAsset, Folder>)
             {
+                auto folder = std::make_shared<Folder>();
+                return folder;
             }
             else if constexpr (std::is_same_v<TAsset, Pipeline>)
             {
             }
             else if constexpr (std::is_same_v<TAsset, PBRMaterial>)
             {
+                auto pbrMaterial = std::make_shared<PBRMaterial>();
+                return pbrMaterial;
             }
             else if constexpr (std::is_same_v<TAsset, Texture>)
             {
+                auto texture = std::make_shared<Texture>();
+                return texture;
             }
             else if constexpr (std::is_same_v<TAsset, PhongMaterial>)
             {
+                auto phongMaterial = std::make_shared<PhongMaterial>();
+                return phongMaterial;
             }
             else if constexpr (std::is_same_v<TAsset, Prefab>)
             {
+                auto prefab = std::make_shared<Prefab>();
+                return prefab;
             }
             else
             {

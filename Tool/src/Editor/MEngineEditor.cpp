@@ -781,12 +781,28 @@ void MEngineEditor::RenderInspectorPanel()
     }
     if (mSelectedAsset != nullptr)
     {
-        // auto assetLabel = std::format("Asset {}", mSelectedAsset->ID.ToString());
-        // ImGui::Text("%s", assetLabel.c_str());
-        // if (mSelectedAsset->Type == AssetType::Folder)
+        auto assetLabel = std::format("Asset {}", mSelectedAsset->ID.ToString());
+        ImGui::Text("%s", assetLabel.c_str());
+        auto path = mSelectedAsset->importer->assetPath;
+        if (mSelectedAsset->Type == AssetType::Folder)
+        {
+            auto asset = AssetDatabase::LoadAssetAtPath<Folder>(path);
+            InspectorUI(*asset);
+        }
+        else if (mSelectedAsset->Type == AssetType::Material)
+        {
+            auto asset = AssetDatabase::LoadAssetAtPath<Material>(path);
+            InspectorUI(*asset);
+        }
+        else if (mSelectedAsset->Type == AssetType::Texture)
+        {
+            auto asset = AssetDatabase::LoadAssetAtPath<Texture>(path);
+            InspectorUI(*asset);
+        }
+        // else if (mSelectedAsset->Type == AssetType::Model)
         // {
-        //     auto entity = std::dynamic_pointer_cast<Folder>(mSelectedAsset);
-        //     InspectorUI<Folder>(*entity);
+        //     auto asset = AssetDatabase::LoadAssetAtPath<Model>(path);
+        //     InspectorUI(*asset);
         // }
     }
     // 右键菜单
