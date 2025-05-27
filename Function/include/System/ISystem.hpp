@@ -2,6 +2,8 @@
 
 namespace MEngine
 {
+namespace Function
+{
 class ISystem
 {
   public:
@@ -11,4 +13,5 @@ class ISystem
     virtual void Update(float deltaTime) = 0;
     virtual void Shutdown() = 0;
 };
+} // namespace Function
 } // namespace MEngine

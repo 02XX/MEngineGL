@@ -141,7 +141,7 @@ class AssetDatabase
             }
             else if constexpr (std::is_same_v<TAsset, Texture>)
             {
-                auto texture = std::make_shared<Texture>();
+                auto texture = std::make_shared<Texture>(); 
                 return texture;
             }
             else if constexpr (std::is_same_v<TAsset, PhongMaterial>)

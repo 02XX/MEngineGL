@@ -5,6 +5,8 @@
 
 namespace MEngine
 {
+namespace Function
+{
 struct CameraComponent : public Component
 {
     glm::vec3 target = {0.0f, 0.0f, 0.0f};
@@ -21,4 +23,5 @@ struct CameraComponent : public Component
     glm::mat4 viewMatrix = glm::mat4(1.0f);
     glm::mat4 projectionMatrix = glm::mat4(1.0f);
 };
+} // namespace Function
 } // namespace MEngine

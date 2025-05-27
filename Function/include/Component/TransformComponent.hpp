@@ -7,7 +7,8 @@
 
 namespace MEngine
 {
-
+namespace Function
+{
 struct TransformComponent : public Component
 {
     std::string name = "None";
@@ -25,4 +26,5 @@ struct TransformComponent : public Component
     entt::entity parent = entt::null;
     std::vector<entt::entity> children;
 };
+} // namespace Function
 } // namespace MEngine

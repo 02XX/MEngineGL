@@ -1,14 +1,14 @@
 #pragma once
 #include "Component/Component.hpp"
 #include "UUID.hpp"
-#include <filesystem>
-#include <memory>
-
+using namespace MEngine::Core;
 namespace MEngine
 {
-
+namespace Function
+{
 struct TextureComponent : public Component
 {
     UUID textureID;
 };
+} // namespace Function
 } // namespace MEngine

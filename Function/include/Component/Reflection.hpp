@@ -4,7 +4,6 @@
 #include "Asset/Material.hpp"
 #include "Asset/PBRMaterial.hpp"
 #include "Asset/Texture2D.hpp"
-#include "Component/AssestComponent.hpp"
 #include "Component/CameraComponent.hpp"
 #include "Component/Component.hpp"
 #include "Component/MaterialComponent.hpp"
@@ -15,7 +14,7 @@
 #include <entt/meta/factory.hpp>
 
 #include "LightComponent.hpp"
-
+using namespace MEngine::Function;
 using namespace entt::literals;
 namespace MEngine
 {

@@ -23,6 +23,8 @@ enum class AssetType
 class Asset
 {
   private:
+    unsigned int mRefCount = 0;
+
   public:
     bool isDirty = false;
     std::string Name = "Asset";
